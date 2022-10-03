@@ -1,4 +1,5 @@
 datasets/clevr/**/*
 datasets/vqa/**/*
+datasets/vcr/**/*
 
 !.gitkeep
