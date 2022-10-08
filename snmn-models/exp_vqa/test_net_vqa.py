@@ -68,12 +68,33 @@ os.makedirs(vis_dir, exist_ok=True)
 # Run test
 answer_correct, num_questions = 0, 0
 for n_batch, batch in enumerate(data_reader.batches()):
+    if 'answer_label_batch' not in batch:
+        batch['answer_label_batch'] = -np.ones(
+            len(batch['image_feat_batch']), np.int32)
+        if num_questions == 0:
+            print('imdb has no answer labels. Using dummy labels.\n\n'
+                  '**The final accuracy will be zero (no labels provided)**\n')
+    
     fetch_list = [model.vqa_scores]
-    answer_incorrect = num_questions - answer_correct
+    answer_incorrect = num_questions - answer_correct    
+    if cfg.TEST.VIS_SEPARATE_CORRECTNESS:
+        run_vis = (
+            answer_correct < cfg.TEST.NUM_VIS_CORRECT or
+            answer_incorrect < cfg.TEST.NUM_VIS_INCORRECT)
+    else:
+        run_vis = num_questions < cfg.TEST.NUM_VIS
+    if run_vis:
+        fetch_list.append(model.vis_outputs)
     fetch_list_val = sess.run(fetch_list, feed_dict={
             input_seq_batch: batch['input_seq_batch'],
             seq_length_batch: batch['seq_length_batch'],
             image_feat_batch: batch['image_feat_batch']})
+
+    # visualization
+    if run_vis:
+        model.vis_batch_vqa(
+            data_reader, batch, fetch_list_val[-1], num_questions,
+            answer_correct, answer_incorrect, vis_dir)
 
     # compute accuracy
     vqa_scores_val = fetch_list_val[0]
