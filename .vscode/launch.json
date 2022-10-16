@@ -30,7 +30,25 @@
             "console": "integratedTerminal",
             "args": [
                 "--cfg",
-                "exp_clevr_snmn/cfgs/vqa_gt_layout.yaml"
+                "exp_clevr_snmn/cfgs/vqa_gt_layout.yaml",
+                "TEST.ITER",
+                "40000"
+            ]
+        },
+
+        {
+            "name": "VQAv2: Test gt",
+            "type": "python",
+            "request": "launch",
+            "program": "./exp_vqa/test_net_vqa.py",
+            "cwd": "${workspaceFolder}/snmn-models",
+            "python": "${command:python.interpreterPath}",
+            "console": "integratedTerminal",
+            "args": [
+                "--cfg",
+                "exp_vqa/cfgs/vqa_v2_gt_layout.yaml",
+                "TEST.ITER",
+                "40000"
             ]
         }
     ]
