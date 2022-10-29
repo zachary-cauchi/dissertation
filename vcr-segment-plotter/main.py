@@ -26,7 +26,7 @@ def process_json(jsonName):
     outputName = imageName + ".jpg"
     imageName += ".jpg"
 
-    print("Processing file " + imageName)
+    print(f"Processing file ${imageName}")
 
     imageName = os.path.join(os.path.dirname(jsonName), imageName)
 
