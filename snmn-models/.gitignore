@@ -8,6 +8,7 @@
 *.swp
 
 exp_*/data/*
+!exp_*/data/*.py
 exp_*/tfmodel
 exp_*/tfmodel/*
 exp_*/results*

@@ -9,17 +9,23 @@
             "type": "python",
             "request": "launch",
             "program": "${file}",
-            "cwd": "${workspaceFolder}/snmn-models",
+            "cwd": "${fileDirname}",
             "python": "${command:python.interpreterPath}",
             "console": "integratedTerminal",
-            "args": [
-                "exp_clevr_snmn/test_net_vqa.py",
-                "--cfg",
-                "exp_clevr_snmn/cfgs/vqa_gt_layout.yaml"
-            ],
             "justMyCode": true
         },
         
+        {
+            "name": "Python: Current File (snmn-models dir)",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "cwd": "${workspaceFolder}/snmn-models",
+            "python": "${command:python.interpreterPath}",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+
         {
             "name": "CLEVR: Test gt",
             "type": "python",
