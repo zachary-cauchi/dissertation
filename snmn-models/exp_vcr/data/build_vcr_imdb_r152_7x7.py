@@ -8,9 +8,12 @@ from util import text_processing
 from collections import Counter
 
 annotations_dir = '../vcr_dataset/Annotations'
+images_dir = '../vcr_dataset/vcr1images'
+vocabulary_file = './vocabulary_vcr.txt'
 imdb_out_dir = './imdb_r152_7x7'
-file_sets = ['train.jsonl']
+file_sets = ['val.jsonl']
 # file_sets = ['test.jsonl', 'train.jsonl', 'val.jsonl']
+
 file_splits = {}
 split_folds = {}
 img2qid = {}
@@ -18,6 +21,36 @@ qid2que = {}
 qid2ans = {}
 qid2rat = {}
 vocabulary = set()
+img_metadatas = {}
+
+# Initialise any existing vocabulary file.
+if (os.path.exists(vocabulary_file) and os.path.isfile(vocabulary_file)):
+    try:
+        with open(vocabulary_file) as f:
+            vocabulary = set(f.read().splitlines())
+    except:
+        print('WARNING: Something went wrong when loading vocabulary file. Recreating file from scratch.')
+
+def open_image_metadata_file(qar):
+    metadata_name = qar['metadata_fn']
+
+    # If we haven't yet loaded the file, load it and cache it.
+    if (metadata_name not in img_metadatas):
+        with open(os.path.join(images_dir, metadata_name)) as f:
+            img_metadatas[metadata_name] = json.load(f)
+
+    return img_metadatas[metadata_name]
+
+def update_vocab(qar):
+    sentences = qar['question'], *qar['answer_choices'], *qar['rationale_choices']
+    metadata = open_image_metadata_file(qar)
+
+    # Iterate through all tokens in the QAR, replacing any object references with their classname where appropriate.
+    for token in itertools.chain(*sentences):
+        if isinstance(token, list):
+            vocabulary.add(metadata['names'][token[0]].lower())
+        else:
+            vocabulary.add(token.lower())
 
 def extract_folds_from_file_set(file_set):
     with open(os.path.join(annotations_dir, file_set)) as f:
@@ -63,6 +96,9 @@ def extract_folds_from_file_set(file_set):
 
         split_folds[match_fold].append(qar)
 
+        # Update the vocabulary with any new values.
+        update_vocab(qar)
+
 for file_set in file_sets:
     print(f'Processing {file_set}')
     extract_folds_from_file_set(file_set)
@@ -71,6 +107,10 @@ for file_set in file_sets:
     print(f'Loaded {sum(len(split_folds[fold]) for fold in file_splits[file_set])} QAR sets across all folds.')
 
 os.makedirs('./imdb_r152_7x7', exist_ok=True)
+
+# Write the current vocabulary to the file.
+with open(vocabulary_file, 'w') as f:
+    f.writelines(token + '\n' for token in sorted(vocabulary))
 # np.save('./imdb_r152_7x7/imdb_train2014.npy', np.array(imdb_train2014))
 # np.save('./imdb_r152_7x7/imdb_val2014.npy', np.array(imdb_val2014))
 # np.save('./imdb_r152_7x7/imdb_trainval2014.npy', np.array(imdb_train2014+imdb_val2014))

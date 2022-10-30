@@ -23,6 +23,8 @@ The following notes are to be considered:
   * rationale_match_iter
   * rationale_sources
   * rationale_label
+* Tokenised representations of numbers are changed into single-token, multi-worded representations, and can contain human-induced irregularities to refer to the same number.
+  * Eg: `2016` becomes `two thousand and sixteen point zero`, but could also be encountered as `two thousand and sixteen` or ` two thousand and sixteen point zero` with unnecessary spacing.
 
 Question annotation:
 
