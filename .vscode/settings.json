@@ -1,3 +1,4 @@
 {
-    "python.venvPath": "~/anaconda3/envs/"
+    "python.venvPath": "~/anaconda3/envs/",
+    "editor.renderWhitespace": "all"
 }

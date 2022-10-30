@@ -63,7 +63,7 @@ set_count = len(image_sets)
 set_count_digits = len("%i" % set_count)
 
 for i, image_set in enumerate(image_sets):
-    print(f'({i + 1:0^{set_count_digits}}/{set_count}) Extracting image set {image_set}')
+    print(f'({i + 1:0{set_count_digits}}/{set_count}) Extracting image set {image_set}')
     extract_dataset_resnet152_c5_7x7(
         os.path.join(image_basedir, image_set),
         os.path.join(save_basedir, image_set),
