@@ -6,9 +6,11 @@ import os
 import sys; sys.path.append('../../')  # NOQA
 from util import text_processing
 from collections import Counter
+from word2number import w2n
 
 annotations_dir = '../vcr_dataset/Annotations'
 images_dir = '../vcr_dataset/vcr1images'
+corpus_file = './corpus_vcr.txt'
 vocabulary_file = './vocabulary_vcr.txt'
 imdb_out_dir = './imdb_r152_7x7'
 file_sets = ['val.jsonl']
@@ -20,16 +22,15 @@ img2qid = {}
 qid2que = {}
 qid2ans = {}
 qid2rat = {}
-vocabulary = set()
+corpus = []
+vocab = Counter()
 img_metadatas = {}
 
-# Initialise any existing vocabulary file.
-if (os.path.exists(vocabulary_file) and os.path.isfile(vocabulary_file)):
-    try:
-        with open(vocabulary_file) as f:
-            vocabulary = set(f.read().splitlines())
-    except:
-        print('WARNING: Something went wrong when loading vocabulary file. Recreating file from scratch.')
+word_num_checker_dict = {
+    **w2n.american_number_system,
+    'and': 0,
+    'point': 0
+}
 
 def open_image_metadata_file(qar):
     metadata_name = qar['metadata_fn']
@@ -41,16 +42,39 @@ def open_image_metadata_file(qar):
 
     return img_metadatas[metadata_name]
 
+def preprocess_token(token, qar, metadata):
+    # Resolve the token if the token is a reference to an object.
+    if isinstance(token, list):
+        resolved_token = metadata['names'][token[0]].lower().strip()
+    else:
+        resolved_token = token.lower().strip()
+
+    # If the token is one or more number words, convert it to a number.
+    is_worded_number = all(word_num_checker_dict.get(subtoken) is not None for subtoken in resolved_token.split(' ')) and resolved_token != 'and' and resolved_token != 'point'
+    if (is_worded_number):
+        resolved_token = w2n.word_to_num(resolved_token)
+        if (type(resolved_token) is float and resolved_token.is_integer()):
+            resolved_token = str(int(resolved_token))
+        else:
+            resolved_token = str(resolved_token)
+
+    return resolved_token
+
 def update_vocab(qar):
     sentences = qar['question'], *qar['answer_choices'], *qar['rationale_choices']
     metadata = open_image_metadata_file(qar)
 
     # Iterate through all tokens in the QAR, replacing any object references with their classname where appropriate.
-    for token in itertools.chain(*sentences):
-        if isinstance(token, list):
-            vocabulary.add(metadata['names'][token[0]].lower())
-        else:
-            vocabulary.add(token.lower())
+    # for token in itertools.chain(*sentences):
+    for sentence in sentences:
+        for i, token in enumerate(sentence):
+            # Resolve the token if the token is a reference to an object.
+            resolved_token = preprocess_token(token, qar, metadata)
+
+            sentence[i] = resolved_token
+
+            vocab[resolved_token] += 1
+            corpus.append(resolved_token)
 
 def extract_folds_from_file_set(file_set):
     with open(os.path.join(annotations_dir, file_set)) as f:
@@ -109,8 +133,13 @@ for file_set in file_sets:
 os.makedirs('./imdb_r152_7x7', exist_ok=True)
 
 # Write the current vocabulary to the file.
+print(f'Saving vocabulary file to {vocabulary_file}')
 with open(vocabulary_file, 'w') as f:
-    f.writelines(token + '\n' for token in sorted(vocabulary))
+    f.writelines(f'{token[0]} {token[1]}\n' for token in sorted(vocab.items()))
+# Write the corpus to the file.
+print(f'Saving corpus file to {corpus_file}')
+with open(corpus_file, 'w') as f:
+    f.writelines(token + ' ' for token in corpus)
 # np.save('./imdb_r152_7x7/imdb_train2014.npy', np.array(imdb_train2014))
 # np.save('./imdb_r152_7x7/imdb_val2014.npy', np.array(imdb_val2014))
 # np.save('./imdb_r152_7x7/imdb_trainval2014.npy', np.array(imdb_train2014+imdb_val2014))

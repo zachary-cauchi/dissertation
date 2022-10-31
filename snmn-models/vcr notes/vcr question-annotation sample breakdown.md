@@ -24,7 +24,12 @@ The following notes are to be considered:
   * rationale_sources
   * rationale_label
 * Tokenised representations of numbers are changed into single-token, multi-worded representations, and can contain human-induced irregularities to refer to the same number.
-  * Eg: `2016` becomes `two thousand and sixteen point zero`, but could also be encountered as `two thousand and sixteen` or ` two thousand and sixteen point zero` with unnecessary spacing.
+  * Eg: `2016` becomes `two thousand and sixteen point zero`, but could also be encountered as `two thousand and sixteen` or ` two thousand and sixteen point zero` with leading or trailing spacing.
+  * Such tokens are _converted to their number forms_ (and then to ints if ending in `.0`).
+* Tokens are _resolved to their object classes_ if they are an index pointing to an object in the image metadata file.
+* Tokens are _trimmed_ of leading and trailing whitespace.
+* Any token changes (such as _number conversion_, _object resolution_, _trimming_, etc) **replace** the original tokens to keep the vocabulary and embeddings accurate to the QARs.
+  * These are **not** applied to the original source files (the dataset files).
 
 Question annotation:
 

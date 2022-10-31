@@ -9,6 +9,7 @@
 
 exp_*/data/*
 !exp_*/data/*.py
+!exp_*/data/*.sh
 exp_*/tfmodel
 exp_*/tfmodel/*
 exp_*/results*
