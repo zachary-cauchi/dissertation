@@ -13,6 +13,7 @@ images_dir = '../vcr_dataset/vcr1images'
 corpus_file = './corpus_vcr.txt'
 vocabulary_file = './vocabulary_vcr.txt'
 imdb_out_dir = './imdb_r152_7x7'
+resnet_feature_dir = './resnet152_c5_7x7'
 file_sets = {
     'train.jsonl': { 'load_answers': True },
     'val.jsonl': { 'load_answers': True },
@@ -119,7 +120,7 @@ def build_imdb(fold_name, with_answers = True):
         image_path = os.path.realpath(os.path.join(images_dir, qar['img_fn']))
         image_id = int(qar['img_id'].split('-')[1])
         question_id = int(qar['annot_id'].split('-')[1])
-        feature_path = os.path.realpath(os.path.join(imdb_out_dir, os.path.splitext(qar['img_fn'])[0].join('.npy')))
+        feature_path = os.path.realpath(os.path.join(resnet_feature_dir, os.path.splitext(qar['img_fn'])[0] + '.npy'))
         question_tokens = qar['question']
         question_str = ' '.join(question_tokens)
 
