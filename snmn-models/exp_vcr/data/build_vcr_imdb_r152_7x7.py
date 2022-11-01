@@ -13,7 +13,11 @@ images_dir = '../vcr_dataset/vcr1images'
 corpus_file = './corpus_vcr.txt'
 vocabulary_file = './vocabulary_vcr.txt'
 imdb_out_dir = './imdb_r152_7x7'
-file_sets = ['val.jsonl']
+file_sets = {
+    # 'train.jsonl': { 'load_answers': True },
+    # 'val.jsonl': { 'load_answers': True },
+    'test.jsonl': { 'load_answers': False}
+}
 # file_sets = ['test.jsonl', 'train.jsonl', 'val.jsonl']
 
 file_splits = {}
@@ -86,7 +90,7 @@ def extract_folds_from_file_set(file_set):
 
     for i, json_qar in enumerate(json_qars):
         if i % 100 == 0:
-            print(f'Processing QAR ({i + 1:0{qar_count_digits}}/{qar_count})')
+            print(f'({i + 1:0{qar_count_digits}}/{qar_count}) Processing QAR of file {file_set}')
 
         qar = json.loads(json_qar)
 
@@ -123,14 +127,57 @@ def extract_folds_from_file_set(file_set):
         # Update the vocabulary with any new values.
         update_vocab(qar)
 
-for file_set in file_sets:
-    print(f'Processing {file_set}')
+def build_imdb(fold_name, with_answers = True):
+    imdb = []
+
+    print(f'Constructing imdb for fold {fold_name}.')
+    qar_count = len(split_folds[fold_name])
+    qar_count_digits = len('%s' % qar_count)
+    for i, qar in enumerate(split_folds[fold_name]):
+        if i % 1000 == 0:
+            print(f'({i + 1:0{qar_count_digits}}/{qar_count}) Processing imdb entry.')
+
+        image_name = os.path.splitext(os.path.basename(qar['img_fn']))[0]
+        image_path = os.path.realpath(os.path.join(images_dir, qar['img_fn']))
+        image_id = int(qar['img_id'].split('-')[1])
+        question_id = int(qar['annot_id'].split('-')[1])
+        feature_path = os.path.realpath(os.path.join(imdb_out_dir, os.path.splitext(qar['img_fn'])[0].join('.npy')))
+        question_tokens = qar['question']
+        question_str = ' '.join(question_tokens)
+
+        imdb_entry = {
+            'image_name': image_name,
+            'image_path': image_path,
+            'image_id': image_id,
+            'question_id': question_id,
+            'feature_path': feature_path,
+            'question_str': question_str,
+            'question_tokens': question_tokens,
+        }
+
+        if with_answers:
+            imdb_entry['all_answers'] = qar['answer_choices']
+            imdb_entry['valid_answers'] = qar['answer_match_iter']
+            imdb_entry['all_rationales'] = qar['rationale_choices']
+            imdb_entry['valid_rationales'] = qar['rationale_match_iter']
+
+        imdb.append(imdb_entry)
+
+    print(f'Processing completed for fold {fold_name}')
+    return imdb
+
+
+print(f'Loading {len(file_sets)} file sets.')
+for file_set, params in file_sets.items():
+    print(f'Processing {file_set}.')
     extract_folds_from_file_set(file_set)
-    print(f'Completed {file_set}')
-    print(f'Completed {len(file_splits[file_set])} folds')
+    print(f'Completed {file_set}.')
+    print(f'Completed {len(file_splits[file_set])} folds.')
     print(f'Loaded {sum(len(split_folds[fold]) for fold in file_splits[file_set])} QAR sets across all folds.')
 
-os.makedirs('./imdb_r152_7x7', exist_ok=True)
+print('File-loading completed!')
+
+os.makedirs(imdb_out_dir, exist_ok=True)
 
 # Write the current vocabulary to the file.
 print(f'Saving vocabulary file to {vocabulary_file}')
@@ -140,6 +187,16 @@ with open(vocabulary_file, 'w') as f:
 print(f'Saving corpus file to {corpus_file}')
 with open(corpus_file, 'w') as f:
     f.writelines(token + ' ' for token in corpus)
+
+print('Constructing and saving imdbs')
+for file_set, params in file_sets.items():
+    imdb = []
+
+    for fold_names in file_splits[file_set]:
+        imdb += build_imdb(fold_names, with_answers=params['load_answers'])
+
+    np.save(os.path.join(imdb_out_dir, f'imdb_{os.path.splitext(file_set)[0]}.npy'), np.array(imdb))
+
 # np.save('./imdb_r152_7x7/imdb_train2014.npy', np.array(imdb_train2014))
 # np.save('./imdb_r152_7x7/imdb_val2014.npy', np.array(imdb_val2014))
 # np.save('./imdb_r152_7x7/imdb_trainval2014.npy', np.array(imdb_train2014+imdb_val2014))
