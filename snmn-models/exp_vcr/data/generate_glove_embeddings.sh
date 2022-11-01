@@ -16,6 +16,11 @@ WINDOW_SIZE=15
 BINARY=2
 NUM_THREADS=8
 X_MAX=10
+if hash python 2>/dev/null; then
+    PYTHON=python
+else
+    PYTHON=python3
+fi
 
 # Convert program path to absolute path
 BUILDDIR=`realpath $BUILDDIR`
@@ -38,3 +43,6 @@ cp -f trimmed_$SAVE_FILE.txt $SAVE_FILE.txt
 
 echo "rm trimmed_$SAVE_FILE.txt"
 rm trimmed_$SAVE_FILE.txt
+
+echo "$ $PYTHON -c \"import numpy as np; np.save('$SAVE_FILE.npy', np.loadtxt('$SAVE_FILE.txt'), allow_pickle=True)\""
+$PYTHON -c "import numpy as np; np.save('$SAVE_FILE.npy', np.loadtxt('$SAVE_FILE.txt'), allow_pickle=True)"
