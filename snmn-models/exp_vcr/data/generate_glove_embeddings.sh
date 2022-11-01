@@ -11,7 +11,7 @@ VERBOSE=2
 MEMORY=4.0
 VOCAB_MIN_COUNT=5
 VECTOR_SIZE=300
-MAX_ITER=15
+MAX_ITER=25
 WINDOW_SIZE=15
 BINARY=2
 NUM_THREADS=8
@@ -31,7 +31,7 @@ echo "$ $BUILDDIR/glove -save-file $SAVE_FILE -threads $NUM_THREADS -input-file 
 $BUILDDIR/glove -save-file $SAVE_FILE -threads $NUM_THREADS -input-file $COOCCURRENCE_SHUF_FILE -x-max $X_MAX -iter $MAX_ITER -vector-size $VECTOR_SIZE -binary $BINARY -vocab-file $VOCAB_FILE -verbose $VERBOSE
 
 echo "$ cut -f 2- -d ' ' $SAVE_FILE.txt > new_$SAVE_FILE.txt"
-cut -f 2- -d ' ' $SAVE_FILE.txt > new_$SAVE_FILE.txt
+cut -f 2- -d ' ' $SAVE_FILE.txt > trimmed_$SAVE_FILE.txt
 
 echo "$ cp -f $SAVE_FILE.txt trimmed_$SAVE_FILE.txt"
 cp -f trimmed_$SAVE_FILE.txt $SAVE_FILE.txt
