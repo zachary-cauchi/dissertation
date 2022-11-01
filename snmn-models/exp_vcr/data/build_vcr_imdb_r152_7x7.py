@@ -14,21 +14,17 @@ corpus_file = './corpus_vcr.txt'
 vocabulary_file = './vocabulary_vcr.txt'
 imdb_out_dir = './imdb_r152_7x7'
 file_sets = {
-    # 'train.jsonl': { 'load_answers': True },
-    # 'val.jsonl': { 'load_answers': True },
+    'train.jsonl': { 'load_answers': True },
+    'val.jsonl': { 'load_answers': True },
     'test.jsonl': { 'load_answers': False}
 }
-# file_sets = ['test.jsonl', 'train.jsonl', 'val.jsonl']
 
 file_splits = {}
 split_folds = {}
 img2qid = {}
 qid2que = {}
-qid2ans = {}
-qid2rat = {}
 corpus = []
 vocab = Counter()
-img_metadatas = {}
 
 word_num_checker_dict = {
     **w2n.american_number_system,
@@ -39,12 +35,8 @@ word_num_checker_dict = {
 def open_image_metadata_file(qar):
     metadata_name = qar['metadata_fn']
 
-    # If we haven't yet loaded the file, load it and cache it.
-    if (metadata_name not in img_metadatas):
-        with open(os.path.join(images_dir, metadata_name)) as f:
-            img_metadatas[metadata_name] = json.load(f)
-
-    return img_metadatas[metadata_name]
+    with open(os.path.join(images_dir, metadata_name)) as f:
+        return json.load(f)
 
 def preprocess_token(token, qar, metadata):
     # Resolve the token if the token is a reference to an object.
@@ -107,21 +99,7 @@ def extract_folds_from_file_set(file_set):
         if (match_fold not in file_splits[file_set]):
             file_splits[file_set].append(match_fold)
 
-        # Assign answers and rationale sources.
-        if ('answer_sources' in qar):
-            answer_sources = qar['answer_sources']
-            rationale_sources = qar['rationale_sources']
-
-            a_id = answer_sources.index(qar_split_id)
-            r_id = rationale_sources.index(qar_split_id)
-
-            if (qar_split_id in qid2que):
-                print(f'Warning: {qar_split_id} already defined')
-
-            qid2que[qar_split_id] = qar['question']
-            qid2ans[qar_split_id] = qar['answer_choices'][a_id]
-            qid2rat[qar_split_id] = qar['rationale_choices'][r_id]
-
+        qid2que[qar_split_id] = qar['question']
         split_folds[match_fold].append(qar)
 
         # Update the vocabulary with any new values.
@@ -196,9 +174,3 @@ for file_set, params in file_sets.items():
         imdb += build_imdb(fold_names, with_answers=params['load_answers'])
 
     np.save(os.path.join(imdb_out_dir, f'imdb_{os.path.splitext(file_set)[0]}.npy'), np.array(imdb))
-
-# np.save('./imdb_r152_7x7/imdb_train2014.npy', np.array(imdb_train2014))
-# np.save('./imdb_r152_7x7/imdb_val2014.npy', np.array(imdb_val2014))
-# np.save('./imdb_r152_7x7/imdb_trainval2014.npy', np.array(imdb_train2014+imdb_val2014))
-# np.save('./imdb_r152_7x7/imdb_test2015.npy', np.array(imdb_test2015))
-# np.save('./imdb_r152_7x7/imdb_test-dev2015.npy', np.array(imdb_test_dev2015))
