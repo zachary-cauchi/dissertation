@@ -12,6 +12,7 @@ annotations_dir = '../vcr_dataset/Annotations'
 images_dir = '../vcr_dataset/vcr1images'
 corpus_file = './corpus_vcr.txt'
 vocabulary_file = './vocabulary_vcr.txt'
+answers_file = './answers_%s_vcr.txt'
 imdb_out_dir = './imdb_r152_7x7'
 resnet_feature_dir = './resnet152_c5_7x7'
 file_sets = {
@@ -26,6 +27,7 @@ img2qid = {}
 qid2que = {}
 corpus = []
 vocab = Counter()
+split_answers = {}
 
 word_num_checker_dict = {
     **w2n.american_number_system,
@@ -73,7 +75,8 @@ def update_vocab(qar):
             vocab[resolved_token] += 1
             corpus.append(resolved_token)
 
-def extract_folds_from_file_set(file_set):
+def extract_folds_from_file_set(file_set, params):
+    load_answers = params['load_answers']
     with open(os.path.join(annotations_dir, file_set)) as f:
         json_qars = list(f)
     
@@ -87,7 +90,7 @@ def extract_folds_from_file_set(file_set):
 
         qar = json.loads(json_qar)
 
-        _, qar_split_id = qar['annot_id'].split('-')
+        split, qar_split_id = qar['annot_id'].split('-')
         qar_split_id = int(qar_split_id)
         match_fold = qar['match_fold']
 
@@ -105,6 +108,13 @@ def extract_folds_from_file_set(file_set):
 
         # Update the vocabulary with any new values.
         update_vocab(qar)
+
+        # Update the answers file if enabled.
+        if (load_answers):
+            if (split not in split_answers):
+                split_answers[split] = []
+            answer_i = [i for i in qar['answer_match_iter'] if qar['answer_match_iter'][i] == 0][0]
+            split_answers[split].append(qar['answer_choices'][answer_i])
 
 def build_imdb(fold_name, with_answers = True):
     imdb = []
@@ -149,7 +159,7 @@ def build_imdb(fold_name, with_answers = True):
 print(f'Loading {len(file_sets)} file sets.')
 for file_set, params in file_sets.items():
     print(f'Processing {file_set}.')
-    extract_folds_from_file_set(file_set)
+    extract_folds_from_file_set(file_set, params)
     print(f'Completed {file_set}.')
     print(f'Completed {len(file_splits[file_set])} folds.')
     print(f'Loaded {sum(len(split_folds[fold]) for fold in file_splits[file_set])} QAR sets across all folds.')
@@ -162,10 +172,21 @@ os.makedirs(imdb_out_dir, exist_ok=True)
 print(f'Saving vocabulary file to {vocabulary_file}')
 with open(vocabulary_file, 'w') as f:
     f.writelines(f'{token[0]} {token[1]}\n' for token in sorted(vocab.items()))
+with open(vocabulary_file, 'w') as f:
+    f.writelines(f'{token[0]} {token[1]}\n' for token in sorted(vocab.items()))
 # Write the corpus to the file.
 print(f'Saving corpus file to {corpus_file}')
 with open(corpus_file, 'w') as f:
     f.writelines(token + ' ' for token in corpus)
+
+# Write the answer vocabs
+for split, answers in split_answers.items():
+    if (len(answers) != 0):
+        answer_path = answers_file % split
+        print(f'Saving {split} answers to {answer_path}')
+
+        with open(answer_path, 'w') as f:
+            f.writelines(f"{' '.join(token)}\n" for token in answers)
 
 print('Constructing and saving imdbs')
 for file_set, params in file_sets.items():
