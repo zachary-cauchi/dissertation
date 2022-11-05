@@ -16,10 +16,10 @@ __C.EXP_NAME = '<fill-with-filename>'
 __C.GPU_ID = 0
 __C.GPU_MEM_GROWTH = True
 
-__C.VOCAB_QUESTION_FILE = './exp_vqa/data/vocabulary_vqa.txt'
-__C.VOCAB_LAYOUT_FILE = './exp_vqa/data/vocabulary_layout.txt'
-__C.VOCAB_ANSWER_FILE = './exp_vqa/data/answers_vqa.txt'
-__C.IMDB_FILE = './exp_vqa/data/imdb/imdb_%s.npy'
+__C.VOCAB_QUESTION_FILE = './exp_vcr/data/vocabulary_vcr.txt'
+__C.VOCAB_LAYOUT_FILE = './exp_vcr/data/vocabulary_layout.txt'
+__C.VOCAB_ANSWER_FILE = './exp_vcr/data/answers_%s_vcr.txt'
+__C.IMDB_FILE = './exp_vcr/data/imdb/imdb_%s.npy'
 
 __C.USE_FIXED_WORD_EMBED = False
 __C.FIXED_WORD_EMBED_FILE = ''
@@ -82,10 +82,10 @@ __C.MODEL.REC.USE_TXT_ATT = True
 # training options
 # --------------------------------------------------------------------------- #
 __C.TRAIN = AttrDict()
-__C.TRAIN.SPLIT_VQA = 'trainval2014'
+__C.TRAIN.SPLIT_VQA = 'train'
 __C.TRAIN.SPLIT_LOC = 'REPLACE_THIS_WITH_GOOGLE_REF_TRAIN'
 __C.TRAIN.BATCH_SIZE = 64
-__C.TRAIN.USE_GT_LAYOUT = True
+__C.TRAIN.USE_GT_LAYOUT = False
 __C.TRAIN.WEIGHT_DECAY = 1e-5
 __C.TRAIN.DROPOUT_KEEP_PROB = 0.85
 __C.TRAIN.SOLVER = AttrDict()
@@ -101,12 +101,12 @@ __C.TRAIN.BBOX_OFFSET_LOSS_WEIGHT = 1.
 __C.TRAIN.LAYOUT_LOSS_WEIGHT = 1.
 __C.TRAIN.REC_LOSS_WEIGHT = 1.
 
-__C.TRAIN.SNAPSHOT_DIR = './exp_vqa/tfmodel/%s/'
+__C.TRAIN.SNAPSHOT_DIR = './exp_vcr/tfmodel/%s/'
 __C.TRAIN.SNAPSHOT_INTERVAL = 5000
 __C.TRAIN.INIT_FROM_WEIGHTS = False
 __C.TRAIN.INIT_WEIGHTS_FILE = ''
 __C.TRAIN.MAX_ITER = 80000
-__C.TRAIN.LOG_DIR = './exp_vqa/tb/%s/'
+__C.TRAIN.LOG_DIR = './exp_vcr/tb/%s/'
 __C.TRAIN.LOG_INTERVAL = 20
 
 __C.TRAIN.BBOX_IOU_THRESH = .5
@@ -120,14 +120,14 @@ __C.TRAIN.VQA_USE_SOFT_SCORE = False
 __C.TEST = AttrDict()
 __C.TEST.BATCH_SIZE = 64
 __C.TEST.USE_EMA = True
-__C.TEST.SPLIT_VQA = 'test-dev2015'
+__C.TEST.SPLIT_VQA = 'test'
 __C.TEST.SPLIT_LOC = 'REPLACE_THIS_WITH_GOOGLE_REF_TEST'
-__C.TEST.SNAPSHOT_FILE = './exp_vqa/tfmodel/%s/%08d'
+__C.TEST.SNAPSHOT_FILE = './exp_vcr/tfmodel/%s/%08d'
 __C.TEST.ITER = -1  # Needs to be supplied
 
-__C.TEST.RESULT_DIR = './exp_vqa/results/%s/%08d'
+__C.TEST.RESULT_DIR = './exp_vcr/results/%s/%08d'
 __C.TEST.GEN_EVAL_FILE = True
-__C.TEST.EVAL_FILE = './exp_vqa/eval_outputs/%s/vqa_OpenEnded_mscoco_%s_%s_%s_results.json'
+__C.TEST.EVAL_FILE = './exp_vcr/eval_outputs/%s/vcr_%s_%s_%s_results.json'
 __C.TEST.VIS_SEPARATE_CORRECTNESS = False
 __C.TEST.NUM_VIS = 100
 __C.TEST.NUM_VIS_CORRECT = 50

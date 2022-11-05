@@ -2,9 +2,9 @@ import os
 import numpy as np
 import tensorflow as tf
 
-from models_vqa.model import Model
-from models_vqa.config import build_cfg_from_argparse
-from util.vqa_train.data_reader import DataReader
+from models_vcr.model import Model
+from models_vcr.config import build_cfg_from_argparse
+from util.vcr_train.data_reader import DataReader
 
 # Load config
 cfg = build_cfg_from_argparse()
@@ -19,7 +19,7 @@ imdb_file = cfg.IMDB_FILE % cfg.TRAIN.SPLIT_VQA
 data_reader = DataReader(
     imdb_file, shuffle=True, one_pass=False, batch_size=cfg.TRAIN.BATCH_SIZE,
     vocab_question_file=cfg.VOCAB_QUESTION_FILE, T_encoder=cfg.MODEL.T_ENCODER,
-    vocab_answer_file=cfg.VOCAB_ANSWER_FILE,
+    vocab_answer_file=cfg.VOCAB_ANSWER_FILE % cfg.TRAIN.SPLIT_VQA,
     load_gt_layout=cfg.TRAIN.USE_GT_LAYOUT,
     vocab_layout_file=cfg.VOCAB_LAYOUT_FILE, T_decoder=cfg.MODEL.T_CTRL,
     load_soft_score=cfg.TRAIN.VQA_USE_SOFT_SCORE)

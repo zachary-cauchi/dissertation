@@ -56,6 +56,36 @@
                 "TEST.ITER",
                 "40000"
             ]
+        },
+
+        {
+            "name": "VQAv2: Train scratch",
+            "type": "python",
+            "request": "launch",
+            "program": "./exp_vqa/train_net_vqa.py",
+            "cwd": "${workspaceFolder}/snmn-models",
+            "python": "${command:python.interpreterPath}",
+            "console": "integratedTerminal",
+            "args": [
+                "--cfg",
+                "exp_vqa/cfgs/vqa_v2_scratch.yaml"
+            ]
+        },
+
+        {
+            "name": "VCR: Train scratch",
+            "type": "python",
+            "request": "launch",
+            "program": "./exp_vcr/train_net_vqa.py",
+            "cwd": "${workspaceFolder}/snmn-models",
+            "python": "${command:python.interpreterPath}",
+            "console": "integratedTerminal",
+            "args": [
+                "--cfg",
+                "exp_vcr/cfgs/vcr_scratch.yaml",
+                "TEST.ITER",
+                "40000"
+            ]
         }
     ]
 }

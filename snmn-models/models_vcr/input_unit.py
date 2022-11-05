@@ -38,6 +38,10 @@ def build_input_unit(input_seq_batch, seq_length_batch, num_vocab,
             'lstm_dim is the dimension of [fw, bw] and must be a multiply of 2'
         cell_fw = tf.nn.rnn_cell.LSTMCell(lstm_dim//2, name='basic_lstm_cell')
         cell_bw = tf.nn.rnn_cell.LSTMCell(lstm_dim//2, name='basic_lstm_cell')
+
+        # Casting required when using generated weights.
+        embed_seq = tf.cast(embed_seq, tf.float32)
+        
         outputs, states = tf.nn.bidirectional_dynamic_rnn(
             cell_fw, cell_bw, embed_seq, dtype=tf.float32,
             sequence_length=seq_length_batch, time_major=True)

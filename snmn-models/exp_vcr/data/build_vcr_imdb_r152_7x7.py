@@ -112,7 +112,7 @@ def extract_folds_from_file_set(file_set, params):
         # Update the answers file if enabled.
         if (load_answers):
             if (split not in split_answers):
-                split_answers[split] = []
+                split_answers[split] = [ '<unk>' ]
             answer_i = [i for i in qar['answer_match_iter'] if qar['answer_match_iter'][i] == 0][0]
             split_answers[split].append(qar['answer_choices'][answer_i])
 
