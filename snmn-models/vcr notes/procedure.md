@@ -43,6 +43,10 @@ Textual features required the following work:
 * vcr dataset uses a very different structure to the vqa dataset. The imdb processing scripts will need to be reworked to support and prepare a new format for these types (see `vcr question-annotation sample breakdown.md`).
 * Retraining of GloVe embeddings based on vcr vocabulary (see `vcr question-annotation sample breakdown.md`).
   * Same dimensions are kept (300d vectors x words_in_vocab),
+* The expert policy/ground-truth layout for the VQA dataset was created by:
+  * Running the `get_questions` script sourced [here](https://gist.github.com/ronghanghu/67aeb391f4839611d119c73eba53bc5f).
+  * Generating an sp file from the questions using the [Stanford Parser](https://nlp.stanford.edu/software/lex-parser.shtml#Download).
+  * Running the `parse` script on the generated sp file.
 
 With all QARs separated and processed, all that's left is building the imdbs into a compatible format as with the above sample record.
 The below QAR example shows the current data:
