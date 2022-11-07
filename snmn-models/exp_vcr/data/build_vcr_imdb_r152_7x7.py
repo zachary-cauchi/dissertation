@@ -1,10 +1,8 @@
-import itertools
 import numpy as np
 import json
 import os
 
 import sys; sys.path.append('../../')  # NOQA
-from util import text_processing
 from collections import Counter
 from word2number import w2n
 
@@ -28,6 +26,10 @@ qid2que = {}
 corpus = []
 vocab = Counter()
 split_answers = {}
+
+longest_token_sequences = {
+
+}
 
 word_num_checker_dict = {
     **w2n.american_number_system,
@@ -144,10 +146,11 @@ def build_imdb(fold_name, with_answers = True):
             'question_tokens': question_tokens,
         }
 
+        imdb_entry['all_answers'] = qar['answer_choices']
+        imdb_entry['all_rationales'] = qar['rationale_choices']
+
         if with_answers:
-            imdb_entry['all_answers'] = qar['answer_choices']
             imdb_entry['valid_answers'] = qar['answer_match_iter']
-            imdb_entry['all_rationales'] = qar['rationale_choices']
             imdb_entry['valid_rationales'] = qar['rationale_match_iter']
 
         imdb.append(imdb_entry)
@@ -195,4 +198,19 @@ for file_set, params in file_sets.items():
     for fold_names in file_splits[file_set]:
         imdb += build_imdb(fold_names, with_answers=params['load_answers'])
 
-    np.save(os.path.join(imdb_out_dir, f'imdb_{os.path.splitext(file_set)[0]}.npy'), np.array(imdb))
+    longest_token_sequences[file_set] = {
+        'question': max((entry['question_id'], len(entry['question_tokens'])) for entry in imdb),
+        'answer': max((entry['question_id'], len(answer)) for entry in imdb for answer in entry['all_answers']),
+        'rationale': max((entry['question_id'], len(rationale)) for entry in imdb for rationale in entry['all_rationales']),
+    }
+
+    imdb_filename = f'imdb_{os.path.splitext(file_set)[0]}.npy'
+    
+    print(f'Saving imdb {imdb_filename}')
+    np.save(os.path.join(imdb_out_dir, imdb_filename), np.array(imdb))
+
+for key, entry in longest_token_sequences.items():
+    print(f'Longest token sequences for {key}')
+    print(f"  * Question: {entry['question'][1]} tokens from question '{entry['question'][0]}'")
+    print(f"  * Answer: {entry['answer'][1]} tokens from question '{entry['answer'][0]}'")
+    print(f"  * Rationale: {entry['rationale'][1]} tokens from question '{entry['rationale'][0]}'")
