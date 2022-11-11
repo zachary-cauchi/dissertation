@@ -198,10 +198,31 @@ for file_set, params in file_sets.items():
     for fold_names in file_splits[file_set]:
         imdb += build_imdb(fold_names, with_answers=params['load_answers'])
 
+    qid = -1
+    qlen = -1
+    aid = -1
+    alen = -1
+    rid = -1
+    rlen = -1
+    for entry in imdb:
+        if (len(entry['question_tokens']) > qlen):
+            qid = entry['question_id']
+            qlen = len(entry['question_tokens'])
+        
+        for answer in entry['all_answers']:
+            if (len(answer) > alen):
+                aid = entry['question_id']
+                alen = len(answer)
+        
+        for rationale in entry['all_rationales']:
+            if (len(rationale) > rlen):
+                rid = entry['question_id']
+                rlen = len(rationale)
+    
     longest_token_sequences[file_set] = {
-        'question': max((entry['question_id'], len(entry['question_tokens'])) for entry in imdb),
-        'answer': max((entry['question_id'], len(answer)) for entry in imdb for answer in entry['all_answers']),
-        'rationale': max((entry['question_id'], len(rationale)) for entry in imdb for rationale in entry['all_rationales']),
+        'question': (qid, qlen),
+        'answer': (aid, alen),
+        'rationale': (rid, rlen),
     }
 
     imdb_filename = f'imdb_{os.path.splitext(file_set)[0]}.npy'
@@ -209,8 +230,12 @@ for file_set, params in file_sets.items():
     print(f'Saving imdb {imdb_filename}')
     np.save(os.path.join(imdb_out_dir, imdb_filename), np.array(imdb))
 
-for key, entry in longest_token_sequences.items():
-    print(f'Longest token sequences for {key}')
-    print(f"  * Question: {entry['question'][1]} tokens from question '{entry['question'][0]}'")
-    print(f"  * Answer: {entry['answer'][1]} tokens from question '{entry['answer'][0]}'")
-    print(f"  * Rationale: {entry['rationale'][1]} tokens from question '{entry['rationale'][0]}'")
+with open('imdb_stats.txt', 'w') as stats:
+    for key, entry in longest_token_sequences.items():
+        msg = (f'Longest token sequences for {key}\n'
+               f"  * Question: {entry['question'][1]} tokens from question '{entry['question'][0]}'\n"
+               f"  * Answer: {entry['answer'][1]} tokens from question '{entry['answer'][0]}'\n"
+               f"  * Rationale: {entry['rationale'][1]} tokens from question '{entry['rationale'][0]}'\n"
+              )
+        print(msg)
+        stats.write(msg + '\n')
