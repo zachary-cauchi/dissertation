@@ -9,16 +9,18 @@ def tokenize(sentence):
     return tokens
 
 
-def load_str_list(fname):
+def load_str_list(fname, first_token_only=False):
     with open(fname) as f:
         lines = f.readlines()
     lines = [l.strip() for l in lines]
+    if first_token_only:
+        lines = [line.split(' ')[0] for line in lines]
     return lines
 
 
 class VocabDict:
-    def __init__(self, vocab_file):
-        self.word_list = load_str_list(vocab_file)
+    def __init__(self, vocab_file, first_token_only=False):
+        self.word_list = load_str_list(vocab_file, first_token_only)
         self.word2idx_dict = {w: n_w for n_w, w in enumerate(self.word_list)}
         self.num_vocab = len(self.word_list)
         self.UNK_idx = (

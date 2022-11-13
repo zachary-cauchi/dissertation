@@ -89,7 +89,7 @@ class NMN:
 
                 att_stack_avg = tf.reduce_sum(
                     module_prob[:, ax, ax, ax, :] *
-                    tf.stack([r[0] for r in res], axis=4), axis=-1)
+                    tf.stack([r[0] for r in res], axis=4), axis=-1, name='att_stack_avg')
                 # print and check the attention values
                 # att_stack_avg = tf.Print(
                 #     att_stack_avg,
@@ -308,11 +308,11 @@ def _sharpen_ptr(stack_ptr):
     if hard:
         # hard (non-differentiable) sharpening with argmax
         new_stack_ptr = tf.one_hot(
-            tf.argmax(stack_ptr, axis=1), tf.shape(stack_ptr)[1])
+            tf.argmax(stack_ptr, axis=1), tf.shape(stack_ptr)[1], name='one_hot_stack_ptr_sharpen')
     else:
         # soft (differentiable) sharpening with softmax
         temperature = cfg.MODEL.NMN.STACK.SOFT_SHARPEN_TEMP
-        new_stack_ptr = tf.nn.softmax(stack_ptr / temperature)
+        new_stack_ptr = tf.nn.softmax(stack_ptr / temperature, name='softmax_stack_ptr_sharpen')
     return new_stack_ptr
 
 

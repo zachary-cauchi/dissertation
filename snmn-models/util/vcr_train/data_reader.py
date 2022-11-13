@@ -11,19 +11,21 @@ class BatchLoaderVcr:
         self.data_params = data_params
 
         self.vocab_dict = text_processing.VocabDict(
-            data_params['vocab_question_file'])
+            data_params['vocab_question_file'], first_token_only=True)
         self.T_encoder = data_params['T_encoder']
 
         # peek one example to see whether answer and gt_layout are in the data
         self.load_answer = (
-            'valid_answers' in self.imdb[0] and self.imdb[0]['valid_answers'])
+            'valid_answers' in self.imdb[0])
         self.load_gt_layout = (
             ('load_gt_layout' in data_params and data_params['load_gt_layout'])
             and ('gt_layout_tokens' in self.imdb[0] and
                  self.imdb[0]['gt_layout_tokens'] is not None))
         # the answer dict is always loaded, regardless of self.load_answer
-        self.answer_dict = text_processing.SentenceDict(
-            data_params['vocab_answer_file'])
+        # self.answer_dict = text_processing.VocabDict(
+        #     data_params['vocab_answer_file'])
+        self.num_answers = len(self.imdb[0]['all_answers'])
+        self.num_rationales = len(self.imdb[0]['all_rationales'])
         if not self.load_answer:
             print('imdb does not contain answers')
         self.T_decoder = data_params['T_decoder']
@@ -55,10 +57,11 @@ class BatchLoaderVcr:
         image_path_list = [None]*actual_batch_size
         qid_list = [None]*actual_batch_size
         qstr_list = [None]*actual_batch_size
+        all_answers_list = [None]*actual_batch_size
+        all_rationales_list = [None] * actual_batch_size
         if self.load_answer:
             answer_label_batch = np.zeros(actual_batch_size, np.int32)
             valid_answers_list = [None]*actual_batch_size
-            all_answers_list = [None]*actual_batch_size
             if self.load_soft_score:
                 num_choices = len(self.answer_dict.word_list)
                 soft_score_batch = np.zeros(
@@ -78,15 +81,18 @@ class BatchLoaderVcr:
             image_path_list[n] = iminfo['image_path']
             qid_list[n] = iminfo['question_id']
             qstr_list[n] = iminfo['question_str']
+            all_answers = iminfo['all_answers']
+            all_rationales = iminfo['all_rationales']
+            all_answers_list[n] = all_answers
+            all_rationales_list[n] = all_rationales
+
             if self.load_answer:
-                valid_answers = iminfo['valid_answers']
+                valid_answers = iminfo['valid_answers'].index(0)
                 valid_answers_list[n] = valid_answers
-                all_answers = iminfo['valid_answers']
                 all_answers_list[n] = all_answers
-                # randomly sample an answer from valid answers
-                answer = iminfo['all_answers'][np.random.choice(valid_answers)]
-                answer_idx = self.answer_dict.word2idx(answer)
-                answer_label_batch[n] = answer_idx
+                # Get the index of the correct answer choice.
+                answer = iminfo['valid_answers'].index(0)
+                answer_label_batch[n] = answer
                 if self.load_soft_score:
                     soft_score_inds = iminfo['soft_score_inds']
                     soft_score_target = iminfo['soft_score_target']

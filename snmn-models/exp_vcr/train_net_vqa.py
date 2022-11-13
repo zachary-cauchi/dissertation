@@ -24,27 +24,27 @@ data_reader = DataReader(
     vocab_layout_file=cfg.VOCAB_LAYOUT_FILE, T_decoder=cfg.MODEL.T_CTRL,
     load_soft_score=cfg.TRAIN.VQA_USE_SOFT_SCORE)
 num_vocab = data_reader.batch_loader.vocab_dict.num_vocab
-num_choices = data_reader.batch_loader.answer_dict.num_vocab
+num_choices = data_reader.batch_loader.num_answers
 module_names = data_reader.batch_loader.layout_dict.word_list
 
 # Inputs and model
-input_seq_batch = tf.placeholder(tf.int32, [None, None])
-seq_length_batch = tf.placeholder(tf.int32, [None])
+input_seq_batch = tf.placeholder(tf.int32, [None, None], name='input_seq_batch')
+seq_length_batch = tf.placeholder(tf.int32, [None], name='seq_length_batch')
 image_feat_batch = tf.placeholder(
-    tf.float32, [None, cfg.MODEL.H_FEAT, cfg.MODEL.W_FEAT, cfg.MODEL.FEAT_DIM])
+    tf.float32, [None, cfg.MODEL.H_FEAT, cfg.MODEL.W_FEAT, cfg.MODEL.FEAT_DIM], name='image_feat_batch')
 model = Model(
     input_seq_batch, seq_length_batch, image_feat_batch, num_vocab=num_vocab,
     num_choices=num_choices, module_names=module_names, is_training=True)
 
 # Loss function
 if cfg.TRAIN.VQA_USE_SOFT_SCORE:
-    soft_score_batch = tf.placeholder(tf.float32, [None, num_choices])
+    soft_score_batch = tf.placeholder(tf.float32, [None, num_choices], name='soft_score_batch')
     # Summing, instead of averaging over the choices
     loss_vqa = float(num_choices) * tf.reduce_mean(
         tf.nn.sigmoid_cross_entropy_with_logits(
             logits=model.vqa_scores, labels=soft_score_batch))
 else:
-    answer_label_batch = tf.placeholder(tf.int32, [None])
+    answer_label_batch = tf.placeholder(tf.int32, [None], name='answer_label_batch')
     loss_vqa = tf.reduce_mean(
         tf.nn.sparse_softmax_cross_entropy_with_logits(
             logits=model.vqa_scores, labels=answer_label_batch))

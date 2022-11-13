@@ -73,13 +73,15 @@ class Model:
             self.vis_outputs = {
                 'txt_att':  # [N, T, S]
                 tf.transpose(  # [S, N, T] -> [N, T, S]
-                    tf.concat(self.controller.cv_list, axis=2), (1, 2, 0)),
+                    tf.concat(self.controller.cv_list, axis=2), (1, 2, 0), name='txt_att'),
                 'att_stack':  # [N, T, H, W, L]
-                tf.stack(self.nmn.att_stack_list, axis=1),
+                tf.stack(self.nmn.att_stack_list, axis=1, name='att_stack'),
                 'stack_ptr':  # [N, T, L]
-                tf.stack(self.nmn.stack_ptr_list, axis=1),
+                tf.stack(self.nmn.stack_ptr_list, axis=1, name='stack_ptr'),
                 'module_prob':  # [N, T, D]
-                tf.stack(self.module_prob_list, axis=1)}
+                tf.stack(self.module_prob_list, axis=1, name='module_prob')
+            }
+            
             if cfg.MODEL.BUILD_VQA:
                 self.vis_outputs['vqa_scores'] = self.vqa_scores
             if cfg.MODEL.BUILD_LOC:

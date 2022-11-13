@@ -24,28 +24,29 @@ def build_input_unit(input_seq_batch, seq_length_batch, num_vocab,
         # word embedding
         embed_dim = cfg.MODEL.EMBED_DIM
         if cfg.USE_FIXED_WORD_EMBED:
-            embed_mat = to_T(np.load(cfg.FIXED_WORD_EMBED_FILE))
+            embed_mat = to_T(np.load(cfg.FIXED_WORD_EMBED_FILE), name='word_embeddings_tensor')
         else:
             embed_mat = tf.get_variable(
                 'embed_mat', [num_vocab, embed_dim],
                 initializer=tf.initializers.random_normal(
                     stddev=np.sqrt(1. / embed_dim)))
-        embed_seq = tf.nn.embedding_lookup(embed_mat, input_seq_batch)
+        embed_seq = tf.nn.embedding_lookup(embed_mat, input_seq_batch, 'word_embeddings_lookup')
 
         # bidirectional LSTM
         lstm_dim = cfg.MODEL.LSTM_DIM
         assert lstm_dim % 2 == 0, \
             'lstm_dim is the dimension of [fw, bw] and must be a multiply of 2'
-        cell_fw = tf.nn.rnn_cell.LSTMCell(lstm_dim//2, name='basic_lstm_cell')
-        cell_bw = tf.nn.rnn_cell.LSTMCell(lstm_dim//2, name='basic_lstm_cell')
+        cell_fw = tf.nn.rnn_cell.LSTMCell(lstm_dim//2, name='fw_lstm_cell')
+        cell_bw = tf.nn.rnn_cell.LSTMCell(lstm_dim//2, name='bw_lstm_cell')
+
         outputs, states = tf.nn.bidirectional_dynamic_rnn(
-            cell_fw, cell_bw, embed_seq, dtype=tf.float32,
+            cell_fw, cell_bw, inputs=embed_seq, dtype=tf.float32,
             sequence_length=seq_length_batch, time_major=True)
         # concatenate the hidden state from forward and backward LSTM
         lstm_seq = tf.concat(outputs, axis=2)
         # concatenate the final hidden state of the forward and backward LSTM
         # for question representation
-        q_encoding = tf.concat([states[0].h, states[1].h], axis=1)
+        q_encoding = tf.concat([states[0].h, states[1].h], axis=1, name='create_question_representation')
 
     return lstm_seq, q_encoding, embed_seq
 

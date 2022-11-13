@@ -39,7 +39,7 @@ class Controller:
         N = tf.shape(lstm_seq)[1]
         # att_mask: [S, N, 1]
         att_mask = tf.less(tf.range(S)[:, ax, ax], seq_length_batch[:, ax])
-        att_mask = tf.cast(att_mask, tf.float32)
+        att_mask = tf.cast(att_mask, tf.float32, name='text_attention_mask')
         with tf.variable_scope(scope, reuse=reuse):
             S = tf.shape(lstm_seq)[0]
             N = tf.shape(lstm_seq)[1]
