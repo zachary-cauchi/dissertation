@@ -5,8 +5,8 @@ from tensorflow import convert_to_tensor as to_T
 from .config import cfg
 from util.cnn import conv_elu_layer as conv_elu, conv_layer as conv
 
-
-def build_input_unit(input_seq_batch, seq_length_batch, num_vocab,
+# TODO: Fix method comment block.
+def build_input_unit(input_seq_batch, all_answers_seq_batch, seq_length_batch, num_vocab, num_answers,
                      scope='input_unit', reuse=None):
     """
     Preprocess the input sequence with a (single-layer) bidirectional LSTM.
@@ -30,28 +30,49 @@ def build_input_unit(input_seq_batch, seq_length_batch, num_vocab,
                 'embed_mat', [num_vocab, embed_dim],
                 initializer=tf.initializers.random_normal(
                     stddev=np.sqrt(1. / embed_dim)))
-        embed_seq = tf.nn.embedding_lookup(embed_mat, input_seq_batch, 'word_embeddings_lookup')
 
         # bidirectional LSTM
         lstm_dim = cfg.MODEL.LSTM_DIM
         assert lstm_dim % 2 == 0, \
             'lstm_dim is the dimension of [fw, bw] and must be a multiply of 2'
-        cell_fw = tf.nn.rnn_cell.LSTMCell(lstm_dim//2, name='fw_lstm_cell')
-        cell_bw = tf.nn.rnn_cell.LSTMCell(lstm_dim//2, name='bw_lstm_cell')
 
-        # Casting required when using generated weights.
-        embed_seq = tf.cast(embed_seq, tf.float32, name='cast_embeds_to_32')
-        
-        outputs, states = tf.nn.bidirectional_dynamic_rnn(
-            cell_fw, cell_bw, inputs=embed_seq, dtype=tf.float32,
-            sequence_length=seq_length_batch, time_major=True)
+        lstm_outs = ()
+        lstm_encs = {}
+
+        # For the question, and each answer, generate lstms.
+        for i in range(1 + num_answers):
+            prefix = 'question' if i == 0 else f'answer{i}'
+
+            if i == 0:
+                embed_seq = tf.nn.embedding_lookup(embed_mat, input_seq_batch, prefix + '_word_embeddings_lookup')
+            else:
+                # Load the i-1'th answer from the input and generate it's embedding.
+                answer_seq_batch = tf.gather_nd(indices=[i-1], params=all_answers_seq_batch, name='get_' + prefix)
+
+                embed_seq = tf.nn.embedding_lookup(embed_mat, answer_seq_batch, prefix + '_word_embeddings_lookup')
+
+            # Casting required when using generated weights.
+            embed_seq = tf.cast(embed_seq, tf.float32, name=prefix + '_cast_embeds_to_32')
+
+            cell_fw = tf.nn.rnn_cell.LSTMCell(lstm_dim//2, name=prefix + '_fw_lstm_cell')
+            cell_bw = tf.nn.rnn_cell.LSTMCell(lstm_dim//2, name=prefix + '_bw_lstm_cell')
+            
+            # Create the lstm, getting the output and their states.
+            outputs, states = tf.nn.bidirectional_dynamic_rnn(
+                cell_fw, cell_bw, inputs=embed_seq, dtype=tf.float32,
+                sequence_length=seq_length_batch, time_major=True, name=prefix + '_lstm_cell')
+
+            # concatenate the final hidden state of the forward and backward LSTM
+            # for question (or answer) representation
+            seq_encoding = tf.concat([states[0].h, states[1].h], axis=1, name=prefix + '_create_encoded_representation')
+
+            lstm_outs = lstm_outs + outputs
+            lstm_encs[prefix] = seq_encoding
+
         # concatenate the hidden state from forward and backward LSTM
-        lstm_seq = tf.concat(outputs, axis=2)
-        # concatenate the final hidden state of the forward and backward LSTM
-        # for question representation
-        q_encoding = tf.concat([states[0].h, states[1].h], axis=1, name='create_question_representation')
+        lstm_seq = tf.concat(lstm_outs, axis=2, name=f'hidden_lstm_seq')
 
-    return lstm_seq, q_encoding, embed_seq
+    return lstm_seq, lstm_encs, embed_seq
 
 
 def get_positional_encoding(H, W):

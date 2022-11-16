@@ -9,7 +9,7 @@ from util.gumbel_softmax import gumbel_softmax
 
 class Controller:
 
-    def __init__(self, lstm_seq, q_encoding, embed_seq, seq_length_batch,
+    def __init__(self, lstm_seq, lstm_encodings, embed_seq, seq_length_batch,
                  num_module, scope='controller', reuse=None):
         """
         Build the controller that is used to give inputs to the neural modules.
@@ -28,9 +28,9 @@ class Controller:
             seq_length_batch: [N], tf.int32
         """
 
-        dim = cfg.MODEL.LSTM_DIM
+        dim = cfg.MODEL.LSTM_DIM * len(lstm_encodings)
         ctrl_dim = (cfg.MODEL.EMBED_DIM if cfg.MODEL.CTRL.USE_WORD_EMBED
-                    else cfg.MODEL.LSTM_DIM)
+                    else cfg.MODEL.LSTM_DIM) * len(lstm_encodings)
         T_ctrl = cfg.MODEL.T_CTRL
 
         # an attention mask to normalize textual attention over the actual
@@ -56,7 +56,13 @@ class Controller:
             module_logit_list = []
             module_prob_list = []
             for t in range(T_ctrl):
-                q_i = fc('fc_q_%d' % t, q_encoding, output_dim=dim)  # [N, d]
+
+                # Prepare all question and answer encodings to combine them for the fully connected network.
+                i_list = []
+                for key, enc in lstm_encodings.items():
+                    i_list.append(fc(f'fc_{key}_{t}', enc, output_dim=dim))  # [N, d]
+
+                q_i = tf.concat(i_list, axis=1, name=f'fc_q_{t}')
                 q_i_c = tf.concat([q_i, c_prev], axis=1)  # [N, 2d]
                 cq_i = fc('fc_cq', q_i_c, output_dim=dim, reuse=(t > 0))
 

@@ -50,6 +50,8 @@ class BatchLoaderVcr:
         actual_batch_size = len(sample_ids)
         input_seq_batch = np.zeros(
             (self.T_encoder, actual_batch_size), np.int32)
+        all_answers_seq_batch = np.zeros((self.num_answers, self.T_encoder, actual_batch_size), np.int32)
+
         seq_length_batch = np.zeros(actual_batch_size, np.int32)
         image_feat_batch = np.zeros(
             (actual_batch_size, self.feat_H, self.feat_W, self.feat_D),
@@ -58,6 +60,7 @@ class BatchLoaderVcr:
         qid_list = [None]*actual_batch_size
         qstr_list = [None]*actual_batch_size
         all_answers_list = [None]*actual_batch_size
+        all_answers_token_list = [None] * actual_batch_size
         all_rationales_list = [None] * actual_batch_size
         if self.load_answer:
             answer_label_batch = np.zeros(actual_batch_size, np.int32)
@@ -74,6 +77,10 @@ class BatchLoaderVcr:
             iminfo = self.imdb[sample_ids[n]]
             question_inds = [
                 self.vocab_dict.word2idx(w) for w in iminfo['question_tokens']]
+
+            if (self.data_params['feed_answers_with_input'] == True):
+                question_inds += [self.vocab_dict.word2idx(w) for answer in iminfo['all_answers'] for w in answer]
+
             seq_length = len(question_inds)
             input_seq_batch[:seq_length, n] = question_inds
             seq_length_batch[n] = seq_length
@@ -84,12 +91,17 @@ class BatchLoaderVcr:
             all_answers = iminfo['all_answers']
             all_rationales = iminfo['all_rationales']
             all_answers_list[n] = all_answers
+            all_answers_token_list[n] = [[self.vocab_dict.word2idx(w) for w in answer] for answer in all_answers]
             all_rationales_list[n] = all_rationales
+
+            # For each set of answers per-question, populate the list of supported answers in a sequence for embedding_lookup.
+            for i, token_list in enumerate(all_answers_token_list[n]):
+                seq_length = len(token_list)
+                all_answers_seq_batch[i, :seq_length, n] = token_list
 
             if self.load_answer:
                 valid_answers = iminfo['valid_answers'].index(0)
                 valid_answers_list[n] = valid_answers
-                all_answers_list[n] = all_answers
                 # Get the index of the correct answer choice.
                 answer = iminfo['valid_answers'].index(0)
                 answer_label_batch[n] = answer
@@ -115,11 +127,14 @@ class BatchLoaderVcr:
                      seq_length_batch=seq_length_batch,
                      image_feat_batch=image_feat_batch,
                      image_path_list=image_path_list,
-                     qid_list=qid_list, qstr_list=qstr_list)
+                     qid_list=qid_list,
+                     qstr_list=qstr_list,
+                     all_answers_seq_batch=all_answers_seq_batch)
         if self.load_answer:
             batch['answer_label_batch'] = answer_label_batch
             batch['valid_answers_list'] = valid_answers_list
             batch['all_answers_list'] = all_answers_list
+            batch['all_answers_token_list'] = all_answers_token_list
             if self.load_soft_score:
                 batch['soft_score_batch'] = soft_score_batch
         if self.load_gt_layout:

@@ -42,12 +42,13 @@ __C.MODEL.EMBED_DIM = 300
 __C.MODEL.LSTM_DIM = 512
 __C.MODEL.PE_DIM = 128
 __C.MODEL.KB_DIM = 512
-__C.MODEL.T_ENCODER = 32
+__C.MODEL.T_ENCODER = 58 # Needs to be bigger than the largest token sequence in any question/answer. # Might need to be 256 if USE_ANSWERS = True
 
 __C.MODEL.INPUT = AttrDict()
 __C.MODEL.INPUT.USE_L2_NORMALIZATION = False
 __C.MODEL.INPUT.L2_NORMALIZATION_TYPE = ''
 __C.MODEL.INPUT.USE_POSITION_ENCODING = True
+__C.MODEL.INPUT.USE_ANSWERS = False # If True, allocate a big enough T_ENCODER like 256
 
 __C.MODEL.CTRL = AttrDict()
 __C.MODEL.CTRL.NORMALIZE_ATT = True

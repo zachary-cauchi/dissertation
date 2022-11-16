@@ -6,8 +6,8 @@ from . import controller, nmn, input_unit, output_unit, vis
 
 
 class Model:
-    def __init__(self, input_seq_batch, seq_length_batch, image_feat_batch,
-                 num_vocab, num_choices, module_names, is_training,
+    def __init__(self, input_seq_batch, all_answers_seq_batch, seq_length_batch, image_feat_batch,
+                 num_vocab, num_choices, num_answers, module_names, is_training,
                  scope='model', reuse=None):
         """
         Neual Module Networks v4 (the whole model)
@@ -22,14 +22,14 @@ class Model:
             self.T_ctrl = cfg.MODEL.T_CTRL
 
             # Input unit
-            lstm_seq, q_encoding, embed_seq = input_unit.build_input_unit(
-                input_seq_batch, seq_length_batch, num_vocab)
+            lstm_seq, lstm_encodings, embed_seq = input_unit.build_input_unit(
+                input_seq_batch, all_answers_seq_batch, seq_length_batch, num_vocab, num_answers)
             kb_batch = input_unit.build_kb_batch(image_feat_batch)
 
             # Controller and NMN
             num_module = len(module_names)
             self.controller = controller.Controller(
-                lstm_seq, q_encoding, embed_seq, seq_length_batch, num_module)
+                lstm_seq, lstm_encodings, embed_seq, seq_length_batch, num_module)
             self.c_list = self.controller.c_list
             self.module_logits = self.controller.module_logits
             self.module_probs = self.controller.module_probs
@@ -40,12 +40,12 @@ class Model:
             # Output unit
             if cfg.MODEL.BUILD_VQA:
                 self.vqa_scores = output_unit.build_output_unit_vqa(
-                    q_encoding, self.nmn.mem_last, num_choices,
+                    lstm_encodings, self.nmn.mem_last, num_choices,
                     apply_dropout=is_training)
             if cfg.MODEL.BUILD_LOC:
                 loc_scores, bbox_offset, bbox_offset_fcn = \
                     output_unit.build_output_unit_loc(
-                        q_encoding, kb_batch, self.nmn.att_last)
+                        lstm_encodings['question'], kb_batch, self.nmn.att_last)
                 self.loc_scores = loc_scores
                 self.bbox_offset = bbox_offset
                 self.bbox_offset_fcn = bbox_offset_fcn
@@ -58,7 +58,7 @@ class Model:
                     rec_inputs = tf.concat(
                         [rec_inputs, tf.stack(self.c_list)], axis=-1)
                 self.rec_loss = output_unit.build_output_unit_rec(
-                    rec_inputs, input_seq_batch, embed_seq, seq_length_batch,
+                    rec_inputs, all_answers_seq_batch, embed_seq, seq_length_batch,
                     num_vocab)
             else:
                 self.rec_loss = tf.convert_to_tensor(0.)
