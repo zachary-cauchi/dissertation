@@ -298,7 +298,7 @@ def vis_one_stepwise(img_path, words, module_names, txt_att, att_stack,
                 if cfg.TEST.VIS_SHOW_ANSWER:
                     answer_txt = (
                         'predicted answer: "%s"\ntrue answer: "%s"' % (
-                            answers[np.argmax(vqa_scores)], answers[label]))
+                            answers[np.argmax(vqa_scores)], answers[label] if label > 0 else 'n/a'))
                 else:
                     answer_txt = '(model prediction not shown)'
                 plt.text(10, 100, answer_txt, fontsize=20)
@@ -335,7 +335,7 @@ def vis_one_stepwise(img_path, words, module_names, txt_att, att_stack,
     with open(save_path.replace('.png', '') + '.txt', 'w') as f:
         question = (' '.join(words)).replace(' ?', '?')
         if vis_type == 'vqa':
-            ans_pred, ans_gt = answers[np.argmax(vqa_scores)], answers[label]
+            ans_pred, ans_gt = answers[np.argmax(vqa_scores)], answers[label] if label > 0 else 'n/a'
             json.dump({'question': question, 'ans_pred': ans_pred,
                        'ans_gt': ans_gt}, f)
         elif vis_type == 'loc':
@@ -350,7 +350,8 @@ def vis_one_stepwise(img_path, words, module_names, txt_att, att_stack,
 def vis_batch_vqa(model, data_reader, batch, vis_outputs, start_idx,
                   start_idx_correct, start_idx_incorrect, vis_dir):
     module_names = model.nmn.module_names
-    answers = data_reader.batch_loader.answer_dict.word_list
+    answers = batch['all_answers_list']
+
     if cfg.TEST.VIS_SEPARATE_CORRECTNESS:
         num_correct = max(cfg.TEST.NUM_VIS_CORRECT-start_idx_correct, 0)
         num_incorrect = max(cfg.TEST.NUM_VIS_INCORRECT-start_idx_incorrect, 0)
@@ -363,6 +364,7 @@ def vis_batch_vqa(model, data_reader, batch, vis_outputs, start_idx,
     else:
         num = min(len(batch['image_path_list']), cfg.TEST.NUM_VIS - start_idx)
         inds = range(num)
+
     for n in inds:
         img_path = batch['image_path_list'][n]
         if cfg.TEST.VIS_SEPARATE_CORRECTNESS:
@@ -394,10 +396,10 @@ def vis_batch_vqa(model, data_reader, batch, vis_outputs, start_idx,
             vis_one_stepwise(img_path, words, module_names, txt_att, att_stack,
                              stack_ptr, module_prob, save_path, vis_type='vqa',
                              vqa_scores=vqa_scores, label=label,
-                             answers=answers)
+                             answers=answers[n])
         else:
             vis_one_vqa(img_path, words, vqa_scores, label, module_names,
-                        answers, txt_att, att_stack, stack_ptr, module_prob,
+                        answers[n], txt_att, att_stack, stack_ptr, module_prob,
                         save_path)
 
 
