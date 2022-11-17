@@ -27,6 +27,7 @@ TRAIN:
 TEST:
   EVAL_FILE: './exp_vcr/eval_outputs_vcr/%s/vcr_%s_%s_%s_results.json'
   SPLIT_VQA: 'test'
+  NUM_VIS: 0
 
 USE_FIXED_WORD_EMBED: True
 FIXED_WORD_EMBED_FILE: './exp_vcr/data/vocabulary_vcr_glove.npy'

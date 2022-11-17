@@ -4,9 +4,9 @@ import json
 import numpy as np
 import tensorflow as tf
 
-from models_vqa.model import Model
-from models_vqa.config import build_cfg_from_argparse
-from util.vqa_train.data_reader import DataReader
+from models_vcr.model import Model
+from models_vcr.config import build_cfg_from_argparse
+from util.vcr_train.data_reader import DataReader
 
 # Load config
 cfg = build_cfg_from_argparse()
@@ -19,12 +19,15 @@ sess = tf.Session(config=tf.ConfigProto(
 # Data files
 imdb_file = cfg.IMDB_FILE % cfg.TEST.SPLIT_VQA
 data_reader = DataReader(
-    imdb_file, shuffle=False, one_pass=True, batch_size=cfg.TRAIN.BATCH_SIZE,
+    imdb_file, shuffle=True, one_pass=True, batch_size=cfg.TRAIN.BATCH_SIZE,
     vocab_question_file=cfg.VOCAB_QUESTION_FILE, T_encoder=cfg.MODEL.T_ENCODER,
-    vocab_answer_file=cfg.VOCAB_ANSWER_FILE, load_gt_layout=True,
-    vocab_layout_file=cfg.VOCAB_LAYOUT_FILE, T_decoder=cfg.MODEL.T_CTRL)
+    vocab_answer_file=cfg.VOCAB_ANSWER_FILE % cfg.TRAIN.SPLIT_VQA,
+    load_gt_layout=cfg.TRAIN.USE_GT_LAYOUT,
+    vocab_layout_file=cfg.VOCAB_LAYOUT_FILE, T_decoder=cfg.MODEL.T_CTRL,
+    load_soft_score=cfg.TRAIN.VQA_USE_SOFT_SCORE,
+    feed_answers_with_input=cfg.MODEL.INPUT.USE_ANSWERS)
 num_vocab = data_reader.batch_loader.vocab_dict.num_vocab
-num_choices = data_reader.batch_loader.answer_dict.num_vocab
+num_choices = data_reader.batch_loader.num_answers
 module_names = data_reader.batch_loader.layout_dict.word_list
 
 # Eval files
@@ -33,18 +36,17 @@ if cfg.TEST.GEN_EVAL_FILE:
         cfg.EXP_NAME, cfg.TEST.SPLIT_VQA, cfg.EXP_NAME, cfg.TEST.ITER)
     print('evaluation outputs will be saved to %s' % eval_file)
     os.makedirs(os.path.dirname(eval_file), exist_ok=True)
-    answer_word_list = data_reader.batch_loader.answer_dict.word_list
-    assert(answer_word_list[0] == '<unk>')
     output_qids_answers = []
 
 # Inputs and model
-input_seq_batch = tf.placeholder(tf.int32, [None, None])
-seq_length_batch = tf.placeholder(tf.int32, [None])
+input_seq_batch = tf.placeholder(tf.int32, [None, None], name='input_seq_batch')
+seq_length_batch = tf.placeholder(tf.int32, [None], name='seq_length_batch')
+all_answers_seq_batch = tf.placeholder(tf.int32, [None, None, None], name='all_answers_seq_batch')
 image_feat_batch = tf.placeholder(
-    tf.float32, [None, cfg.MODEL.H_FEAT, cfg.MODEL.W_FEAT, cfg.MODEL.FEAT_DIM])
+    tf.float32, [None, cfg.MODEL.H_FEAT, cfg.MODEL.W_FEAT, cfg.MODEL.FEAT_DIM], name='image_feat_batch')
 model = Model(
-    input_seq_batch, seq_length_batch, image_feat_batch, num_vocab=num_vocab,
-    num_choices=num_choices, module_names=module_names, is_training=False)
+    input_seq_batch, all_answers_seq_batch, seq_length_batch, image_feat_batch, num_vocab=num_vocab,
+    num_choices=num_choices, num_answers=num_choices, module_names=module_names, is_training=False)
 
 # Load snapshot
 if cfg.TEST.USE_EMA:
@@ -88,7 +90,8 @@ for n_batch, batch in enumerate(data_reader.batches()):
     fetch_list_val = sess.run(fetch_list, feed_dict={
             input_seq_batch: batch['input_seq_batch'],
             seq_length_batch: batch['seq_length_batch'],
-            image_feat_batch: batch['image_feat_batch']})
+            image_feat_batch: batch['image_feat_batch'],
+            all_answers_seq_batch: batch['all_answers_seq_batch']})
 
     # visualization
     if run_vis:
@@ -98,13 +101,12 @@ for n_batch, batch in enumerate(data_reader.batches()):
 
     # compute accuracy
     vqa_scores_val = fetch_list_val[0]
-    vqa_scores_val[:, 0] = -1e10  # remove <unk> answer
     vqa_predictions = np.argmax(vqa_scores_val, axis=1)
     if cfg.TEST.GEN_EVAL_FILE:
         qid_list = batch['qid_list']
         output_qids_answers += [
-            {'question_id': int(qid), 'answer': answer_word_list[p]}
-            for qid, p in zip(qid_list, vqa_predictions)]
+            {'question_id': int(qid), 'answer': p.item(), 'answer_str': ' '.join(batch['all_answers_list'][i][p])}
+            for i, (qid, p) in enumerate(zip(qid_list, vqa_predictions))]
 
     if data_reader.batch_loader.load_answer:
         vqa_labels = batch['answer_label_batch']

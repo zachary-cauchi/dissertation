@@ -78,8 +78,8 @@ class BatchLoaderVcr:
             question_inds = [
                 self.vocab_dict.word2idx(w) for w in iminfo['question_tokens']]
 
-            if (self.data_params['feed_answers_with_input'] == True):
-                question_inds += [self.vocab_dict.word2idx(w) for answer in iminfo['all_answers'] for w in answer]
+            # if (self.data_params['feed_answers_with_input'] == True):
+            #     question_inds += [self.vocab_dict.word2idx(w) for answer in iminfo['all_answers'] for w in answer]
 
             seq_length = len(question_inds)
             input_seq_batch[:seq_length, n] = question_inds
@@ -129,16 +129,18 @@ class BatchLoaderVcr:
                      image_path_list=image_path_list,
                      qid_list=qid_list,
                      qstr_list=qstr_list,
+                     all_answers_list=all_answers_list,
+                     all_answers_token_list=all_answers_token_list,
                      all_answers_seq_batch=all_answers_seq_batch)
+
         if self.load_answer:
             batch['answer_label_batch'] = answer_label_batch
             batch['valid_answers_list'] = valid_answers_list
-            batch['all_answers_list'] = all_answers_list
-            batch['all_answers_token_list'] = all_answers_token_list
             if self.load_soft_score:
                 batch['soft_score_batch'] = soft_score_batch
         if self.load_gt_layout:
             batch['gt_layout_batch'] = gt_layout_batch
+
         return batch
 
 

@@ -86,6 +86,22 @@
                 "TEST.ITER",
                 "40000"
             ]
+        },
+
+        {
+            "name": "VCR: Test scratch",
+            "type": "python",
+            "request": "launch",
+            "program": "./exp_vcr/test_net_vqa.py",
+            "cwd": "${workspaceFolder}/snmn-models",
+            "python": "${command:python.interpreterPath}",
+            "console": "integratedTerminal",
+            "args": [
+                "--cfg",
+                "exp_vcr/cfgs/vcr_scratch.yaml",
+                "TEST.ITER",
+                "80000"
+            ]
         }
     ]
 }
