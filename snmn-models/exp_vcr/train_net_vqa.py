@@ -25,7 +25,8 @@ data_reader = DataReader(
     load_soft_score=cfg.TRAIN.VQA_USE_SOFT_SCORE,
     feed_answers_with_input=cfg.MODEL.INPUT.USE_ANSWERS)
 num_vocab = data_reader.batch_loader.vocab_dict.num_vocab
-num_choices = num_vocab
+# num_choices = num_vocab
+num_choices = data_reader.batch_loader.num_answers
 num_answers = data_reader.batch_loader.num_answers
 # num_choices = data_reader.batch_loader.num_answers
 module_names = data_reader.batch_loader.layout_dict.word_list
@@ -47,11 +48,11 @@ if cfg.TRAIN.VQA_USE_SOFT_SCORE:
     # Summing, instead of averaging over the choices
     loss_vqa = float(num_choices) * tf.reduce_mean(
         tf.nn.sigmoid_cross_entropy_with_logits(
-            logits=model.vqa_scores, labels=soft_score_batch))
+            logits=model.vqa_scores, labels=soft_score_batch), name='vqa_loss_function')
 else:
     loss_vqa = tf.reduce_mean(
         tf.nn.sparse_softmax_cross_entropy_with_logits(
-            logits=model.vqa_scores, labels=answer_label_batch))
+            logits=model.vqa_scores, labels=answer_label_batch), name='vqa_loss_function')
 if cfg.TRAIN.USE_GT_LAYOUT:
     gt_layout_batch = tf.placeholder(tf.int32, [None, None])
     loss_layout = tf.reduce_mean(
@@ -136,27 +137,25 @@ for n_batch, batch in enumerate(data_reader.batches()):
 
     # compute accuracy
     vqa_q_labels = batch['answer_label_batch']
-    vqa_a_token_set = batch['all_answers_token_list']
-    vqa_a_vectors = np.zeros((len(vqa_a_token_set), len(vqa_a_token_set[0]), data_reader.batch_loader.vocab_dict.num_vocab))
+    # vqa_a_token_set = batch['all_answers_token_list']
+    # vqa_a_vectors = np.zeros((len(vqa_a_token_set), len(vqa_a_token_set[0]), data_reader.batch_loader.vocab_dict.num_vocab))
 
-    for a_vectors, a_labels in zip(vqa_a_vectors, vqa_a_token_set):
-        for a_vector, a_token in zip(a_vectors, a_labels):
-            a_vector[a_token] = 1
+    # for a_vectors, a_labels in zip(vqa_a_vectors, vqa_a_token_set):
+    #     for a_vector, a_token in zip(a_vectors, a_labels):
+    #         a_vector[a_token] = 1
 
-    # vqa_a_label_set = [label for vqa_a_labels in batch['all_answers_token_list'] for vqa_a in vqa_a_labels for label in vqa_a]
     vqa_predictions = np.argmax(vqa_scores_val, axis=1)
 
-    # Get cosine similarities
-    vqa_a_similarities = np.zeros((len(vqa_q_labels), 4))
-    for i, (vqa_a, vqa_score) in enumerate(zip(vqa_a_vectors, vqa_scores_val)):
-        vqa_a_similarities[i] = [np.dot(label, vqa_score) / (np.linalg.norm(label) * np.linalg.norm(vqa_score)) for label in vqa_a]
+    # # Get cosine similarities
+    # vqa_a_similarities = np.zeros((len(vqa_q_labels), 4))
+    # for i, (vqa_a, vqa_score) in enumerate(zip(vqa_a_vectors, vqa_scores_val)):
+    #     vqa_a_similarities[i] = [np.dot(label, vqa_score) / (np.linalg.norm(label) * np.linalg.norm(vqa_score)) for label in vqa_a]
 
-    # vqa_a_similarities = [np.dot(label, vqa_scores_val) / (np.linalg.norm(label) * np.linalg.norm(vqa_scores_val)) for vqa_a_labels in vqa_a_label_set for label in vqa_a_labels]
+    # # Get the strongest predicted answer.
+    # vqa_a_predictions = [np.argmax(vqa_a) for vqa_a in vqa_a_similarities]
 
-    # Get the strongest predicted answer.
-    vqa_a_predictions = [np.argmax(vqa_a) for vqa_a in vqa_a_similarities]
-
-    accuracy = np.mean(vqa_a_predictions == vqa_q_labels)
+    accuracy = np.mean(vqa_predictions == vqa_q_labels)
+    # accuracy = np.mean(vqa_a_predictions == vqa_q_labels)
     avg_accuracy += (1-accuracy_decay) * (accuracy-avg_accuracy)
 
     # Add to TensorBoard summary

@@ -15,4 +15,9 @@ Rewrote the input/output of the model to create separate LSTMs per-question/answ
 
 Loss for a given iteration often does not match the accuracy, being higher with higher accuracy or vice versa. The loss function does not converge so the program accuracy never improves.
 
+Problem is one of determining how loss can be calculated for answers without class (since the answer is a multi-token response varying according to choice of answer).
 
+UPDATE:
+Changed the model prediction output to equal the number of answers available per-question. The most confident answer is used as selecting the n'th answer.
+The benefit of this is that the output aligns with the answer labels, meaning the loss function is able to work correctly with the answer.
+Once leaving the program to execute, the loss function eventually converged, reaching a final accuracy of 54%.

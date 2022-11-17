@@ -60,7 +60,7 @@ def build_input_unit(input_seq_batch, all_answers_seq_batch, seq_length_batch, n
             # Create the lstm, getting the output and their states.
             outputs, states = tf.nn.bidirectional_dynamic_rnn(
                 cell_fw, cell_bw, inputs=embed_seq, dtype=tf.float32,
-                sequence_length=seq_length_batch, time_major=True, name=prefix + '_lstm_cell')
+                sequence_length=seq_length_batch, time_major=True)
 
             # concatenate the final hidden state of the forward and backward LSTM
             # for question (or answer) representation
