@@ -42,10 +42,11 @@ if cfg.TEST.GEN_EVAL_FILE:
 input_seq_batch = tf.placeholder(tf.int32, [None, None], name='input_seq_batch')
 seq_length_batch = tf.placeholder(tf.int32, [None], name='seq_length_batch')
 all_answers_seq_batch = tf.placeholder(tf.int32, [None, None, None], name='all_answers_seq_batch')
+all_answers_seq_length_batch = tf.placeholder(tf.int32, [None, None], name='all_answers_seq_length_batch')
 image_feat_batch = tf.placeholder(
     tf.float32, [None, cfg.MODEL.H_FEAT, cfg.MODEL.W_FEAT, cfg.MODEL.FEAT_DIM], name='image_feat_batch')
 model = Model(
-    input_seq_batch, all_answers_seq_batch, seq_length_batch, image_feat_batch, num_vocab=num_vocab,
+    input_seq_batch, all_answers_seq_batch, seq_length_batch, all_answers_seq_length_batch, image_feat_batch, num_vocab=num_vocab,
     num_choices=num_choices, num_answers=num_choices, module_names=module_names, is_training=False)
 
 # Load snapshot
@@ -79,6 +80,7 @@ for n_batch, batch in enumerate(data_reader.batches()):
     
     fetch_list = [model.vqa_scores]
     answer_incorrect = num_questions - answer_correct    
+
     if cfg.TEST.VIS_SEPARATE_CORRECTNESS:
         run_vis = (
             answer_correct < cfg.TEST.NUM_VIS_CORRECT or
@@ -87,11 +89,16 @@ for n_batch, batch in enumerate(data_reader.batches()):
         run_vis = num_questions < cfg.TEST.NUM_VIS
     if run_vis:
         fetch_list.append(model.vis_outputs)
+
+    input_seq_batch_vals = batch['input_seq_batch']
+    all_answers_seq_batch_vals = batch['all_answers_seq_batch']
+
     fetch_list_val = sess.run(fetch_list, feed_dict={
-            input_seq_batch: batch['input_seq_batch'],
+            input_seq_batch: input_seq_batch_vals,
             seq_length_batch: batch['seq_length_batch'],
             image_feat_batch: batch['image_feat_batch'],
-            all_answers_seq_batch: batch['all_answers_seq_batch']})
+            all_answers_seq_batch: all_answers_seq_batch_vals,
+            all_answers_seq_length_batch: batch['all_answers_seq_length_batch']})
 
     # visualization
     if run_vis:

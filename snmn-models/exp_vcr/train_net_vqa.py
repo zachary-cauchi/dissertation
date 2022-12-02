@@ -35,11 +35,12 @@ module_names = data_reader.batch_loader.layout_dict.word_list
 input_seq_batch = tf.placeholder(tf.int32, [None, None], name='input_seq_batch')
 answer_label_batch = tf.placeholder(tf.int32, [None], name='answer_label_batch')
 all_answers_seq_batch = tf.placeholder(tf.int32, [None, None, None], name='all_answers_seq_batch')
+all_answers_seq_length_batch = tf.placeholder(tf.int32, [None, None], name='all_answers_seq_length_batch')
 seq_length_batch = tf.placeholder(tf.int32, [None], name='seq_length_batch')
 image_feat_batch = tf.placeholder(
     tf.float32, [None, cfg.MODEL.H_FEAT, cfg.MODEL.W_FEAT, cfg.MODEL.FEAT_DIM], name='image_feat_batch')
 model = Model(
-    input_seq_batch, all_answers_seq_batch, seq_length_batch, image_feat_batch, num_vocab=num_vocab,
+    input_seq_batch, all_answers_seq_batch, seq_length_batch, all_answers_seq_length_batch, image_feat_batch, num_vocab=num_vocab,
     num_choices=num_choices, num_answers=num_answers, module_names=module_names, is_training=True)
 
 # Loss function
@@ -119,11 +120,15 @@ for n_batch, batch in enumerate(data_reader.batches()):
     if n_iter >= cfg.TRAIN.MAX_ITER:
         break
 
-    feed_dict = {input_seq_batch: batch['input_seq_batch'],
+        input_seq_batch_vals = batch['input_seq_batch']
+        all_answers_seq_batch_vals = batch['all_answers_seq_batch']
+
+    feed_dict = {input_seq_batch: input_seq_batch_vals,
                  seq_length_batch: batch['seq_length_batch'],
                  image_feat_batch: batch['image_feat_batch'],
                  answer_label_batch: batch['answer_label_batch'],
-                 all_answers_seq_batch: batch['all_answers_seq_batch']}
+                 all_answers_seq_batch: all_answers_seq_batch_vals,
+                 all_answers_seq_length_batch: batch['all_answers_seq_length_batch']}
 
     if cfg.TRAIN.VQA_USE_SOFT_SCORE:
         feed_dict[soft_score_batch] = batch['soft_score_batch']

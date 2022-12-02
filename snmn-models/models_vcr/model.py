@@ -6,7 +6,7 @@ from . import controller, nmn, input_unit, output_unit, vis
 
 
 class Model:
-    def __init__(self, input_seq_batch, all_answers_seq_batch, seq_length_batch, image_feat_batch,
+    def __init__(self, input_seq_batch, all_answers_seq_batch, seq_length_batch, all_answers_seq_length_batch, image_feat_batch,
                  num_vocab, num_choices, num_answers, module_names, is_training,
                  scope='model', reuse=None):
         """
@@ -23,13 +23,13 @@ class Model:
 
             # Input unit
             lstm_seq, lstm_encodings, embed_seq = input_unit.build_input_unit(
-                input_seq_batch, all_answers_seq_batch, seq_length_batch, num_vocab, num_answers)
+                input_seq_batch, all_answers_seq_batch, seq_length_batch, all_answers_seq_length_batch, num_vocab, num_answers)
             kb_batch = input_unit.build_kb_batch(image_feat_batch)
 
             # Controller and NMN
             num_module = len(module_names)
             self.controller = controller.Controller(
-                lstm_seq, lstm_encodings, embed_seq, seq_length_batch, num_module)
+                lstm_seq, lstm_encodings, embed_seq, seq_length_batch, all_answers_seq_length_batch, num_module, num_answers)
             self.c_list = self.controller.c_list
             self.module_logits = self.controller.module_logits
             self.module_probs = self.controller.module_probs

@@ -51,6 +51,7 @@ class BatchLoaderVcr:
         input_seq_batch = np.zeros(
             (self.T_encoder, actual_batch_size), np.int32)
         all_answers_seq_batch = np.zeros((self.num_answers, self.T_encoder, actual_batch_size), np.int32)
+        all_answers_seq_length_batch = np.zeros((self.num_answers, actual_batch_size), np.int32)
 
         seq_length_batch = np.zeros(actual_batch_size, np.int32)
         image_feat_batch = np.zeros(
@@ -64,6 +65,7 @@ class BatchLoaderVcr:
         all_rationales_list = [None] * actual_batch_size
         if self.load_answer:
             answer_label_batch = np.zeros(actual_batch_size, np.int32)
+            answer_onehot_batch = np.zeros([actual_batch_size, self.num_answers], np.int32)
             valid_answers_list = [None]*actual_batch_size
             if self.load_soft_score:
                 num_choices = len(self.answer_dict.word_list)
@@ -98,13 +100,13 @@ class BatchLoaderVcr:
             for i, token_list in enumerate(all_answers_token_list[n]):
                 seq_length = len(token_list)
                 all_answers_seq_batch[i, :seq_length, n] = token_list
+                all_answers_seq_length_batch[i, n] = seq_length
 
             if self.load_answer:
-                valid_answers = iminfo['valid_answers'].index(0)
-                valid_answers_list[n] = valid_answers
                 # Get the index of the correct answer choice.
                 answer = iminfo['valid_answers'].index(0)
                 answer_label_batch[n] = answer
+                answer_onehot_batch[n] = [1 if i == 0 else 0 for i in iminfo['valid_answers']]
                 if self.load_soft_score:
                     soft_score_inds = iminfo['soft_score_inds']
                     soft_score_target = iminfo['soft_score_target']
@@ -131,7 +133,9 @@ class BatchLoaderVcr:
                      qstr_list=qstr_list,
                      all_answers_list=all_answers_list,
                      all_answers_token_list=all_answers_token_list,
-                     all_answers_seq_batch=all_answers_seq_batch)
+                     all_answers_seq_batch=all_answers_seq_batch,
+                     all_answers_seq_length_batch=all_answers_seq_length_batch,
+                     answer_onehot_batch=answer_onehot_batch)
 
         if self.load_answer:
             batch['answer_label_batch'] = answer_label_batch

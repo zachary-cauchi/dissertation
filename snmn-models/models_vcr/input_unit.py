@@ -6,7 +6,7 @@ from .config import cfg
 from util.cnn import conv_elu_layer as conv_elu, conv_layer as conv
 
 # TODO: Fix method comment block.
-def build_input_unit(input_seq_batch, all_answers_seq_batch, seq_length_batch, num_vocab, num_answers,
+def build_input_unit(input_seq_batch, all_answers_seq_batch, seq_length_batch, all_answers_seq_length_batch, num_vocab, num_answers,
                      scope='input_unit', reuse=None):
     """
     Preprocess the input sequence with a (single-layer) bidirectional LSTM.
@@ -60,7 +60,8 @@ def build_input_unit(input_seq_batch, all_answers_seq_batch, seq_length_batch, n
             # Create the lstm, getting the output and their states.
             outputs, states = tf.nn.bidirectional_dynamic_rnn(
                 cell_fw, cell_bw, inputs=embed_seq, dtype=tf.float32,
-                sequence_length=seq_length_batch, time_major=True)
+                sequence_length=seq_length_batch if i == 0 else all_answers_seq_length_batch[i - 1],
+                time_major=True)
 
             # concatenate the final hidden state of the forward and backward LSTM
             # for question (or answer) representation
