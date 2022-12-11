@@ -43,6 +43,7 @@ __C.MODEL.LSTM_DIM = 512
 __C.MODEL.PE_DIM = 128
 __C.MODEL.KB_DIM = 512
 __C.MODEL.T_ENCODER = 58 # Needs to be bigger than the largest token sequence in any question/answer. # Might need to be 256 if USE_ANSWERS = True
+__C.MODEL.USE_SINGLE_ANSWER_CONFIDENCE = True # The model should support only one question and one answer as input and give a truth confidence for that question-answer pair. If False, support all answers.
 
 __C.MODEL.INPUT = AttrDict()
 __C.MODEL.INPUT.USE_L2_NORMALIZATION = False

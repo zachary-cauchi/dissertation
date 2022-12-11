@@ -14,7 +14,10 @@ cfg = build_cfg_from_argparse()
 # Start session
 os.environ["CUDA_VISIBLE_DEVICES"] = str(cfg.GPU_ID)
 sess = tf.Session(config=tf.ConfigProto(
-    gpu_options=tf.GPUOptions(allow_growth=cfg.GPU_MEM_GROWTH)))
+    gpu_options=tf.GPUOptions(allow_growth=cfg.GPU_MEM_GROWTH), log_device_placement=True))
+
+use_single_answer_confidence_prediction = cfg.MODEL.USE_SINGLE_ANSWER_CONFIDENCE
+batch_size=cfg.TRAIN.BATCH_SIZE
 
 # Data files
 imdb_file = cfg.IMDB_FILE % cfg.TEST.SPLIT_VQA
@@ -27,7 +30,8 @@ data_reader = DataReader(
     load_soft_score=cfg.TRAIN.VQA_USE_SOFT_SCORE,
     feed_answers_with_input=cfg.MODEL.INPUT.USE_ANSWERS)
 num_vocab = data_reader.batch_loader.vocab_dict.num_vocab
-num_choices = data_reader.batch_loader.num_answers
+num_answers = data_reader.batch_loader.num_answers
+num_choices = data_reader.batch_loader.num_answers if not use_single_answer_confidence_prediction else 1
 module_names = data_reader.batch_loader.layout_dict.word_list
 
 # Eval files
@@ -79,7 +83,7 @@ for n_batch, batch in enumerate(data_reader.batches()):
                   '**The final accuracy will be zero (no labels provided)**\n')
     
     fetch_list = [model.vqa_scores]
-    answer_incorrect = num_questions - answer_correct    
+    answer_incorrect = num_questions - answer_correct
 
     if cfg.TEST.VIS_SEPARATE_CORRECTNESS:
         run_vis = (
@@ -107,22 +111,35 @@ for n_batch, batch in enumerate(data_reader.batches()):
             answer_correct, answer_incorrect, vis_dir)
 
     # compute accuracy
+
     vqa_scores_val = fetch_list_val[0]
+    # Reshape the predictions into a softmax vector.
+    vqa_scores_val = np.reshape(vqa_scores_val, (len(vqa_scores_val) // num_answers, num_answers))
+
+    # Convert them into a one-hot encoded vector.
     vqa_predictions = np.argmax(vqa_scores_val, axis=1)
+    
     if cfg.TEST.GEN_EVAL_FILE:
         qid_list = batch['qid_list']
         output_qids_answers += [
-            {'question_id': int(qid), 'answer': p.item(), 'answer_str': ' '.join(batch['all_answers_list'][i][p])}
+            {'question_id': int(qid), 'answer': p.item(), 'answer_str': ' '.join(batch['all_answers_list'][(i * num_answers) + p])}
             for i, (qid, p) in enumerate(zip(qid_list, vqa_predictions))]
 
     if data_reader.batch_loader.load_answer:
         vqa_labels = batch['answer_label_batch']
+        # Reshape the expected results into a one-hot encoded vector.
+        vqa_labels = np.reshape(vqa_labels, (len(vqa_labels) // num_answers, num_answers))
+        # Get the indices of the correct answer.
+        vqa_labels = np.where(vqa_labels == 1.)[1]
     else:
         # dummy labels with all -1 (so accuracy will be zero)
         vqa_labels = -np.ones(vqa_scores_val.shape[0], np.int32)
+
     answer_correct += np.sum(vqa_predictions == vqa_labels)
     num_questions += len(vqa_labels)
+
     accuracy = answer_correct / num_questions
+    
     if n_batch % 20 == 0:
         print('exp: %s, iter = %d, accumulated accuracy on %s = %f (%d / %d)' %
               (cfg.EXP_NAME, cfg.TEST.ITER, cfg.TEST.SPLIT_VQA,

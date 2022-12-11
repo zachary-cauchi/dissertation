@@ -21,9 +21,9 @@ class BatchLoaderVcr:
             ('load_gt_layout' in data_params and data_params['load_gt_layout'])
             and ('gt_layout_tokens' in self.imdb[0] and
                  self.imdb[0]['gt_layout_tokens'] is not None))
-        # the answer dict is always loaded, regardless of self.load_answer
-        # self.answer_dict = text_processing.VocabDict(
-        #     data_params['vocab_answer_file'])
+
+        self.use_single_answer_confidence = self.data_params
+
         self.num_answers = len(self.imdb[0]['all_answers'])
         self.num_rationales = len(self.imdb[0]['all_rationales'])
         if not self.load_answer:
@@ -47,11 +47,16 @@ class BatchLoaderVcr:
         self.feat_H, self.feat_W, self.feat_D = feats.shape[1:]
 
     def load_one_batch(self, sample_ids):
-        actual_batch_size = len(sample_ids)
+        # If we're using single-answer confidence instead of multiple answers, we need to expect a larger storage for each combination of q and a.
+        actual_batch_size = len(sample_ids) * self.num_answers if self.use_single_answer_confidence else len(sample_ids)
+        per_answer_size = 1 if self.use_single_answer_confidence else self.num_answers
+
+        # Allocate the arrays and collections.
+
         input_seq_batch = np.zeros(
             (self.T_encoder, actual_batch_size), np.int32)
-        all_answers_seq_batch = np.zeros((self.num_answers, self.T_encoder, actual_batch_size), np.int32)
-        all_answers_seq_length_batch = np.zeros((self.num_answers, actual_batch_size), np.int32)
+        all_answers_seq_batch = np.zeros((per_answer_size, self.T_encoder, actual_batch_size), np.int32)
+        all_answers_seq_length_batch = np.zeros((per_answer_size, actual_batch_size), np.int32)
 
         seq_length_batch = np.zeros(actual_batch_size, np.int32)
         image_feat_batch = np.zeros(
@@ -64,8 +69,8 @@ class BatchLoaderVcr:
         all_answers_token_list = [None] * actual_batch_size
         all_rationales_list = [None] * actual_batch_size
         if self.load_answer:
-            answer_label_batch = np.zeros(actual_batch_size, np.int32)
-            answer_onehot_batch = np.zeros([actual_batch_size, self.num_answers], np.int32)
+            answer_label_batch = np.zeros([actual_batch_size, 1], np.float32)
+            answer_onehot_batch = np.zeros([actual_batch_size, per_answer_size], np.int32)
             valid_answers_list = [None]*actual_batch_size
             if self.load_soft_score:
                 num_choices = len(self.answer_dict.word_list)
@@ -75,42 +80,53 @@ class BatchLoaderVcr:
             gt_layout_batch = self.layout_dict.word2idx('_NoOp') * np.ones(
                 (self.T_decoder, actual_batch_size), np.int32)
 
-        for n in range(len(sample_ids)):
-            iminfo = self.imdb[sample_ids[n]]
+        # Populate the arrays with each possible q-a pair.
+
+        # Iterate over each sample,
+        for i_per_sample, i_per_answer in zip(range(len(sample_ids)), range(0, actual_batch_size, self.num_answers)):
+            iminfo = self.imdb[sample_ids[i_per_sample]]
             question_inds = [
                 self.vocab_dict.word2idx(w) for w in iminfo['question_tokens']]
 
-            # if (self.data_params['feed_answers_with_input'] == True):
-            #     question_inds += [self.vocab_dict.word2idx(w) for answer in iminfo['all_answers'] for w in answer]
-
-            seq_length = len(question_inds)
-            input_seq_batch[:seq_length, n] = question_inds
-            seq_length_batch[n] = seq_length
-            image_feat_batch[n:n+1] = np.load(iminfo['feature_path'])
-            image_path_list[n] = iminfo['image_path']
-            qid_list[n] = iminfo['question_id']
-            qstr_list[n] = iminfo['question_str']
             all_answers = iminfo['all_answers']
+            all_answers_tokens = [[self.vocab_dict.word2idx(w) for w in answer] for answer in all_answers]
             all_rationales = iminfo['all_rationales']
-            all_answers_list[n] = all_answers
-            all_answers_token_list[n] = [[self.vocab_dict.word2idx(w) for w in answer] for answer in all_answers]
-            all_rationales_list[n] = all_rationales
+            image_feat = np.load(iminfo['feature_path'])
+            seq_length = len(question_inds)
+            input_seq_batch[:seq_length, i_per_answer] = question_inds
+
+            sample_range_in_batch = range(i_per_answer, i_per_answer + self.num_answers)
+            for n, i in enumerate(sample_range_in_batch):
+                seq_length_batch[i] = seq_length
+                # The i:i+1 slice is necessary to unwrap the enclosing array of the image features.
+                image_feat_batch[i:i+1] = image_feat
+                image_path_list[i] = iminfo['image_path']
+                qid_list[i] = iminfo['question_id']
+                qstr_list[i] = iminfo['question_str']
+                all_answers_list[i] = all_answers[n]
+                all_answers_token_list[i] = [all_answers_tokens[n]]
+                all_rationales_list[i] = all_rationales[n]
 
             # For each set of answers per-question, populate the list of supported answers in a sequence for embedding_lookup.
-            for i, token_list in enumerate(all_answers_token_list[n]):
-                seq_length = len(token_list)
-                all_answers_seq_batch[i, :seq_length, n] = token_list
-                all_answers_seq_length_batch[i, n] = seq_length
+
+            for i_answer in sample_range_in_batch:
+                for i, token_list in enumerate(all_answers_token_list[i_answer]):
+                    seq_length = len(token_list)
+                    all_answers_seq_batch[i, :seq_length, i_answer] = token_list
+                    all_answers_seq_length_batch[i, i_answer] = seq_length
 
             if self.load_answer:
                 # Get the index of the correct answer choice.
                 answer = iminfo['valid_answers'].index(0)
-                answer_label_batch[n] = answer
-                answer_onehot_batch[n] = [1 if i == 0 else 0 for i in iminfo['valid_answers']]
+
+                for per_sample_i, i in enumerate(sample_range_in_batch):
+                    answer_label_batch[i] = [1. if answer == per_sample_i else 0.]
+                    answer_onehot_batch[i] = answer_label_batch[i][0]
+
                 if self.load_soft_score:
                     soft_score_inds = iminfo['soft_score_inds']
                     soft_score_target = iminfo['soft_score_target']
-                    soft_score_batch[n, soft_score_inds] = soft_score_target
+                    soft_score_batch[i_per_sample, soft_score_inds] = soft_score_target
             if self.load_gt_layout:
                 gt_layout_tokens = iminfo['gt_layout_tokens']
                 if self.prune_filter_module:
@@ -123,7 +139,7 @@ class BatchLoaderVcr:
                     gt_layout_tokens = [t for t in gt_layout_tokens if t]
                 layout_inds = [
                     self.layout_dict.word2idx(w) for w in gt_layout_tokens]
-                gt_layout_batch[:len(layout_inds), n] = layout_inds
+                gt_layout_batch[:len(layout_inds), i_per_sample] = layout_inds
 
         batch = dict(input_seq_batch=input_seq_batch,
                      seq_length_batch=seq_length_batch,

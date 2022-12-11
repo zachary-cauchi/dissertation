@@ -28,9 +28,10 @@ def build_output_unit_vqa(lstm_encodings, m_last, num_choices, apply_dropout,
         else:
             fc1 = fc_elu('fc1_wo_q', m_last, output_dim=output_dim)
         if apply_dropout:
-            fc1 = tf.nn.dropout(fc1, cfg.TRAIN.DROPOUT_KEEP_PROB)
-        fc2 = fc('fc2', fc1, output_dim=num_choices,
-                 biases_initializer=tf.constant_initializer(
+             fc1 = tf.nn.dropout(fc1, cfg.TRAIN.DROPOUT_KEEP_PROB)
+
+        fc2 = fc('fc2_final_output', fc1, output_dim=num_choices,
+                biases_initializer=tf.constant_initializer(
                     cfg.TRAIN.VQA_SCORE_INIT))
 
         vqa_scores = fc2

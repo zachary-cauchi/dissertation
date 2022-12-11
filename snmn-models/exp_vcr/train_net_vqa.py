@@ -12,12 +12,15 @@ cfg = build_cfg_from_argparse()
 # Start session
 os.environ["CUDA_VISIBLE_DEVICES"] = str(cfg.GPU_ID)
 sess = tf.Session(config=tf.ConfigProto(
-    gpu_options=tf.GPUOptions(allow_growth=cfg.GPU_MEM_GROWTH)))
+    gpu_options=tf.GPUOptions(allow_growth=cfg.GPU_MEM_GROWTH), log_device_placement=True))
+
+use_single_answer_confidence_prediction = cfg.MODEL.USE_SINGLE_ANSWER_CONFIDENCE
+batch_size=cfg.TRAIN.BATCH_SIZE
 
 # Data files
 imdb_file = cfg.IMDB_FILE % cfg.TRAIN.SPLIT_VQA
 data_reader = DataReader(
-    imdb_file, shuffle=True, one_pass=False, batch_size=cfg.TRAIN.BATCH_SIZE,
+    imdb_file, shuffle=True, one_pass=False, batch_size=batch_size,
     vocab_question_file=cfg.VOCAB_QUESTION_FILE, T_encoder=cfg.MODEL.T_ENCODER,
     vocab_answer_file=cfg.VOCAB_ANSWER_FILE % cfg.TRAIN.SPLIT_VQA,
     load_gt_layout=cfg.TRAIN.USE_GT_LAYOUT,
@@ -25,15 +28,16 @@ data_reader = DataReader(
     load_soft_score=cfg.TRAIN.VQA_USE_SOFT_SCORE,
     feed_answers_with_input=cfg.MODEL.INPUT.USE_ANSWERS)
 num_vocab = data_reader.batch_loader.vocab_dict.num_vocab
-# num_choices = num_vocab
-num_choices = data_reader.batch_loader.num_answers
-num_answers = data_reader.batch_loader.num_answers
-# num_choices = data_reader.batch_loader.num_answers
+num_answers = data_reader.batch_loader.num_answers if not use_single_answer_confidence_prediction else 1
+num_choices = data_reader.batch_loader.num_answers if not use_single_answer_confidence_prediction else 1
 module_names = data_reader.batch_loader.layout_dict.word_list
 
 # Inputs and model
 input_seq_batch = tf.placeholder(tf.int32, [None, None], name='input_seq_batch')
-answer_label_batch = tf.placeholder(tf.int32, [None], name='answer_label_batch')
+if use_single_answer_confidence_prediction:
+    answer_label_batch = tf.placeholder(tf.float32, [None, 1], name='answer_label_batch')
+else:
+    answer_label_batch = tf.placeholder(tf.int32, [None], name='answer_label_batch')
 all_answers_seq_batch = tf.placeholder(tf.int32, [None, None, None], name='all_answers_seq_batch')
 all_answers_seq_length_batch = tf.placeholder(tf.int32, [None, None], name='all_answers_seq_length_batch')
 seq_length_batch = tf.placeholder(tf.int32, [None], name='seq_length_batch')
@@ -41,7 +45,7 @@ image_feat_batch = tf.placeholder(
     tf.float32, [None, cfg.MODEL.H_FEAT, cfg.MODEL.W_FEAT, cfg.MODEL.FEAT_DIM], name='image_feat_batch')
 model = Model(
     input_seq_batch, all_answers_seq_batch, seq_length_batch, all_answers_seq_length_batch, image_feat_batch, num_vocab=num_vocab,
-    num_choices=num_choices, num_answers=num_answers, module_names=module_names, is_training=True)
+    num_choices=num_choices, num_answers=num_choices, module_names=module_names, is_training=True)
 
 # Loss function
 if cfg.TRAIN.VQA_USE_SOFT_SCORE:
@@ -51,9 +55,14 @@ if cfg.TRAIN.VQA_USE_SOFT_SCORE:
         tf.nn.sigmoid_cross_entropy_with_logits(
             logits=model.vqa_scores, labels=soft_score_batch), name='vqa_loss_function')
 else:
-    loss_vqa = tf.reduce_mean(
-        tf.nn.sparse_softmax_cross_entropy_with_logits(
-            logits=model.vqa_scores, labels=answer_label_batch), name='vqa_loss_function')
+    if use_single_answer_confidence_prediction:
+        loss_vqa = tf.reduce_mean(
+            tf.nn.sigmoid_cross_entropy_with_logits(
+                logits=model.vqa_scores, labels=answer_label_batch), name='vqa_sigmoid_loss_function')
+    else:
+        loss_vqa = tf.reduce_mean(
+            tf.nn.sparse_softmax_cross_entropy_with_logits(
+                logits=model.vqa_scores, labels=answer_label_batch), name='vqa_softmax_loss_function')
 if cfg.TRAIN.USE_GT_LAYOUT:
     gt_layout_batch = tf.placeholder(tf.int32, [None, None])
     loss_layout = tf.reduce_mean(
@@ -120,14 +129,11 @@ for n_batch, batch in enumerate(data_reader.batches()):
     if n_iter >= cfg.TRAIN.MAX_ITER:
         break
 
-        input_seq_batch_vals = batch['input_seq_batch']
-        all_answers_seq_batch_vals = batch['all_answers_seq_batch']
-
-    feed_dict = {input_seq_batch: input_seq_batch_vals,
+    feed_dict = {input_seq_batch: batch['input_seq_batch'],
                  seq_length_batch: batch['seq_length_batch'],
                  image_feat_batch: batch['image_feat_batch'],
                  answer_label_batch: batch['answer_label_batch'],
-                 all_answers_seq_batch: all_answers_seq_batch_vals,
+                 all_answers_seq_batch: batch['all_answers_seq_batch'],
                  all_answers_seq_length_batch: batch['all_answers_seq_length_batch']}
 
     if cfg.TRAIN.VQA_USE_SOFT_SCORE:
@@ -142,25 +148,21 @@ for n_batch, batch in enumerate(data_reader.batches()):
 
     # compute accuracy
     vqa_q_labels = batch['answer_label_batch']
-    # vqa_a_token_set = batch['all_answers_token_list']
-    # vqa_a_vectors = np.zeros((len(vqa_a_token_set), len(vqa_a_token_set[0]), data_reader.batch_loader.vocab_dict.num_vocab))
 
-    # for a_vectors, a_labels in zip(vqa_a_vectors, vqa_a_token_set):
-    #     for a_vector, a_token in zip(a_vectors, a_labels):
-    #         a_vector[a_token] = 1
+    # Reshape the expected results into a one-hot encoded vector.
+    vqa_q_labels = np.reshape(vqa_q_labels, (len(vqa_q_labels) // num_answers, num_answers))
 
+    # Get the indices of the correct answer.
+    vqa_q_labels = np.where(vqa_q_labels == 1.)[1]
+
+    # Reshape the predictions into a softmax vector.
+    vqa_scores_val = np.reshape(vqa_scores_val, (len(vqa_scores_val) // num_answers, num_answers))
+
+    # Convert them into a one-hot encoded vector.
     vqa_predictions = np.argmax(vqa_scores_val, axis=1)
 
-    # # Get cosine similarities
-    # vqa_a_similarities = np.zeros((len(vqa_q_labels), 4))
-    # for i, (vqa_a, vqa_score) in enumerate(zip(vqa_a_vectors, vqa_scores_val)):
-    #     vqa_a_similarities[i] = [np.dot(label, vqa_score) / (np.linalg.norm(label) * np.linalg.norm(vqa_score)) for label in vqa_a]
-
-    # # Get the strongest predicted answer.
-    # vqa_a_predictions = [np.argmax(vqa_a) for vqa_a in vqa_a_similarities]
-
     accuracy = np.mean(vqa_predictions == vqa_q_labels)
-    # accuracy = np.mean(vqa_a_predictions == vqa_q_labels)
+
     avg_accuracy += (1-accuracy_decay) * (accuracy-avg_accuracy)
 
     # Add to TensorBoard summary

@@ -83,7 +83,7 @@
             "args": [
                 "--cfg",
                 "exp_vcr/cfgs/vcr_scratch.yaml",
-                "TEST.ITER",
+                "TRAIN.ITER",
                 "40000"
             ]
         },
