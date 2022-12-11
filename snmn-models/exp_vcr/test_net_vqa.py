@@ -16,7 +16,6 @@ os.environ["CUDA_VISIBLE_DEVICES"] = str(cfg.GPU_ID)
 sess = tf.Session(config=tf.ConfigProto(
     gpu_options=tf.GPUOptions(allow_growth=cfg.GPU_MEM_GROWTH), log_device_placement=True))
 
-use_single_answer_confidence_prediction = cfg.MODEL.USE_SINGLE_ANSWER_CONFIDENCE
 batch_size=cfg.TRAIN.BATCH_SIZE
 
 # Data files
@@ -31,7 +30,7 @@ data_reader = DataReader(
     feed_answers_with_input=cfg.MODEL.INPUT.USE_ANSWERS)
 num_vocab = data_reader.batch_loader.vocab_dict.num_vocab
 num_answers = data_reader.batch_loader.num_answers
-num_choices = data_reader.batch_loader.num_answers if not use_single_answer_confidence_prediction else 1
+num_choices = 1
 module_names = data_reader.batch_loader.layout_dict.word_list
 
 # Eval files

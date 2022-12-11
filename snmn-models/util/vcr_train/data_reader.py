@@ -22,8 +22,6 @@ class BatchLoaderVcr:
             and ('gt_layout_tokens' in self.imdb[0] and
                  self.imdb[0]['gt_layout_tokens'] is not None))
 
-        self.use_single_answer_confidence = self.data_params
-
         self.num_answers = len(self.imdb[0]['all_answers'])
         self.num_rationales = len(self.imdb[0]['all_rationales'])
         if not self.load_answer:
@@ -47,9 +45,8 @@ class BatchLoaderVcr:
         self.feat_H, self.feat_W, self.feat_D = feats.shape[1:]
 
     def load_one_batch(self, sample_ids):
-        # If we're using single-answer confidence instead of multiple answers, we need to expect a larger storage for each combination of q and a.
-        actual_batch_size = len(sample_ids) * self.num_answers if self.use_single_answer_confidence else len(sample_ids)
-        per_answer_size = 1 if self.use_single_answer_confidence else self.num_answers
+        actual_batch_size = len(sample_ids) * self.num_answers
+        per_answer_size = 1
 
         # Allocate the arrays and collections.
 

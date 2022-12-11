@@ -14,7 +14,6 @@ os.environ["CUDA_VISIBLE_DEVICES"] = str(cfg.GPU_ID)
 sess = tf.Session(config=tf.ConfigProto(
     gpu_options=tf.GPUOptions(allow_growth=cfg.GPU_MEM_GROWTH), log_device_placement=True))
 
-use_single_answer_confidence_prediction = cfg.MODEL.USE_SINGLE_ANSWER_CONFIDENCE
 batch_size=cfg.TRAIN.BATCH_SIZE
 
 # Data files
@@ -28,16 +27,13 @@ data_reader = DataReader(
     load_soft_score=cfg.TRAIN.VQA_USE_SOFT_SCORE,
     feed_answers_with_input=cfg.MODEL.INPUT.USE_ANSWERS)
 num_vocab = data_reader.batch_loader.vocab_dict.num_vocab
-num_answers = data_reader.batch_loader.num_answers if not use_single_answer_confidence_prediction else 1
-num_choices = data_reader.batch_loader.num_answers if not use_single_answer_confidence_prediction else 1
+num_answers = data_reader.batch_loader.num_answers
+num_choices = 1
 module_names = data_reader.batch_loader.layout_dict.word_list
 
 # Inputs and model
 input_seq_batch = tf.placeholder(tf.int32, [None, None], name='input_seq_batch')
-if use_single_answer_confidence_prediction:
-    answer_label_batch = tf.placeholder(tf.float32, [None, 1], name='answer_label_batch')
-else:
-    answer_label_batch = tf.placeholder(tf.int32, [None], name='answer_label_batch')
+answer_label_batch = tf.placeholder(tf.float32, [None, 1], name='answer_label_batch')
 all_answers_seq_batch = tf.placeholder(tf.int32, [None, None, None], name='all_answers_seq_batch')
 all_answers_seq_length_batch = tf.placeholder(tf.int32, [None, None], name='all_answers_seq_length_batch')
 seq_length_batch = tf.placeholder(tf.int32, [None], name='seq_length_batch')
@@ -55,14 +51,10 @@ if cfg.TRAIN.VQA_USE_SOFT_SCORE:
         tf.nn.sigmoid_cross_entropy_with_logits(
             logits=model.vqa_scores, labels=soft_score_batch), name='vqa_loss_function')
 else:
-    if use_single_answer_confidence_prediction:
-        loss_vqa = tf.reduce_mean(
-            tf.nn.sigmoid_cross_entropy_with_logits(
-                logits=model.vqa_scores, labels=answer_label_batch), name='vqa_sigmoid_loss_function')
-    else:
-        loss_vqa = tf.reduce_mean(
-            tf.nn.sparse_softmax_cross_entropy_with_logits(
-                logits=model.vqa_scores, labels=answer_label_batch), name='vqa_softmax_loss_function')
+    loss_vqa = tf.reduce_mean(
+        tf.nn.sigmoid_cross_entropy_with_logits(
+            logits=model.vqa_scores, labels=answer_label_batch), name='vqa_sigmoid_loss_function')
+
 if cfg.TRAIN.USE_GT_LAYOUT:
     gt_layout_batch = tf.placeholder(tf.int32, [None, None])
     loss_layout = tf.reduce_mean(
