@@ -10,7 +10,7 @@ import sys
 
 class Controller:
 
-    def __init__(self, lstm_seq, lstm_encodings, embed_seq, seq_length_batch, all_answers_seq_length_batch,
+    def __init__(self, lstm_seq, lstm_encodings, embed_seq, question_length_batch, all_answers_length_batch,
                  num_module, num_answers, scope='controller', reuse=None):
         """
         Build the controller that is used to give inputs to the neural modules.
@@ -26,7 +26,7 @@ class Controller:
             lstm_seq: [S, N, d], tf.float32
             q_encoding: [N, d], tf.float32
             embed_seq: [S, N, e], tf.float32
-            seq_length_batch: [N], tf.int32
+            question_length_batch: [N], tf.int32
         """
 
         dim = cfg.MODEL.LSTM_DIM * len(lstm_encodings)
@@ -59,7 +59,7 @@ class Controller:
             S_i_end = tf.cast(tf.multiply(num_seqs_per_length, i_plus_one_constant), tf.int32, name=f'{prefix}_S_i_end')
 
             # If the current index is 0, get the question length. Otherwise, get the length of the answer at i - 1.
-            seq_length = seq_length_batch[:, ax] if i == 0 else all_answers_seq_length_batch[i - 1, :, ax]
+            seq_length = question_length_batch[:, ax] if i == 0 else all_answers_length_batch[i - 1, :, ax]
 
             # Build the attention mask, Setting the first n number of ints in the range equal to 1, where n = seq_length.
             att_i = tf.less(tf.range(tf.subtract(S_i_end, S_i_start, f'{prefix}_mask_length'), name=f'{prefix}_identity_attention')[:, ax, ax], seq_length, name=f'{prefix}_attention_mask')
@@ -68,7 +68,7 @@ class Controller:
         att_mask = tf.concat(atts_per_seq, axis=0, name='concatenated_text_attention_masks')
 
         # OLD IMPLEMENTATION; question only
-        # att_mask = tf.less(tf.range(S)[:, ax, ax], seq_length_batch[:, ax])
+        # att_mask = tf.less(tf.range(S)[:, ax, ax], question_length_batch[:, ax])
 
         att_mask = tf.cast(att_mask, tf.float32, name='final_text_attention_mask')
         with tf.variable_scope(scope, reuse=reuse):

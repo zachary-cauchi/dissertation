@@ -6,14 +6,14 @@ from .config import cfg
 from util.cnn import conv_elu_layer as conv_elu, conv_layer as conv
 
 # TODO: Fix method comment block.
-def build_input_unit(input_seq_batch, all_answers_seq_batch, seq_length_batch, all_answers_seq_length_batch, num_vocab, num_answers,
+def build_input_unit(question_seq_batch, all_answers_seq_batch, question_length_batch, all_answers_length_batch, num_vocab, num_answers,
                      scope='input_unit', reuse=None):
     """
     Preprocess the input sequence with a (single-layer) bidirectional LSTM.
 
     Input:
-        input_seq_batch: [S, N], tf.int32
-        seq_length_batch: [N], tf.int32
+        question_seq_batch: [S, N], tf.int32
+        question_length_batch: [N], tf.int32
     Return:
         lstm_seq: [S, N, d], tf.float32
         q_encoding: [N, d], tf.float32
@@ -44,7 +44,7 @@ def build_input_unit(input_seq_batch, all_answers_seq_batch, seq_length_batch, a
             prefix = 'question' if i == 0 else f'answer{i}'
 
             if i == 0:
-                embed_seq = tf.nn.embedding_lookup(embed_mat, input_seq_batch, prefix + '_word_embeddings_lookup')
+                embed_seq = tf.nn.embedding_lookup(embed_mat, question_seq_batch, prefix + '_word_embeddings_lookup')
             else:
                 # Load the i-1'th answer from the input and generate it's embedding.
                 answer_seq_batch = tf.gather_nd(indices=[i-1], params=all_answers_seq_batch, name='get_' + prefix)
@@ -60,7 +60,7 @@ def build_input_unit(input_seq_batch, all_answers_seq_batch, seq_length_batch, a
             # Create the lstm, getting the output and their states.
             outputs, states = tf.nn.bidirectional_dynamic_rnn(
                 cell_fw, cell_bw, inputs=embed_seq, dtype=tf.float32,
-                sequence_length=seq_length_batch if i == 0 else all_answers_seq_length_batch[i - 1],
+                sequence_length=question_length_batch if i == 0 else all_answers_length_batch[i - 1],
                 time_major=True)
 
             # concatenate the final hidden state of the forward and backward LSTM

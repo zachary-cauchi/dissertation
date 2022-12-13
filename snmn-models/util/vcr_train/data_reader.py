@@ -50,12 +50,12 @@ class BatchLoaderVcr:
 
         # Allocate the arrays and collections.
 
-        input_seq_batch = np.zeros(
+        question_seq_batch = np.zeros(
             (self.T_encoder, actual_batch_size), np.int32)
         all_answers_seq_batch = np.zeros((per_answer_size, self.T_encoder, actual_batch_size), np.int32)
-        all_answers_seq_length_batch = np.zeros((per_answer_size, actual_batch_size), np.int32)
+        all_answers_length_batch = np.zeros((per_answer_size, actual_batch_size), np.int32)
 
-        seq_length_batch = np.zeros(actual_batch_size, np.int32)
+        question_length_batch = np.zeros(actual_batch_size, np.int32)
         image_feat_batch = np.zeros(
             (actual_batch_size, self.feat_H, self.feat_W, self.feat_D),
             np.float32)
@@ -90,11 +90,11 @@ class BatchLoaderVcr:
             all_rationales = iminfo['all_rationales']
             image_feat = np.load(iminfo['feature_path'])
             seq_length = len(question_inds)
-            input_seq_batch[:seq_length, i_per_answer] = question_inds
+            question_seq_batch[:seq_length, i_per_answer] = question_inds
 
             sample_range_in_batch = range(i_per_answer, i_per_answer + self.num_answers)
             for n, i in enumerate(sample_range_in_batch):
-                seq_length_batch[i] = seq_length
+                question_length_batch[i] = seq_length
                 # The i:i+1 slice is necessary to unwrap the enclosing array of the image features.
                 image_feat_batch[i:i+1] = image_feat
                 image_path_list[i] = iminfo['image_path']
@@ -110,7 +110,7 @@ class BatchLoaderVcr:
                 for i, token_list in enumerate(all_answers_token_list[i_answer]):
                     seq_length = len(token_list)
                     all_answers_seq_batch[i, :seq_length, i_answer] = token_list
-                    all_answers_seq_length_batch[i, i_answer] = seq_length
+                    all_answers_length_batch[i, i_answer] = seq_length
 
             if self.load_answer:
                 # Get the index of the correct answer choice.
@@ -138,8 +138,8 @@ class BatchLoaderVcr:
                     self.layout_dict.word2idx(w) for w in gt_layout_tokens]
                 gt_layout_batch[:len(layout_inds), i_per_sample] = layout_inds
 
-        batch = dict(input_seq_batch=input_seq_batch,
-                     seq_length_batch=seq_length_batch,
+        batch = dict(question_seq_batch=question_seq_batch,
+                     question_length_batch=question_length_batch,
                      image_feat_batch=image_feat_batch,
                      image_path_list=image_path_list,
                      qid_list=qid_list,
@@ -147,7 +147,7 @@ class BatchLoaderVcr:
                      all_answers_list=all_answers_list,
                      all_answers_token_list=all_answers_token_list,
                      all_answers_seq_batch=all_answers_seq_batch,
-                     all_answers_seq_length_batch=all_answers_seq_length_batch,
+                     all_answers_length_batch=all_answers_length_batch,
                      answer_onehot_batch=answer_onehot_batch)
 
         if self.load_answer:

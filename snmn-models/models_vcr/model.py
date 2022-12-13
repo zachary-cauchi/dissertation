@@ -6,15 +6,15 @@ from . import controller, nmn, input_unit, output_unit, vis
 
 
 class Model:
-    def __init__(self, input_seq_batch, all_answers_seq_batch, seq_length_batch, all_answers_seq_length_batch, image_feat_batch,
+    def __init__(self, question_seq_batch, all_answers_seq_batch, question_length_batch, all_answers_length_batch, image_feat_batch,
                  num_vocab, num_choices, num_answers, module_names, is_training,
                  scope='model', reuse=None):
         """
         Neual Module Networks v4 (the whole model)
 
         Input:
-            input_seq_batch: [S, N], tf.int32
-            seq_length_batch: [N], tf.int32
+            question_seq_batch: [S, N], tf.int32
+            question_length_batch: [N], tf.int32
             image_feat_batch: [N, H, W, C], tf.float32
         """
 
@@ -23,13 +23,13 @@ class Model:
 
             # Input unit
             lstm_seq, lstm_encodings, embed_seq = input_unit.build_input_unit(
-                input_seq_batch, all_answers_seq_batch, seq_length_batch, all_answers_seq_length_batch, num_vocab, num_answers)
+                question_seq_batch, all_answers_seq_batch, question_length_batch, all_answers_length_batch, num_vocab, num_answers)
             kb_batch = input_unit.build_kb_batch(image_feat_batch)
 
             # Controller and NMN
             num_module = len(module_names)
             self.controller = controller.Controller(
-                lstm_seq, lstm_encodings, embed_seq, seq_length_batch, all_answers_seq_length_batch, num_module, num_answers)
+                lstm_seq, lstm_encodings, embed_seq, question_length_batch, all_answers_length_batch, num_module, num_answers)
             self.c_list = self.controller.c_list
             self.module_logits = self.controller.module_logits
             self.module_probs = self.controller.module_probs
@@ -58,7 +58,7 @@ class Model:
                     rec_inputs = tf.concat(
                         [rec_inputs, tf.stack(self.c_list)], axis=-1)
                 self.rec_loss = output_unit.build_output_unit_rec(
-                    rec_inputs, all_answers_seq_batch, embed_seq, seq_length_batch,
+                    rec_inputs, all_answers_seq_batch, embed_seq, question_length_batch,
                     num_vocab)
             else:
                 self.rec_loss = tf.convert_to_tensor(0.)

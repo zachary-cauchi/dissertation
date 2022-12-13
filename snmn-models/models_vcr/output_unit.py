@@ -98,8 +98,8 @@ def build_output_unit_loc(q_encoding, kb_batch, att_last,
     return loc_scores, bbox_offset, bbox_offset_fcn
 
 
-def build_output_unit_rec(rec_inputs, input_seq_batch, embed_seq,
-                          seq_length_batch, num_vocab, scope='output_unit_rec',
+def build_output_unit_rec(rec_inputs, question_seq_batch, embed_seq,
+                          question_length_batch, num_vocab, scope='output_unit_rec',
                           reuse=None):
     """
     Try to reconstruct the input sequence from the controller outputs with a
@@ -107,15 +107,15 @@ def build_output_unit_rec(rec_inputs, input_seq_batch, embed_seq,
 
     Input:
         rec_inputs: [T, N, ?], tf.float32
-        input_seq_batch: [S, N], tf.int32
+        question_seq_batch: [S, N], tf.int32
         embed_seq: [S, N, e], tf.float32
-        seq_length_batch: [N], tf.int32
+        question_length_batch: [N], tf.int32
     Return:
         loss_rec: [], tf.float32
     """
     with tf.variable_scope(scope, reuse=reuse):
-        S = tf.shape(input_seq_batch)[0]
-        N = tf.shape(input_seq_batch)[1]
+        S = tf.shape(question_seq_batch)[0]
+        N = tf.shape(question_seq_batch)[1]
 
         lstm_dim = cfg.MODEL.LSTM_DIM
         # encoder
@@ -127,7 +127,7 @@ def build_output_unit_rec(rec_inputs, input_seq_batch, embed_seq,
         embed_seq_shifted = tf.concat(
             [tf.zeros_like(embed_seq[:1]), embed_seq[:-1]], axis=0)
         outputs_decoder, _ = tf.nn.dynamic_rnn(
-            cell_decoder, embed_seq_shifted, sequence_length=seq_length_batch,
+            cell_decoder, embed_seq_shifted, sequence_length=question_length_batch,
             initial_state=states_encoder, time_major=True)
 
         # word prediction
@@ -138,11 +138,11 @@ def build_output_unit_rec(rec_inputs, input_seq_batch, embed_seq,
 
         # cross-entropy loss over the actual sequence words
         # att_mask: [S, N]
-        att_mask = tf.less(tf.range(S)[:, ax], seq_length_batch)
+        att_mask = tf.less(tf.range(S)[:, ax], question_length_batch)
         att_mask = tf.cast(att_mask, tf.float32)
         loss_rec = tf.reduce_sum(
             att_mask * tf.nn.sparse_softmax_cross_entropy_with_logits(
-                logits=word_scores, labels=input_seq_batch)) / tf.reduce_sum(
+                logits=word_scores, labels=question_seq_batch)) / tf.reduce_sum(
                     att_mask)
 
     return loss_rec

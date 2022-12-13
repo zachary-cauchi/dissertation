@@ -385,7 +385,7 @@ def vis_batch_vqa(model, data_reader, batch, vis_outputs, start_idx,
         save_path = os.path.join(vis_dir, save_name)
         words = [
             data_reader.batch_loader.vocab_dict.idx2word(n_w) for n_w in
-            batch['input_seq_batch'][:batch['seq_length_batch'][n], n]]
+            batch['question_seq_batch'][:batch['question_length_batch'][n], n]]
         vqa_scores = vis_outputs['vqa_scores'][n]
         label = batch['answer_label_batch'][n]
         txt_att = vis_outputs['txt_att'][n]
@@ -444,7 +444,7 @@ def vis_batch_loc(model, data_reader, batch, vis_outputs, start_idx,
         save_path = os.path.join(vis_dir, save_name)
         words = [
             data_reader.batch_loader.vocab_dict.idx2word(n_w) for n_w in
-            batch['input_seq_batch'][:batch['seq_length_batch'][n], n]]
+            batch['question_seq_batch'][:batch['question_length_batch'][n], n]]
         loc_scores = vis_outputs['loc_scores'][n]
         bbox_offset = vis_outputs['bbox_offset'][n]
         bbox_pred = boxes.feat_grid2bbox(
