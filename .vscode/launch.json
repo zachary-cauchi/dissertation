@@ -102,6 +102,32 @@
                 "TEST.ITER",
                 "80000"
             ]
+        },
+
+        {
+            "name": "VCR: get questions for gt",
+            "type": "python",
+            "request": "launch",
+            "program": "./get_questions.py",
+            "cwd": "${workspaceFolder}/exp-layout-builder",
+            "python": "${command:python.interpreterPath}",
+            "console": "integratedTerminal",
+            "args": [
+                "../snmn-models/exp_vcr/data/imdb_r152_7x7/imdb_train.npy"
+            ]
+        },
+
+        {
+            "name": "VCR: build gt layout",
+            "type": "python",
+            "request": "launch",
+            "program": "./parse.py",
+            "cwd": "${workspaceFolder}/exp-layout-builder",
+            "python": "${command:python.interpreterPath}",
+            "console": "integratedTerminal",
+            "args": [
+                "parsed/parsed_test.txt"
+            ]
         }
     ]
 }

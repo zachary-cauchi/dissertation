@@ -97,7 +97,7 @@ def strip(tree):
         span = ()
     else:
         label = tree.label()
-        children = [strip(child) for child in tree.subtrees().next()]
+        children = [strip(child) for child in next(tree.subtrees())]
         flat_children = sum(children, [])
         leaves = tree.leaves()
         span = (int(leaves[0]), int(leaves[-1]) + 1)

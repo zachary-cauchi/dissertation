@@ -1,2 +1,10 @@
 stanford-parser/*
 !stanford-parser/.gitkeep
+
+input_sentences/*
+!input_sentences/.gitkeep
+
+parsed/*
+!parsed/.gitkeep
+
+ids.txt
