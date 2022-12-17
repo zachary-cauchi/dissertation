@@ -7,4 +7,7 @@ input_sentences/*
 parsed/*
 !parsed/.gitkeep
 
+exp-layouts/*
+!exp-layouts/.gitkeep
+
 ids.txt

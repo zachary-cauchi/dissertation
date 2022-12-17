@@ -16,8 +16,9 @@
 #   (ROOT (SQ (VBP are) (NP (EX there)) (ADJP (VBG patients)) (. ?)))
 # which is used as input to parse.py
 
+from multiprocessing import Pool
 from nltk.tree import Tree, ParentedTree
-import sys
+import os
 import re
 
 KEEP = [
@@ -35,6 +36,13 @@ KEEP = [
     ("PRP$", "null"),
 ]
 KEEP = [(re.compile(k), v) for k, v in KEEP]
+
+input_filenames = [
+    'parsed/parsed_questions.txt',
+    'parsed/parsed_answers.txt',
+    'parsed/parsed_rationales.txt'
+]
+output_filenames = [os.path.join("exp-layouts", os.path.basename(input_filename)) for input_filename in input_filenames]
 
 def flatten(tree):
     if not isinstance(tree, list):
@@ -146,19 +154,32 @@ def pp(lol):
         return lol
     return "(%s)" % " ".join([pp(l) for l in lol])
 
-with open(sys.argv[1]) as ptb_f:
-    for line in ptb_f:
-        tree = ParentedTree.fromstring(line)
-        index = 0
-        for st in tree.subtrees():
-            if len(list(st.subtrees())) == 1:
-                st[0] = str(index)
-                index += 1
-        colparse = collapse(strip(tree))
-        final = finalize(colparse)
-        print(pp(final))
-        #print pp(final)
-        #print " ".join(tree.leaves())
-        #print colparse
-        #print finalize(colparse)
-        #print
+def process_trees(input_file, output_file):
+    filename = os.path.basename(input_file)
+
+    with open(input_file, "r") as ptb_f, open(output_file, "w") as out_f:
+        # Prepare the variables for printing the current progress in increments of 10%
+        line_count = sum(1 for line in ptb_f)
+        count_digits = len('%s' % line_count)
+        print_increment = int(line_count / 100 * 10)
+        i = 0
+
+        ptb_f.seek(0)
+
+        for line in ptb_f:
+            if (i % print_increment == 0 or i == line_count - 1):
+                print(f'Processing {filename}: {i + 1:0{count_digits}}/{line_count}')
+            i += 1
+
+            tree = ParentedTree.fromstring(line)
+            index = 0
+            for st in tree.subtrees():
+                if len(list(st.subtrees())) == 1:
+                    st[0] = str(index)
+                    index += 1
+            colparse = collapse(strip(tree))
+            final = finalize(colparse)
+            out_f.write(pp(final) + "\n")
+
+with Pool(min(os.cpu_count(), len(input_filenames))) as pool:
+    pool.starmap(process_trees, zip(input_filenames, output_filenames))

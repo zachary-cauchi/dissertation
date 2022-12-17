@@ -126,7 +126,6 @@
             "python": "${command:python.interpreterPath}",
             "console": "integratedTerminal",
             "args": [
-                "parsed/parsed_test.txt"
             ]
         }
     ]
