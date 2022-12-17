@@ -6,10 +6,14 @@ import numpy as np
 
 base_dir = 'input_sentences/'
 
+if len(sys.argv) < 2:
+   print('Usage: python get_questions_answers_rationales.py path_to_imdb.npy')
+   sys.exit(1)
+
 with open(base_dir + "ids.txt", "w") as id_file, \
      open(base_dir + "questions.txt", "w") as question_file, \
      open(base_dir + "answers.txt", "w") as answer_file, \
-     open("rationales.txt", "w") as rationale_file:
+     open(base_dir + "rationales.txt", "w") as rationale_file:
   data = np.load(sys.argv[1], allow_pickle=True)
   ids = [str(elm['question_id']) for elm in data]
   questions = [elm['question_str'] for elm in data]

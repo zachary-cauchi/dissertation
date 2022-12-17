@@ -10,4 +10,5 @@ parsed/*
 exp-layouts/*
 !exp-layouts/.gitkeep
 
+*.zip
 ids.txt
