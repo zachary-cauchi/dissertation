@@ -38,9 +38,9 @@ KEEP = [
 KEEP = [(re.compile(k), v) for k, v in KEEP]
 
 input_filenames = [
-    'parsed/parsed_questions.txt',
-    'parsed/parsed_answers.txt',
-    'parsed/parsed_rationales.txt'
+    'parsed/questions.txt',
+    'parsed/answers.txt',
+    'parsed/rationales.txt'
 ]
 output_filenames = [os.path.join("exp-layouts", os.path.basename(input_filename)) for input_filename in input_filenames]
 

@@ -15,5 +15,5 @@ java -mx8000m -cp "$scriptdir/*:$PWD/stanford-parser/*:" edu.stanford.nlp.parser
  -outputFormat "oneline" \
  -outputFormatOptions "stem,collapsedDependencies,includeTags" \
  -sentences newline \
- edu/stanford/nlp/models/lexparser/englishPCFG.ser.gz $* | tee parsed/parsed_$filename
+ edu/stanford/nlp/models/lexparser/englishPCFG.ser.gz $* | tee parsed/$filename
  

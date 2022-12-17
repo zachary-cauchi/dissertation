@@ -108,7 +108,20 @@
             "name": "VCR: get questions for gt",
             "type": "python",
             "request": "launch",
-            "program": "./get_questions.py",
+            "program": "./get_questions_answers_rationales.py",
+            "cwd": "${workspaceFolder}/exp-layout-builder",
+            "python": "${command:python.interpreterPath}",
+            "console": "integratedTerminal",
+            "args": [
+                "../snmn-models/exp_vcr/data/imdb_r152_7x7/imdb_train.npy"
+            ]
+        },
+
+        {
+            "name": "VCR: save layouts to train",
+            "type": "python",
+            "request": "launch",
+            "program": "./save_layouts_to_imdb.py",
             "cwd": "${workspaceFolder}/exp-layout-builder",
             "python": "${command:python.interpreterPath}",
             "console": "integratedTerminal",

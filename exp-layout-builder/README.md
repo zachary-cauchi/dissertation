@@ -5,10 +5,10 @@
 
 ## Instructions
 * Execute `python get_questions_answers_rationales.py` to extract every question, answer, and rationale into the `input_sentences` directory.
-* Execute the below in parallel to obtain the intermediary parse trees. These will take a lot of time to execute due to the length of the sentences.
+* Execute the below in parallel to obtain the intermediary parse trees. These will take a lot of time to execute due to the length of the sentences. The final generated layouts can be found in the `exp-layouts` directory for questions, answers, and rationales.
   * `./run_parser.sh input_sentences/questions.txt`
   * `./run_parser.sh input_sentences/answers.txt`
   * `./run_parser.sh input_sentences/rationales.txt`
-* Execute `python parse.py` to convert the stanford trees generated above into the final expert layouts to be used by the program.
-
-The final generated layouts can be found in the `exp-layouts` directory for questions, answers, and rationales.
+* Execute `python parse.py` to convert the stanford trees generated above into simplified trees.
+* Execute the following command to generate the final ground truth layouts and merge them into the imdbs:
+  * `python save_layouts_to_imdb.py ../snmn-models/exp_vcr/data/imdb_r152_7x7/imdb_train.npy`
