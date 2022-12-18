@@ -27,7 +27,7 @@ pattern = re.compile('|'.join(replacements))
 def convertTokensInLineToList(line):
     return [parse2module_dict[match] for match in pattern.findall(line.strip())]
 
-with open('ids.txt', "r") as id_file, \
+with open('input_sentences/ids.txt', "r") as id_file, \
      open(layouts_dir + "questions.txt") as questions_file, \
      open(layouts_dir + "answers.txt") as answers_file, \
      open(layouts_dir + "rationales.txt") as rationales_file:
