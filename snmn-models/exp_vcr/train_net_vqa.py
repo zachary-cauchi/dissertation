@@ -55,11 +55,12 @@ else:
         tf.nn.sigmoid_cross_entropy_with_logits(
             logits=model.vqa_scores, labels=answer_label_batch), name='vqa_sigmoid_loss_function')
 
+# Loss function for 
 if cfg.TRAIN.USE_GT_LAYOUT:
-    gt_layout_batch = tf.placeholder(tf.int32, [None, None])
+    gt_layout_question_batch = tf.placeholder(tf.int32, [None, None])
     loss_layout = tf.reduce_mean(
         tf.nn.sparse_softmax_cross_entropy_with_logits(
-            logits=model.module_logits, labels=gt_layout_batch))
+            logits=model.module_logits, labels=gt_layout_question_batch))
 else:
     loss_layout = tf.convert_to_tensor(0.)
 loss_rec = model.rec_loss
@@ -132,7 +133,7 @@ for n_batch, batch in enumerate(data_reader.batches()):
         feed_dict[soft_score_batch] = batch['soft_score_batch']
 
     if cfg.TRAIN.USE_GT_LAYOUT:
-        feed_dict[gt_layout_batch] = batch['gt_layout_batch']
+        feed_dict[gt_layout_question_batch] = batch['gt_layout_question_batch']
 
     vqa_scores_val, loss_vqa_val, loss_layout_val, loss_rec_val, _ = sess.run(
         (model.vqa_scores, loss_vqa, loss_layout, loss_rec, train_op),

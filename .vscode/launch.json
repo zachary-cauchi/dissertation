@@ -87,6 +87,22 @@
                 "80000"
             ]
         },
+        
+        {
+            "name": "VCR: Train gt layout",
+            "type": "python",
+            "request": "launch",
+            "program": "./exp_vcr/train_net_vqa.py",
+            "cwd": "${workspaceFolder}/snmn-models",
+            "python": "${command:python.interpreterPath}",
+            "console": "integratedTerminal",
+            "args": [
+                "--cfg",
+                "exp_vcr/cfgs/vcr_gt_layout.yaml",
+                "TRAIN.MAX_ITER",
+                "80000"
+            ]
+        },
 
         {
             "name": "VCR: Test scratch",
@@ -99,6 +115,22 @@
             "args": [
                 "--cfg",
                 "exp_vcr/cfgs/vcr_scratch.yaml",
+                "TEST.ITER",
+                "80000"
+            ]
+        },
+
+        {
+            "name": "VCR: Test gt layout",
+            "type": "python",
+            "request": "launch",
+            "program": "./exp_vcr/test_net_vqa.py",
+            "cwd": "${workspaceFolder}/snmn-models",
+            "python": "${command:python.interpreterPath}",
+            "console": "integratedTerminal",
+            "args": [
+                "--cfg",
+                "exp_vcr/cfgs/vcr_gt_layout.yaml",
                 "TEST.ITER",
                 "80000"
             ]
@@ -126,7 +158,7 @@
             "python": "${command:python.interpreterPath}",
             "console": "integratedTerminal",
             "args": [
-                "../snmn-models/exp_vcr/data/imdb_r152_7x7/imdb_train.npy"
+                "../snmn-models/exp_vcr/data/imdb_r152_7x7/imdb_val.npy"
             ]
         },
 

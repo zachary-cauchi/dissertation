@@ -19,8 +19,8 @@ class BatchLoaderVcr:
             'valid_answers' in self.imdb[0])
         self.load_gt_layout = (
             ('load_gt_layout' in data_params and data_params['load_gt_layout'])
-            and ('gt_layout_tokens' in self.imdb[0] and
-                 self.imdb[0]['gt_layout_tokens'] is not None))
+            and ('gt_layout_question_tokens' in self.imdb[0] and
+                 self.imdb[0]['gt_layout_question_tokens'] is not None))
 
         self.num_answers = len(self.imdb[0]['all_answers'])
         self.num_rationales = len(self.imdb[0]['all_rationales'])
@@ -74,7 +74,7 @@ class BatchLoaderVcr:
                 soft_score_batch = np.zeros(
                     (actual_batch_size, num_choices), np.float32)
         if self.load_gt_layout:
-            gt_layout_batch = self.layout_dict.word2idx('_NoOp') * np.ones(
+            gt_layout_question_batch = self.layout_dict.word2idx('_NoOp') * np.ones(
                 (self.T_decoder, actual_batch_size), np.int32)
 
         # Populate the arrays with each possible q-a pair.
@@ -125,18 +125,18 @@ class BatchLoaderVcr:
                     soft_score_target = iminfo['soft_score_target']
                     soft_score_batch[i_per_sample, soft_score_inds] = soft_score_target
             if self.load_gt_layout:
-                gt_layout_tokens = iminfo['gt_layout_tokens']
+                gt_layout_question_tokens = iminfo['gt_layout_question_tokens']
                 if self.prune_filter_module:
                     # remove duplicated consequtive modules
                     # (only keeping one _Filter)
-                    for n_t in range(len(gt_layout_tokens)-1, 0, -1):
-                        if (gt_layout_tokens[n_t-1] in {'_Filter', '_Find'}
-                                and gt_layout_tokens[n_t] == '_Filter'):
-                            gt_layout_tokens[n_t] = None
-                    gt_layout_tokens = [t for t in gt_layout_tokens if t]
-                layout_inds = [
-                    self.layout_dict.word2idx(w) for w in gt_layout_tokens]
-                gt_layout_batch[:len(layout_inds), i_per_sample] = layout_inds
+                    for n_t in range(len(gt_layout_question_tokens)-1, 0, -1):
+                        if (gt_layout_question_tokens[n_t-1] in {'_Filter', '_Find'}
+                                and gt_layout_question_tokens[n_t] == '_Filter'):
+                            gt_layout_question_tokens[n_t] = None
+                    gt_layout_question_tokens = [t for t in gt_layout_question_tokens if t]
+                question_layout_inds = [
+                    self.layout_dict.word2idx(w) for w in gt_layout_question_tokens]
+                gt_layout_question_batch[:len(question_layout_inds), i_per_sample] = question_layout_inds
 
         batch = dict(question_seq_batch=question_seq_batch,
                      question_length_batch=question_length_batch,
@@ -156,7 +156,7 @@ class BatchLoaderVcr:
             if self.load_soft_score:
                 batch['soft_score_batch'] = soft_score_batch
         if self.load_gt_layout:
-            batch['gt_layout_batch'] = gt_layout_batch
+            batch['gt_layout_question_batch'] = gt_layout_question_batch
 
         return batch
 
