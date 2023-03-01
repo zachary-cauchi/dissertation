@@ -1,0 +1,14 @@
+stanford-parser/*
+!stanford-parser/.gitkeep
+
+input-sentences/*
+!input-sentences/.gitkeep
+
+parser-trees/*
+!parser-trees/.gitkeep
+
+exp-layouts/*
+!exp-layouts/.gitkeep
+
+*.zip
+ids.txt
