@@ -1,4 +1,5 @@
 import numpy as np
+from .task_type_utils import get_name_prefix
 import tensorflow as tf
 from tensorflow import convert_to_tensor as to_T
 
@@ -41,7 +42,7 @@ def build_input_unit(question_seq_batch, all_answers_seq_batch, question_length_
 
         # For the question, and each answer, generate lstms.
         for i in range(1 + num_answers):
-            prefix = 'question' if i == 0 else f'answer{i}'
+            prefix = get_name_prefix(i)
 
             if i == 0:
                 embed_seq = tf.nn.embedding_lookup(embed_mat, question_seq_batch, prefix + '_word_embeddings_lookup')

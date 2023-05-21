@@ -1,4 +1,5 @@
 import numpy as np
+from .task_type_utils import get_name_prefix
 import tensorflow as tf
 from tensorflow import convert_to_tensor as to_T, newaxis as ax
 
@@ -48,7 +49,7 @@ class Controller:
 
         # Create the individual attention masks for each textual sequence.
         for i in range(1 + num_answers):
-            prefix = 'question' if i == 0 else f'answer{i}'
+            prefix = get_name_prefix(i)
             i_constant = tf.constant(i, dtype=tf.float64, name=f'{prefix}_start_index')
             i_plus_one_constant = tf.constant(i + 1, dtype=tf.float64, name=f'{prefix}_end_index')
 

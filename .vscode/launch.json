@@ -82,9 +82,9 @@
             "console": "integratedTerminal",
             "args": [
                 "--cfg",
-                "exp_vcr/cfgs/vcr_scratch.yaml",
+                "exp_vcr/cfgs/vcr_q_a_scratch.yaml",
                 "TRAIN.MAX_ITER",
-                "80000"
+                "120000"
             ]
         },
         
@@ -98,9 +98,9 @@
             "console": "integratedTerminal",
             "args": [
                 "--cfg",
-                "exp_vcr/cfgs/vcr_gt_layout.yaml",
+                "exp_vcr/cfgs/vcr_q_a_gt_layout.yaml",
                 "TRAIN.MAX_ITER",
-                "80000"
+                "120000"
             ]
         },
 
@@ -114,9 +114,9 @@
             "console": "integratedTerminal",
             "args": [
                 "--cfg",
-                "exp_vcr/cfgs/vcr_scratch.yaml",
+                "exp_vcr/cfgs/vcr_q_a_scratch.yaml",
                 "TEST.ITER",
-                "80000"
+                "120000"
             ]
         },
 
@@ -130,9 +130,9 @@
             "console": "integratedTerminal",
             "args": [
                 "--cfg",
-                "exp_vcr/cfgs/vcr_gt_layout.yaml",
+                "exp_vcr/cfgs/vcr_q_a_gt_layout.yaml",
                 "TEST.ITER",
-                "80000"
+                "120000"
             ]
         },
 
@@ -141,7 +141,7 @@
             "type": "python",
             "request": "launch",
             "program": "./get_questions_answers_rationales.py",
-            "cwd": "${workspaceFolder}/exp-layout-builder",
+            "cwd": "${workspaceFolder}/exp-layout-builder-v2",
             "python": "${command:python.interpreterPath}",
             "console": "integratedTerminal",
             "args": [
@@ -150,15 +150,30 @@
         },
 
         {
+            "name": "VCR: build trees for gt",
+            "type": "python",
+            "request": "launch",
+            "program": "./process_input_sentences.py",
+            "cwd": "${workspaceFolder}/exp-layout-builder-v2",
+            "python": "${command:python.interpreterPath}",
+            "console": "integratedTerminal",
+            "args": [
+                "question_answers"
+                // "test"
+            ]
+        },
+
+        {
             "name": "VCR: save layouts to train",
             "type": "python",
             "request": "launch",
             "program": "./save_layouts_to_imdb.py",
-            "cwd": "${workspaceFolder}/exp-layout-builder",
+            "cwd": "${workspaceFolder}/exp-layout-builder-v2",
             "python": "${command:python.interpreterPath}",
             "console": "integratedTerminal",
             "args": [
-                "../snmn-models/exp_vcr/data/imdb_r152_7x7/imdb_val.npy"
+                "question_answers",
+                "../snmn-models/exp_vcr/data/imdb_r152_7x7/imdb_train.npy"
             ]
         },
 
@@ -167,10 +182,12 @@
             "type": "python",
             "request": "launch",
             "program": "./parse.py",
-            "cwd": "${workspaceFolder}/exp-layout-builder",
+            "cwd": "${workspaceFolder}/exp-layout-builder-v2",
             "python": "${command:python.interpreterPath}",
             "console": "integratedTerminal",
             "args": [
+                // "question_answers"
+                "test"
             ]
         }
     ]

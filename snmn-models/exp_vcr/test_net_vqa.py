@@ -107,7 +107,7 @@ for n_batch, batch in enumerate(data_reader.batches()):
     if run_vis:
         model.vis_batch_vqa(
             data_reader, batch, fetch_list_val[-1], num_questions,
-            answer_correct, answer_incorrect, vis_dir)
+            answer_correct, answer_incorrect, vis_dir, num_answers)
 
     # compute accuracy
 
@@ -140,19 +140,13 @@ for n_batch, batch in enumerate(data_reader.batches()):
     accuracy = answer_correct / num_questions
     
     if n_batch % 20 == 0:
-        print('exp: %s, iter = %d, accumulated accuracy on %s = %f (%d / %d)' %
-              (cfg.EXP_NAME, cfg.TEST.ITER, cfg.TEST.SPLIT_VQA,
-               accuracy, answer_correct, num_questions))
+        print(f'exp: {cfg.EXP_NAME}, iter = {cfg.TEST_ITER}, accumulated accuracy on {cfg.TEST.SPLIT_VQA} = {accuracy} ({answer_correct} / {answer_incorrect})')
 
 with open(eval_file, 'w') as f:
         json.dump(output_qids_answers, f, indent=2)
-        print('prediction file written to', eval_file)
+        print('prediction file written to ', eval_file)
 
-with open(os.path.join(
-        result_dir, 'vqa_results_%s.txt' % cfg.TEST.SPLIT_VQA), 'w') as f:
-    print('\nexp: %s, iter = %d, final accuracy on %s = %f (%d / %d)' %
-          (cfg.EXP_NAME, cfg.TEST.ITER, cfg.TEST.SPLIT_VQA,
-           accuracy, answer_correct, num_questions))
-    print('exp: %s, iter = %d, final accuracy on %s = %f (%d / %d)' %
-          (cfg.EXP_NAME, cfg.TEST.ITER, cfg.TEST.SPLIT_VQA,
-           accuracy, answer_correct, num_questions), file=f)
+with open(os.path.join(result_dir, f'vqa_results_{cfg.TEST.SPLIT_VQA}.txt'), 'w') as f:
+    final_result = f'exp: {cfg.EXP_NAME}, iter = {cfg.TEST.ITER}, final accuracy on {cfg.TEST.SPLIT_VQA} = {accuracy} ({answer_correct} / {num_questions})'
+    print(f'\n{final_result}')
+    print(final_result, file=f)

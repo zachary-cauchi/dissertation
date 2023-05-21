@@ -33,6 +33,7 @@ __C.MODEL.W_FEAT = 14
 __C.MODEL.T_CTRL = 12
 
 __C.MODEL.BUILD_VQA = True
+__C.MODEL.VCR_TASK_TYPE = 'Q_2_A' # Valid options are Q_2_A, QA_2_R, and Q_2_AR
 __C.MODEL.BUILD_LOC = False
 __C.MODEL.H_IMG = 320  # size in loc
 __C.MODEL.W_IMG = 480  # size in loc
@@ -88,6 +89,7 @@ __C.TRAIN.SPLIT_VQA = 'train'
 __C.TRAIN.SPLIT_LOC = 'REPLACE_THIS_WITH_GOOGLE_REF_TRAIN'
 __C.TRAIN.BATCH_SIZE = 64
 __C.TRAIN.USE_GT_LAYOUT = False
+__C.TRAIN.SAVE_LAYOUT_WITH_SNAPSHOT = False
 __C.TRAIN.WEIGHT_DECAY = 1e-5
 __C.TRAIN.DROPOUT_KEEP_PROB = 0.85
 __C.TRAIN.SOLVER = AttrDict()
@@ -150,6 +152,9 @@ def _postprocess_cfg():  # NoQA
 
 # --------------------------------------------------------------------------- #
 
+def _validate_cfg():
+    if __C.MODEL.VCR_TASK_TYPE not in ('Q_2_A', 'QA_2_R', 'Q_2_AR'):
+        raise ValueError(f'MODEL.VCR_TASK_TYPE is set to {__C.MODEL.VCR_TASK_TYPE} which is invalid. Valid options are \'Q_2_A\', \'QA_2_R\', \'Q_2_AR\'')
 
 def build_cfg_from_argparse(args_list=None):
     """Load config with command line options (`--cfg` and a list of options)"""
@@ -162,6 +167,7 @@ def build_cfg_from_argparse(args_list=None):
     if args.opts:
         _merge_cfg_from_list(args.opts)
     _postprocess_cfg()
+    _validate_cfg()
     return __C
 
 

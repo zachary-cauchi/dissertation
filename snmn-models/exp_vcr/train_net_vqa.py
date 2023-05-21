@@ -57,7 +57,7 @@ else:
 
 # Loss function for 
 if cfg.TRAIN.USE_GT_LAYOUT:
-    gt_layout_question_batch = tf.placeholder(tf.int32, [None, None])
+    gt_layout_question_batch = tf.placeholder(tf.int32, [None, None], name='gt_layout_question_batch')
     loss_layout = tf.reduce_mean(
         tf.nn.sparse_softmax_cross_entropy_with_logits(
             logits=model.module_logits, labels=gt_layout_question_batch))
@@ -135,8 +135,8 @@ for n_batch, batch in enumerate(data_reader.batches()):
     if cfg.TRAIN.USE_GT_LAYOUT:
         feed_dict[gt_layout_question_batch] = batch['gt_layout_question_batch']
 
-    vqa_scores_val, loss_vqa_val, loss_layout_val, loss_rec_val, _ = sess.run(
-        (model.vqa_scores, loss_vqa, loss_layout, loss_rec, train_op),
+    module_logits, vqa_scores_val, loss_vqa_val, loss_layout_val, loss_rec_val, _ = sess.run(
+        (model.module_logits, model.vqa_scores, loss_vqa, loss_layout, loss_rec, train_op),
         feed_dict)
 
     # compute accuracy
@@ -160,11 +160,9 @@ for n_batch, batch in enumerate(data_reader.batches()):
 
     # Add to TensorBoard summary
     if (n_iter+1) % cfg.TRAIN.LOG_INTERVAL == 0:
-        print("exp: %s, iter = %d\n\t" % (cfg.EXP_NAME, n_iter+1) +
-              "loss (vqa) = %f, loss (layout) = %f, loss (rec) = %f\n\t" % (
-                loss_vqa_val, loss_layout_val, loss_rec_val) +
-              "accuracy (cur) = %f, accuracy (avg) = %f" % (
-                accuracy, avg_accuracy))
+        print(f"exp: {cfg.EXP_NAME}, task_type = {cfg.MODEL.VCR_TASK_TYPE}, iter = {n_iter + 1}\n\t" +
+              f"loss (vqa) = {loss_vqa_val}, loss (layout) = {loss_layout_val}, loss (rec) = {loss_rec_val}\n\t" +
+              f"accuracy (cur) = {accuracy}, accuracy (avg) = {avg_accuracy}")
         summary = sess.run(log_step_trn, {
             loss_vqa_ph: loss_vqa_val,
             loss_layout_ph: loss_layout_val,
@@ -175,6 +173,6 @@ for n_batch, batch in enumerate(data_reader.batches()):
     # Save snapshot
     if ((n_iter+1) % cfg.TRAIN.SNAPSHOT_INTERVAL == 0 or
             (n_iter+1) == cfg.TRAIN.MAX_ITER):
-        snapshot_file = os.path.join(snapshot_dir, "%08d" % (n_iter+1))
-        snapshot_saver.save(sess, snapshot_file, write_meta_graph=False)
+        snapshot_file = os.path.join(snapshot_dir, f"{(n_iter + 1):08d}_{cfg.MODEL.VCR_TASK_TYPE}")
+        snapshot_saver.save(sess, snapshot_file, write_meta_graph=True, global_step=n_iter+1)
         print('snapshot saved to ' + snapshot_file)
