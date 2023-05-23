@@ -11,12 +11,13 @@ images_dir = '../vcr_dataset/vcr1images'
 corpus_file = './corpus_vcr.txt'
 vocabulary_file = './vocabulary_vcr.txt'
 answers_file = './answers_%s_vcr.txt'
+rationales_file = './rationales_%s_vcr.txt'
 imdb_out_dir = './imdb_r152_7x7'
 resnet_feature_dir = './resnet152_c5_7x7'
 file_sets = {
-    'train.jsonl': { 'load_answers': True },
-    'val.jsonl': { 'load_answers': True },
-    'test.jsonl': { 'load_answers': False}
+    'train.jsonl': { 'load_answers': True, 'load_rationales': True },
+    'val.jsonl': { 'load_answers': True, 'load_rationales': True },
+    'test.jsonl': { 'load_answers': False, 'load_rationales': False }
 }
 
 file_splits = {}
@@ -26,6 +27,7 @@ qid2que = {}
 corpus = []
 vocab = Counter()
 split_answers = {}
+split_rationales = {}
 
 longest_token_sequences = {
 
@@ -79,6 +81,8 @@ def update_vocab(qar):
 
 def extract_folds_from_file_set(file_set, params):
     load_answers = params['load_answers']
+    load_rationales = params['load_rationales']
+
     with open(os.path.join(annotations_dir, file_set)) as f:
         json_qars = list(f)
     
@@ -117,8 +121,15 @@ def extract_folds_from_file_set(file_set, params):
                 split_answers[split] = [ '<unk>' ]
             answer_i = [i for i in qar['answer_match_iter'] if qar['answer_match_iter'][i] == 0][0]
             split_answers[split].append(qar['answer_choices'][answer_i])
+        
+        # Update the rationales file if enabled.
+        if (load_rationales):
+            if (split not in split_rationales):
+                split_rationales[split] = [ '<unk>' ]
+            answer_i = [i for i in qar['rationale_match_iter'] if qar['rationale_match_iter'][i] == 0][0]
+            split_rationales[split].append(qar['rationale_choices'][answer_i])
 
-def build_imdb(fold_name, with_answers = True):
+def build_imdb(fold_name, with_answers = True, with_rationales = True):
     imdb = []
 
     print(f'Constructing imdb for fold {fold_name}.')
@@ -191,12 +202,21 @@ for split, answers in split_answers.items():
         with open(answer_path, 'w') as f:
             f.writelines(f"{' '.join(token)}\n" for token in answers)
 
+# Write the answer vocabs
+for split, rationales in split_rationales.items():
+    if (len(rationales) != 0):
+        rationale_path = rationales_file % split
+        print(f'Saving {split} rationales to {rationales_file}')
+
+        with open(rationale_path, 'w') as f:
+            f.writelines(f"{' '.join(token)}\n" for token in rationales)
+
 print('Constructing and saving imdbs')
 for file_set, params in file_sets.items():
     imdb = []
 
     for fold_names in file_splits[file_set]:
-        imdb += build_imdb(fold_names, with_answers=params['load_answers'])
+        imdb += build_imdb(fold_names, with_answers=params['load_answers'], with_rationales=params['load_rationales'])
 
     qid = -1
     qlen = -1
