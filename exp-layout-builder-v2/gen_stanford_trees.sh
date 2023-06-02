@@ -3,7 +3,7 @@
 # Runs the parser on the given file, outputting results in the format we need.
 
 print_usage () {
-  echo Usage: `basename $0` 'filename prefix'
+  echo Usage: `basename $0` 'filename_prefix'
   echo Example: `basename $0` question_answers
   echo
 }

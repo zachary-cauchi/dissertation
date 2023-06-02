@@ -143,5 +143,6 @@ dependencies:
     - regex==2022.10.31
     - tqdm==4.64.1
 variables:
+  CUDA_VISIBLE_DEVICES: '0'
   PYTHONPATH: '.:'
 prefix: /home/cortesza/anaconda3/envs/snmn

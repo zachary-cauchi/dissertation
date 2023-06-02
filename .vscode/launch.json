@@ -4,6 +4,7 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+
         {
             "name": "Python: Current File",
             "type": "python",
@@ -188,6 +189,18 @@
             "args": [
                 // "question_answers"
                 "test"
+            ]
+        },
+
+        {
+            "name": "VCR: build imdb files",
+            "type": "python",
+            "request": "launch",
+            "program": "./build_vcr_imdb_r152_7x7.py",
+            "cwd": "${workspaceFolder}/snmn-models/exp_vcr/data",
+            "python": "${command:python.interpreterPath}",
+            "console": "integratedTerminal",
+            "args": [
             ]
         }
     ]

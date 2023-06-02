@@ -4,4 +4,10 @@ datasets/vcr/**/*
 
 !.gitkeep
 
+r2c/data/vcr1images
+r2c/data/train.jsonl
+r2c/data/val.jsonl
+r2c/data/test.jsonl
+
+
 model backups/

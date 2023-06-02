@@ -1,8 +1,9 @@
 stanford-parser/*
 !stanford-parser/.gitkeep
 
-input-sentences/*
+input-sentences/**/*.txt
 !input-sentences/.gitkeep
+!input-sentences/whole-files/.gitkeep
 
 parser-trees/*
 !parser-trees/.gitkeep
