@@ -77,6 +77,7 @@ def update_vocab(qar):
             sentence[i] = resolved_token
 
             vocab[resolved_token] += 1
+            # TODO: Add correctness check to prevent duplicate/wrong sentences.
             corpus.append(resolved_token)
 
 def extract_folds_from_file_set(file_set, params):

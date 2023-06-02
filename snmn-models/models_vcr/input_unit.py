@@ -35,7 +35,7 @@ def build_input_unit(question_seq_batch, all_answers_seq_batch, question_length_
         # bidirectional LSTM
         lstm_dim = cfg.MODEL.LSTM_DIM
         assert lstm_dim % 2 == 0, \
-            'lstm_dim is the dimension of [fw, bw] and must be a multiply of 2'
+            'lstm_dim is the dimension of [fw, bw] and must be a multiple of 2'
 
         lstm_outs = ()
         lstm_encs = {}
@@ -79,7 +79,7 @@ def build_input_unit(question_seq_batch, all_answers_seq_batch, question_length_
 
 def get_positional_encoding(H, W):
     pe_dim = cfg.MODEL.PE_DIM
-    assert pe_dim % 4 == 0, 'pe_dim must be a multiply of 4 (h/w x sin/cos)'
+    assert pe_dim % 4 == 0, 'pe_dim must be a multiple of 4 (h/w x sin/cos)'
     c_period = 10000. ** np.linspace(0., 1., pe_dim // 4)
     h_vec = np.tile(np.arange(0, H).reshape((H, 1, 1)), (1, W, 1)) / c_period
     w_vec = np.tile(np.arange(0, W).reshape((1, W, 1)), (H, 1, 1)) / c_period
