@@ -25,9 +25,10 @@ data_reader = DataReader(
     load_gt_layout=cfg.TRAIN.USE_GT_LAYOUT,
     vocab_layout_file=cfg.VOCAB_LAYOUT_FILE, T_decoder=cfg.MODEL.T_CTRL,
     load_soft_score=cfg.TRAIN.VQA_USE_SOFT_SCORE,
-    feed_answers_with_input=cfg.MODEL.INPUT.USE_ANSWERS)
+    feed_answers_with_input=cfg.MODEL.INPUT.USE_ANSWERS,
+    vcr_task_type=cfg.MODEL.VCR_TASK_TYPE)
 num_vocab = data_reader.batch_loader.vocab_dict.num_vocab
-num_answers = data_reader.batch_loader.num_answers
+num_answers = data_reader.batch_loader.num_combinations
 num_choices = 1
 module_names = data_reader.batch_loader.layout_dict.word_list
 
@@ -55,7 +56,7 @@ else:
         tf.nn.sigmoid_cross_entropy_with_logits(
             logits=model.vqa_scores, labels=answer_label_batch), name='vqa_sigmoid_loss_function')
 
-# Loss function for 
+# Loss function for expert layout.
 if cfg.TRAIN.USE_GT_LAYOUT:
     gt_layout_question_batch = tf.placeholder(tf.int32, [None, None], name='gt_layout_question_batch')
     loss_layout = tf.reduce_mean(

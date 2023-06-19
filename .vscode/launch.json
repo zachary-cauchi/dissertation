@@ -74,7 +74,7 @@
         },
 
         {
-            "name": "VCR: Train scratch",
+            "name": "VCR: Train QA scratch",
             "type": "python",
             "request": "launch",
             "program": "./exp_vcr/train_net_vqa.py",
@@ -90,7 +90,7 @@
         },
         
         {
-            "name": "VCR: Train gt layout",
+            "name": "VCR: Train QA gt layout",
             "type": "python",
             "request": "launch",
             "program": "./exp_vcr/train_net_vqa.py",
@@ -106,7 +106,7 @@
         },
 
         {
-            "name": "VCR: Test scratch",
+            "name": "VCR: Test QA scratch",
             "type": "python",
             "request": "launch",
             "program": "./exp_vcr/test_net_vqa.py",
@@ -122,7 +122,7 @@
         },
 
         {
-            "name": "VCR: Test gt layout",
+            "name": "VCR: Test QA gt layout",
             "type": "python",
             "request": "launch",
             "program": "./exp_vcr/test_net_vqa.py",
@@ -133,6 +133,22 @@
                 "--cfg",
                 "exp_vcr/cfgs/vcr_q_a_gt_layout.yaml",
                 "TEST.ITER",
+                "120000"
+            ]
+        },
+
+        {
+            "name": "VCR: Train QAR scratch",
+            "type": "python",
+            "request": "launch",
+            "program": "./exp_vcr/train_net_vqa.py",
+            "cwd": "${workspaceFolder}/snmn-models",
+            "python": "${command:python.interpreterPath}",
+            "console": "integratedTerminal",
+            "args": [
+                "--cfg",
+                "exp_vcr/cfgs/vcr_q_a_r_scratch.yaml",
+                "TRAIN.MAX_ITER",
                 "120000"
             ]
         },

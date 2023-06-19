@@ -1,3 +1,9 @@
 [submodule "GloVe"]
 	path = GloVe
 	url = https://github.com/stanfordnlp/GloVe
+[submodule "r2c"]
+	path = r2c
+	url = https://github.com/rowanz/r2c
+[submodule "bert"]
+	path = bert
+	url = https://github.com/google-research/bert
