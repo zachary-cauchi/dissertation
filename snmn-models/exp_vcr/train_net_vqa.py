@@ -31,18 +31,37 @@ num_vocab = data_reader.batch_loader.vocab_dict.num_vocab
 num_answers = data_reader.batch_loader.num_combinations
 num_choices = 1
 module_names = data_reader.batch_loader.layout_dict.word_list
+if data_reader.data_params['vcr_task_type'] == 'Q_2_A':
+    correct_label_batch_name = 'answer_label_batch'
+elif data_reader.data_params['vcr_task_type'] == 'QA_2_R':
+    correct_label_batch_name = 'rationale_label_batch'
+elif data_reader.data_params['vcr_task_type'] == 'Q_2_AR':
+    correct_label_batch_name = 'answer_and_rationale_label_batch'
 
 # Inputs and model
 question_seq_batch = tf.placeholder(tf.int32, [None, None], name='question_seq_batch')
-answer_label_batch = tf.placeholder(tf.float32, [None, 1], name='answer_label_batch')
+correct_label_batch = tf.placeholder(tf.float32, [None, 1], name=f'correct_{correct_label_batch_name}')
 all_answers_seq_batch = tf.placeholder(tf.int32, [None, None, None], name='all_answers_seq_batch')
 all_answers_length_batch = tf.placeholder(tf.int32, [None, None], name='all_answers_length_batch')
+rationale_label_batch = tf.placeholder(tf.float32, [None, 1], name='rationale_label_batch')
+all_rationales_seq_batch = tf.placeholder(tf.int32, [None, None, None], name='all_rationales_seq_batch')
+all_rationales_length_batch = tf.placeholder(tf.int32, [None, None], name='all_rationales_length_batch')
 question_length_batch = tf.placeholder(tf.int32, [None], name='question_length_batch')
 image_feat_batch = tf.placeholder(
     tf.float32, [None, cfg.MODEL.H_FEAT, cfg.MODEL.W_FEAT, cfg.MODEL.FEAT_DIM], name='image_feat_batch')
 model = Model(
-    question_seq_batch, all_answers_seq_batch, question_length_batch, all_answers_length_batch, image_feat_batch, num_vocab=num_vocab,
-    num_choices=num_choices, num_answers=num_choices, module_names=module_names, is_training=True)
+    question_seq_batch,
+    all_answers_seq_batch,
+    all_rationales_seq_batch,
+    question_length_batch,
+    all_answers_length_batch,
+    all_rationales_length_batch,
+    image_feat_batch,
+    num_vocab=num_vocab,
+    num_choices=num_choices,
+    module_names=module_names,
+    is_training=True
+)
 
 # Loss function
 if cfg.TRAIN.VQA_USE_SOFT_SCORE:
@@ -54,7 +73,7 @@ if cfg.TRAIN.VQA_USE_SOFT_SCORE:
 else:
     loss_vqa = tf.reduce_mean(
         tf.nn.sigmoid_cross_entropy_with_logits(
-            logits=model.vqa_scores, labels=answer_label_batch), name='vqa_sigmoid_loss_function')
+            logits=model.vqa_scores, labels=correct_label_batch), name='vqa_sigmoid_loss_function')
 
 # Loss function for expert layout.
 if cfg.TRAIN.USE_GT_LAYOUT:
@@ -126,9 +145,11 @@ for n_batch, batch in enumerate(data_reader.batches()):
     feed_dict = {question_seq_batch: batch['question_seq_batch'],
                  question_length_batch: batch['question_length_batch'],
                  image_feat_batch: batch['image_feat_batch'],
-                 answer_label_batch: batch['answer_label_batch'],
+                 correct_label_batch: batch[correct_label_batch_name],
                  all_answers_seq_batch: batch['all_answers_seq_batch'],
-                 all_answers_length_batch: batch['all_answers_length_batch']}
+                 all_answers_length_batch: batch['all_answers_length_batch'],
+                 all_rationales_seq_batch: batch['all_rationales_seq_batch'],
+                 all_rationales_length_batch: batch['all_rationales_length_batch']}
 
     if cfg.TRAIN.VQA_USE_SOFT_SCORE:
         feed_dict[soft_score_batch] = batch['soft_score_batch']
@@ -141,12 +162,7 @@ for n_batch, batch in enumerate(data_reader.batches()):
         feed_dict)
 
     # compute accuracy
-    if 'answer_and_rationale_label_batch' in batch:
-        vqa_q_labels = batch['answer_and_rationale_label_batch']
-    elif 'rationale_label_batch' in batch:
-        vqa_q_labels = batch['rationale_label_batch']
-    else:
-        vqa_q_labels = batch['answer_label_batch']
+    vqa_q_labels = batch[correct_label_batch_name]
 
     # Reshape the expected results into a one-hot encoded vector.
     vqa_q_labels = np.reshape(vqa_q_labels, (len(vqa_q_labels) // num_answers, num_answers))
@@ -168,7 +184,7 @@ for n_batch, batch in enumerate(data_reader.batches()):
     if (n_iter+1) % cfg.TRAIN.LOG_INTERVAL == 0:
         print(f"exp: {cfg.EXP_NAME}, task_type = {cfg.MODEL.VCR_TASK_TYPE}, iter = {n_iter + 1}\n\t" +
               f"loss (vqa) = {loss_vqa_val}, loss (layout) = {loss_layout_val}, loss (rec) = {loss_rec_val}\n\t" +
-              f"accuracy (cur) = {accuracy}, accuracy (avg) = {avg_accuracy}")
+              f"accuracy (avg) = {avg_accuracy}, accuracy (cur) = {accuracy}")
         summary = sess.run(log_step_trn, {
             loss_vqa_ph: loss_vqa_val,
             loss_layout_ph: loss_layout_val,

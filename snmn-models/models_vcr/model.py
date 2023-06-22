@@ -6,8 +6,8 @@ from . import controller, nmn, input_unit, output_unit, vis
 
 
 class Model:
-    def __init__(self, question_seq_batch, all_answers_seq_batch, question_length_batch, all_answers_length_batch, image_feat_batch,
-                 num_vocab, num_choices, num_answers, module_names, is_training,
+    def __init__(self, question_seq_batch, all_answers_seq_batch, all_rationales_seq_batch, question_length_batch, all_answers_length_batch, all_rationales_length_batch, image_feat_batch,
+                 num_vocab, num_choices, module_names, is_training,
                  scope='model', reuse=None):
         """
         Neual Module Networks v4 (the whole model)
@@ -20,16 +20,18 @@ class Model:
 
         with tf.variable_scope(scope, reuse=reuse):
             self.T_ctrl = cfg.MODEL.T_CTRL
+            # Question + answer + rationale input so 3 total input sequences.
+            self.seq_in_count = 3
 
             # Input unit
             lstm_seq, lstm_encodings, embed_seq = input_unit.build_input_unit(
-                question_seq_batch, all_answers_seq_batch, question_length_batch, all_answers_length_batch, num_vocab, num_answers)
+                question_seq_batch, all_answers_seq_batch, all_rationales_seq_batch, question_length_batch, all_answers_length_batch, all_rationales_length_batch, num_vocab, self.seq_in_count)
             kb_batch = input_unit.build_kb_batch(image_feat_batch)
 
             # Controller and NMN
             num_module = len(module_names)
             self.controller = controller.Controller(
-                lstm_seq, lstm_encodings, embed_seq, question_length_batch, all_answers_length_batch, num_module, num_answers)
+                lstm_seq, lstm_encodings, embed_seq, question_length_batch, all_answers_length_batch, all_rationales_length_batch, num_module, self.seq_in_count)
             self.c_list = self.controller.c_list
             self.module_logits = self.controller.module_logits
             self.module_probs = self.controller.module_probs

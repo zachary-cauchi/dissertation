@@ -11,8 +11,8 @@ import sys
 
 class Controller:
 
-    def __init__(self, lstm_seq, lstm_encodings, embed_seq, question_length_batch, all_answers_length_batch,
-                 num_module, num_answers, scope='controller', reuse=None):
+    def __init__(self, lstm_seq, lstm_encodings, embed_seq, question_length_batch, all_answers_length_batch, all_rationales_length_batch,
+                 num_module, seq_in_count, scope='controller', reuse=None):
         """
         Build the controller that is used to give inputs to the neural modules.
         The controller unrolls itself for a fixed number of time steps.
@@ -40,15 +40,15 @@ class Controller:
         S = tf.shape(lstm_seq)[0]
         N = tf.shape(lstm_seq)[1]
         # att_mask: [S, N, 1]
-        # The attention mask needs to be composed of the sequence lengths of the question and each answer.
+        # The attention mask needs to be composed of the sequence lengths of the question, answer, and (optionally) rationale.
 
-        # The total number of textual sequences to mask equal to one question + the number of answers.
-        num_seqs = tf.constant(1 + num_answers, name='total_sequences')
+        # The total number of textual sequences to mask equal to one question + the answer + the rationale (if enabled).
+        num_seqs = tf.constant(seq_in_count, name='total_sequences')
         num_seqs_per_length = tf.divide(S, num_seqs, name='unit_seq_length')
         atts_per_seq = []
 
         # Create the individual attention masks for each textual sequence.
-        for i in range(1 + num_answers):
+        for i in range(seq_in_count):
             prefix = get_name_prefix(i)
             i_constant = tf.constant(i, dtype=tf.float64, name=f'{prefix}_start_index')
             i_plus_one_constant = tf.constant(i + 1, dtype=tf.float64, name=f'{prefix}_end_index')
@@ -59,8 +59,8 @@ class Controller:
             S_i_start = tf.cast(tf.multiply(num_seqs_per_length, i_constant), tf.int32, name=f'{prefix}_S_i_start')
             S_i_end = tf.cast(tf.multiply(num_seqs_per_length, i_plus_one_constant), tf.int32, name=f'{prefix}_S_i_end')
 
-            # If the current index is 0, get the question length. Otherwise, get the length of the answer at i - 1.
-            seq_length = question_length_batch[:, ax] if i == 0 else all_answers_length_batch[i - 1, :, ax]
+            # If the current index is 0, get the question length. Otherwise, get the length of the answer at i.
+            seq_length = question_length_batch[:, ax] if i == 0 else all_answers_length_batch[0, :, ax] if i == 1 else all_rationales_length_batch[0, :, ax]
 
             # Build the attention mask, Setting the first n number of ints in the range equal to 1, where n = seq_length.
             att_i = tf.less(tf.range(tf.subtract(S_i_end, S_i_start, f'{prefix}_mask_length'), name=f'{prefix}_identity_attention')[:, ax, ax], seq_length, name=f'{prefix}_attention_mask')

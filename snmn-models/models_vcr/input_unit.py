@@ -7,7 +7,7 @@ from .config import cfg
 from util.cnn import conv_elu_layer as conv_elu, conv_layer as conv
 
 # TODO: Fix method comment block.
-def build_input_unit(question_seq_batch, all_answers_seq_batch, question_length_batch, all_answers_length_batch, num_vocab, num_answers,
+def build_input_unit(question_seq_batch, all_answers_seq_batch, all_rationales_seq_batch, question_length_batch, all_answers_length_batch, all_rationales_length_batch, num_vocab, seq_in_count,
                      scope='input_unit', reuse=None):
     """
     Preprocess the input sequence with a (single-layer) bidirectional LSTM.
@@ -41,16 +41,21 @@ def build_input_unit(question_seq_batch, all_answers_seq_batch, question_length_
         lstm_encs = {}
 
         # For the question, and each answer, generate lstms.
-        for i in range(1 + num_answers):
+        for i in range(seq_in_count):
             prefix = get_name_prefix(i)
 
             if i == 0:
                 embed_seq = tf.nn.embedding_lookup(embed_mat, question_seq_batch, prefix + '_word_embeddings_lookup')
-            else:
+            elif i == 1:
                 # Load the i-1'th answer from the input and generate it's embedding.
-                answer_seq_batch = tf.gather_nd(indices=[i-1], params=all_answers_seq_batch, name='get_' + prefix)
+                seq_batch = tf.gather_nd(indices=[0], params=all_answers_seq_batch, name='get_' + prefix)
 
-                embed_seq = tf.nn.embedding_lookup(embed_mat, answer_seq_batch, prefix + '_word_embeddings_lookup')
+                embed_seq = tf.nn.embedding_lookup(embed_mat, seq_batch, prefix + '_word_embeddings_lookup')
+            elif i == 2:
+                # Load the i-1'th answer from the input and generate it's embedding.
+                seq_batch = tf.gather_nd(indices=[0], params=all_rationales_seq_batch, name='get_' + prefix)
+
+                embed_seq = tf.nn.embedding_lookup(embed_mat, seq_batch, prefix + '_word_embeddings_lookup')
 
             # Casting required when using generated weights.
             embed_seq = tf.cast(embed_seq, tf.float32, name=prefix + '_cast_embeds_to_32')
@@ -61,7 +66,7 @@ def build_input_unit(question_seq_batch, all_answers_seq_batch, question_length_
             # Create the lstm, getting the output and their states.
             outputs, states = tf.nn.bidirectional_dynamic_rnn(
                 cell_fw, cell_bw, inputs=embed_seq, dtype=tf.float32,
-                sequence_length=question_length_batch if i == 0 else all_answers_length_batch[i - 1],
+                sequence_length=question_length_batch if i == 0 else all_answers_length_batch[0] if i == 1 else all_rationales_length_batch[0],
                 time_major=True)
 
             # concatenate the final hidden state of the forward and backward LSTM
