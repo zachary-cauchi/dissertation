@@ -99,6 +99,10 @@ class BatchLoaderVcr:
                 num_choices = len(self.answer_dict.word_list)
                 soft_score_batch = np.zeros(
                     (actual_batch_size, num_choices), np.float32)
+        
+        if self.load_answer and self.load_rationale:
+            answer_and_rationale_label_batch = np.zeros([actual_batch_size, 1], np.float32)
+
         if self.load_gt_layout:
             gt_layout_question_batch = self.layout_dict.word2idx('_NoOp') * np.ones(
                 (self.T_decoder, actual_batch_size), np.int32)
@@ -122,6 +126,13 @@ class BatchLoaderVcr:
             seq_length = len(question_inds)
             question_seq_batch[:seq_length, i_per_qar] = question_inds
 
+            if self.load_answer:
+                # Get the index of the correct answer choice.
+                answer = iminfo['valid_answers'].index(0)
+            if self.load_rationale:
+                # Get the index of the correct rationale choice.
+                rationale = iminfo['valid_rationales'].index(0)
+
             sample_range_in_batch = range(i_per_qar, i_per_qar + combinations_per_sample)
             for n, i in enumerate(sample_range_in_batch):
                 i_ans = n // self.num_answers
@@ -137,44 +148,37 @@ class BatchLoaderVcr:
                 all_rationales_list[i] = all_rationales[i_rat]
                 all_rationales_token_list[i] = [all_rationales_tokens[i_rat]]
 
-
-            for i_sample in sample_range_in_batch:
-                # For each set of answers per-question, populate the list of supported answers in a sequence for embedding_lookup.
-                for i, token_list in enumerate(all_answers_token_list[i_sample]):
-                    seq_length = len(token_list)
-                    all_answers_seq_batch[i, :seq_length, i_sample] = token_list
-                    all_answers_length_batch[i, i_sample] = seq_length
-                # For each set of rationales per-question, populate the list of supported rationales in a sequence for embedding_lookup.
-                for i, token_list in enumerate(all_rationales_token_list[i_sample]):
-                    seq_length = len(token_list)
-                    all_rationales_seq_batch[i, :seq_length, i_sample] = token_list
-                    all_rationales_length_batch[i, i_sample] = seq_length
-
-            if self.load_answer:
-                # Get the index of the correct answer choice.
-                answer = iminfo['valid_answers'].index(0)
-
-                for per_sample_i, i in enumerate(sample_range_in_batch):
-                    answer_label_batch[i] = [1. if answer == per_sample_i else 0.]
+                if self.load_answer:
+                    answer_label_batch[i] = [1. if answer == i_ans else 0.]
                     answer_onehot_batch[i] = answer_label_batch[i][0]
 
-                if self.load_soft_score:
-                    soft_score_inds = iminfo['soft_score_inds']
-                    soft_score_target = iminfo['soft_score_target']
-                    soft_score_batch[i_per_sample, soft_score_inds] = soft_score_target
-            
-            if self.load_rationale:
-                # Get the index of the correct answer choice.
-                rationale = iminfo['valid_rationales'].index(0)
-
-                for per_sample_i, i in enumerate(sample_range_in_batch):
-                    rationale_label_batch[i] = [1. if rationale == per_sample_i else 0.]
+                    # if self.load_soft_score:
+                    #     soft_score_inds = iminfo['soft_score_inds']
+                    #     soft_score_target = iminfo['soft_score_target']
+                    #     soft_score_batch[i_per_sample, soft_score_inds] = soft_score_target
+                
+                if self.load_rationale:
+                    rationale_label_batch[i] = [1. if rationale == i_rat else 0.]
                     rationale_onehot_batch[i] = rationale_label_batch[i][0]
 
-                if self.load_soft_score:
-                    soft_score_inds = iminfo['soft_score_inds']
-                    soft_score_target = iminfo['soft_score_target']
-                    soft_score_batch[i_per_sample, soft_score_inds] = soft_score_target
+                if self.load_answer and self.load_rationale:
+                    answer_and_rationale_label_batch[i] = [1. if rationale == i_rat and answer == i_ans else 0.]
+
+                    # if self.load_soft_score:
+                    #     soft_score_inds = iminfo['soft_score_inds']
+                    #     soft_score_target = iminfo['soft_score_target']
+                    #     soft_score_batch[i_per_sample, soft_score_inds] = soft_score_target
+
+                # For each set of answers per-question, populate the list of supported answers in a sequence for embedding_lookup.
+                for i_token, token_list in enumerate(all_answers_token_list[i]):
+                    seq_length = len(token_list)
+                    all_answers_seq_batch[i_token, :seq_length, i] = token_list
+                    all_answers_length_batch[i_token, i] = seq_length
+                # For each set of rationales per-question, populate the list of supported rationales in a sequence for embedding_lookup.
+                for i_token, token_list in enumerate(all_rationales_token_list[i]):
+                    seq_length = len(token_list)
+                    all_rationales_seq_batch[i_token, :seq_length, i] = token_list
+                    all_rationales_length_batch[i_token, i] = seq_length
 
             if self.load_gt_layout:
                 # Get and load the gt layout for each question-answer available.
@@ -211,16 +215,16 @@ class BatchLoaderVcr:
                      all_rationales_token_list=all_rationales_token_list,
                      all_rationales_seq_batch=all_rationales_seq_batch,
                      all_rationales_length_batch=all_rationales_length_batch,
-                     rationale_onehot_batch=rationale_onehot_batch)
+                     rationale_onehot_batch=rationale_onehot_batch,)
 
         if self.load_answer:
             batch['answer_label_batch'] = answer_label_batch
-            batch['valid_answers_list'] = valid_answers_list
             if self.load_soft_score:
                 batch['soft_score_batch'] = soft_score_batch
         if self.load_rationale:
             batch['rationale_label_batch'] = rationale_label_batch
-            batch['valid_rationales_list'] = valid_rationales_list
+        if self.load_answer and self.load_rationale:
+            batch['answer_and_rationale_label_batch'] = answer_and_rationale_label_batch
         if self.load_gt_layout:
             batch['gt_layout_question_batch'] = gt_layout_question_batch
 

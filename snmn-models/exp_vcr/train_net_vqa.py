@@ -141,7 +141,12 @@ for n_batch, batch in enumerate(data_reader.batches()):
         feed_dict)
 
     # compute accuracy
-    vqa_q_labels = batch['answer_label_batch']
+    if 'answer_and_rationale_label_batch' in batch:
+        vqa_q_labels = batch['answer_and_rationale_label_batch']
+    elif 'rationale_label_batch' in batch:
+        vqa_q_labels = batch['rationale_label_batch']
+    else:
+        vqa_q_labels = batch['answer_label_batch']
 
     # Reshape the expected results into a one-hot encoded vector.
     vqa_q_labels = np.reshape(vqa_q_labels, (len(vqa_q_labels) // num_answers, num_answers))
