@@ -109,7 +109,7 @@ snapshot_dir = cfg.TRAIN.SNAPSHOT_DIR % cfg.EXP_NAME
 os.makedirs(snapshot_dir, exist_ok=True)
 snapshot_saver = tf.train.Saver(max_to_keep=None)  # keep all snapshots
 if cfg.TRAIN.START_ITER > 0:
-    snapshot_file = os.path.join(snapshot_dir, "%08d" % cfg.TRAIN.START_ITER)
+    snapshot_file = os.path.join(snapshot_dir, f"{(cfg.TRAIN.START_ITER):08d}_{cfg.MODEL.VCR_TASK_TYPE}-{cfg.TRAIN.START_ITER}")
     print('resume training from %s' % snapshot_file)
     snapshot_saver.restore(sess, snapshot_file)
 else:
