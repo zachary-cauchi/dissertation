@@ -38,6 +38,7 @@ def build_input_unit(question_seq_batch, all_answers_seq_batch, all_rationales_s
             'lstm_dim is the dimension of [fw, bw] and must be a multiple of 2'
 
         lstm_outs = ()
+        embeds_seq = []
         lstm_encs = {}
 
         # For the question, and each answer, generate lstms.
@@ -75,11 +76,13 @@ def build_input_unit(question_seq_batch, all_answers_seq_batch, all_rationales_s
 
             lstm_outs = lstm_outs + outputs
             lstm_encs[prefix] = seq_encoding
+            embeds_seq.append(embed_seq)
 
         # concatenate the hidden state from forward and backward LSTM
         lstm_seq = tf.concat(lstm_outs, axis=2, name=f'hidden_lstm_seq')
+        embeds_seq_out = tf.concat(embeds_seq, axis=0, name='embed_seq')
 
-    return lstm_seq, lstm_encs, embed_seq
+    return lstm_seq, lstm_encs, embeds_seq_out
 
 
 def get_positional_encoding(H, W):
