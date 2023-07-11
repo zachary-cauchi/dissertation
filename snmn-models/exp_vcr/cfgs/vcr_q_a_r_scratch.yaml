@@ -27,6 +27,7 @@ TRAIN:
   VQA_USE_SOFT_SCORE: False
   VQA_SCORE_INIT: -8.  # roughly sigmoid(-8) = 1/3000
   SNAPSHOT_INTERVAL: 2500
+  # START_ITER: 40000 # Start from the iteration 35000 snapshot.
 TEST:
   EVAL_FILE: './exp_vcr/eval_outputs_vcr/%s/vcr_%s_%s_%s_results.json'
   SPLIT_VQA: 'val'

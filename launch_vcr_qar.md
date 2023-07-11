@@ -1,0 +1,1 @@
+To launch, run `python exp_vcr/train_net_vqa.py --cfg exp_vcr/cfgs/vcr_q_a_r_scratch.yaml  TRAIN.MAX_ITER 120000`.
