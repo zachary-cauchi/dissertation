@@ -13,7 +13,9 @@ class BatchLoaderVcr:
 
         self.vocab_dict = text_processing.VocabDict(
             data_params['vocab_question_file'], first_token_only=True)
-        self.T_encoder = data_params['T_encoder']
+        self.T_q_encoder = data_params['T_q_encoder']
+        self.T_a_encoder = data_params['T_a_encoder']
+        self.T_r_encoder = data_params['T_r_encoder']
 
         # peek one example to see whether answer and gt_layout are in the data
         self.load_answer = (
@@ -67,10 +69,10 @@ class BatchLoaderVcr:
         # Allocate the arrays and collections.
 
         question_seq_batch = np.zeros(
-            (self.T_encoder, actual_batch_size), np.int32)
-        all_answers_seq_batch = np.zeros((self.T_encoder, actual_batch_size), np.int32)
+            (self.T_q_encoder, actual_batch_size), np.int32)
+        all_answers_seq_batch = np.zeros((self.T_a_encoder, actual_batch_size), np.int32)
         all_answers_length_batch = np.zeros((actual_batch_size), np.int32)
-        all_rationales_seq_batch = np.zeros((self.T_encoder, actual_batch_size), np.int32)
+        all_rationales_seq_batch = np.zeros((self.T_r_encoder, actual_batch_size), np.int32)
         all_rationales_length_batch = np.zeros((actual_batch_size), np.int32)
 
         question_length_batch = np.zeros(actual_batch_size, np.int32)

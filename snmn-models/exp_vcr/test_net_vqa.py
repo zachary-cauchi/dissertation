@@ -22,7 +22,10 @@ batch_size=cfg.TRAIN.BATCH_SIZE
 imdb_file = cfg.IMDB_FILE % cfg.TEST.SPLIT_VQA
 data_reader = DataReader(
     imdb_file, shuffle=True, one_pass=True, batch_size=cfg.TRAIN.BATCH_SIZE,
-    vocab_question_file=cfg.VOCAB_QUESTION_FILE, T_encoder=cfg.MODEL.T_ENCODER,
+    vocab_question_file=cfg.VOCAB_QUESTION_FILE,
+    T_q_encoder=cfg.MODEL.T_Q_ENCODER,
+    T_a_encoder=cfg.MODEL.T_A_ENCODER,
+    T_r_encoder=cfg.MODEL.T_R_ENCODER,
     vocab_answer_file=cfg.VOCAB_ANSWER_FILE % cfg.TRAIN.SPLIT_VQA,
     load_gt_layout=cfg.TRAIN.USE_GT_LAYOUT,
     vocab_layout_file=cfg.VOCAB_LAYOUT_FILE, T_decoder=cfg.MODEL.T_CTRL,
