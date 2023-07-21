@@ -166,7 +166,7 @@ def build_cfg_from_argparse(args_list=None):
 def _merge_cfg_from_file(cfg_filename):
     """Load a yaml config file and merge it into the global config."""
     with open(cfg_filename, 'r') as f:
-        yaml_cfg = yaml.load(f)
+        yaml_cfg = yaml.safe_load(f)
     if yaml_cfg is not None:
         _merge_a_into_b(AttrDict(yaml_cfg), __C)
     if __C.EXP_NAME == '<fill-with-filename>':
