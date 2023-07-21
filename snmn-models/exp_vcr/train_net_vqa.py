@@ -29,7 +29,6 @@ data_reader = DataReader(
     vcr_task_type=cfg.MODEL.VCR_TASK_TYPE)
 num_vocab = data_reader.batch_loader.vocab_dict.num_vocab
 num_answers = data_reader.batch_loader.num_combinations
-num_choices = 1
 module_names = data_reader.batch_loader.layout_dict.word_list
 if data_reader.data_params['vcr_task_type'] == 'Q_2_A':
     correct_label_batch_name = 'answer_label_batch'
@@ -40,12 +39,12 @@ elif data_reader.data_params['vcr_task_type'] == 'Q_2_AR':
 
 # Inputs and model
 question_seq_batch = tf.placeholder(tf.int32, [None, None], name='question_seq_batch')
-correct_label_batch = tf.placeholder(tf.float32, [None, 1], name=f'correct_{correct_label_batch_name}')
-all_answers_seq_batch = tf.placeholder(tf.int32, [None, None, None], name='all_answers_seq_batch')
-all_answers_length_batch = tf.placeholder(tf.int32, [None, None], name='all_answers_length_batch')
-rationale_label_batch = tf.placeholder(tf.float32, [None, 1], name='rationale_label_batch')
-all_rationales_seq_batch = tf.placeholder(tf.int32, [None, None, None], name='all_rationales_seq_batch')
-all_rationales_length_batch = tf.placeholder(tf.int32, [None, None], name='all_rationales_length_batch')
+correct_label_batch = tf.placeholder(tf.float32, [None], name=f'correct_{correct_label_batch_name}')
+all_answers_seq_batch = tf.placeholder(tf.int32, [None, None], name='all_answers_seq_batch')
+all_answers_length_batch = tf.placeholder(tf.int32, [None], name='all_answers_length_batch')
+rationale_label_batch = tf.placeholder(tf.float32, [None], name='rationale_label_batch')
+all_rationales_seq_batch = tf.placeholder(tf.int32, [None, None], name='all_rationales_seq_batch')
+all_rationales_length_batch = tf.placeholder(tf.int32, [None], name='all_rationales_length_batch')
 question_length_batch = tf.placeholder(tf.int32, [None], name='question_length_batch')
 image_feat_batch = tf.placeholder(
     tf.float32, [None, cfg.MODEL.H_FEAT, cfg.MODEL.W_FEAT, cfg.MODEL.FEAT_DIM], name='image_feat_batch')
@@ -58,16 +57,16 @@ model = Model(
     all_rationales_length_batch,
     image_feat_batch,
     num_vocab=num_vocab,
-    num_choices=num_choices,
+    num_choices=1,
     module_names=module_names,
     is_training=True
 )
 
 # Loss function
 if cfg.TRAIN.VQA_USE_SOFT_SCORE:
-    soft_score_batch = tf.placeholder(tf.float32, [None, num_choices], name='soft_score_batch')
+    soft_score_batch = tf.placeholder(tf.float32, [None], name='soft_score_batch')
     # Summing, instead of averaging over the choices
-    loss_vqa = float(num_choices) * tf.reduce_mean(
+    loss_vqa = tf.reduce_mean(
         tf.nn.sigmoid_cross_entropy_with_logits(
             logits=model.vqa_scores, labels=soft_score_batch), name='vqa_loss_function')
 else:

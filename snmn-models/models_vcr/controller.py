@@ -60,7 +60,7 @@ class Controller:
             S_i_end = tf.cast(tf.multiply(num_seqs_per_length, i_plus_one_constant), tf.int32, name=f'{prefix}_S_i_end')
 
             # If the current index is 0, get the question length. Otherwise, get the length of the answer at i.
-            seq_length = question_length_batch[:, ax] if i == 0 else all_answers_length_batch[0, :, ax] if i == 1 else all_rationales_length_batch[0, :, ax]
+            seq_length = question_length_batch[:, ax] if i == 0 else all_answers_length_batch[:, ax] if i == 1 else all_rationales_length_batch[:, ax]
 
             # Build the attention mask, Setting the first n number of ints in the range equal to 1, where n = seq_length.
             att_i = tf.less(tf.range(tf.subtract(S_i_end, S_i_start, f'{prefix}_mask_length'), name=f'{prefix}_identity_attention')[:, ax, ax], seq_length, name=f'{prefix}_attention_mask')

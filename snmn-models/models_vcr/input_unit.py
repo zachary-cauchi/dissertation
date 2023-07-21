@@ -49,14 +49,16 @@ def build_input_unit(question_seq_batch, all_answers_seq_batch, all_rationales_s
                 embed_seq = tf.nn.embedding_lookup(embed_mat, question_seq_batch, prefix + '_word_embeddings_lookup')
             elif i == 1:
                 # Load the i-1'th answer from the input and generate it's embedding.
-                seq_batch = tf.gather_nd(indices=[0], params=all_answers_seq_batch, name='get_' + prefix)
+                # seq_batch = tf.gather_nd(indices=[0], params=all_answers_seq_batch, name='get_' + prefix)
 
-                embed_seq = tf.nn.embedding_lookup(embed_mat, seq_batch, prefix + '_word_embeddings_lookup')
+                # embed_seq = tf.nn.embedding_lookup(embed_mat, seq_batch, prefix + '_word_embeddings_lookup')
+                embed_seq = tf.nn.embedding_lookup(embed_mat, all_answers_seq_batch, prefix + '_word_embeddings_lookup')
             elif i == 2:
                 # Load the i-1'th answer from the input and generate it's embedding.
-                seq_batch = tf.gather_nd(indices=[0], params=all_rationales_seq_batch, name='get_' + prefix)
+                # seq_batch = tf.gather_nd(indices=[0], params=all_rationales_seq_batch, name='get_' + prefix)
 
-                embed_seq = tf.nn.embedding_lookup(embed_mat, seq_batch, prefix + '_word_embeddings_lookup')
+                # embed_seq = tf.nn.embedding_lookup(embed_mat, seq_batch, prefix + '_word_embeddings_lookup')
+                embed_seq = tf.nn.embedding_lookup(embed_mat, all_rationales_seq_batch, prefix + '_word_embeddings_lookup')
 
             # Casting required when using generated weights.
             embed_seq = tf.cast(embed_seq, tf.float32, name=prefix + '_cast_embeds_to_32')
@@ -67,7 +69,7 @@ def build_input_unit(question_seq_batch, all_answers_seq_batch, all_rationales_s
             # Create the lstm, getting the output and their states.
             outputs, states = tf.nn.bidirectional_dynamic_rnn(
                 cell_fw, cell_bw, inputs=embed_seq, dtype=tf.float32,
-                sequence_length=question_length_batch if i == 0 else all_answers_length_batch[0] if i == 1 else all_rationales_length_batch[0],
+                sequence_length=question_length_batch if i == 0 else all_answers_length_batch if i == 1 else all_rationales_length_batch,
                 time_major=True)
 
             # concatenate the final hidden state of the forward and backward LSTM

@@ -34,7 +34,7 @@ def build_output_unit_vqa(lstm_encodings, m_last, num_choices, apply_dropout,
                 biases_initializer=tf.constant_initializer(
                     cfg.TRAIN.VQA_SCORE_INIT))
 
-        vqa_scores = fc2
+        vqa_scores = fc2[:, 0]
     return vqa_scores
 
 
