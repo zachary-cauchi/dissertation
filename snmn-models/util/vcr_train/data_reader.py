@@ -122,8 +122,8 @@ class BatchLoaderVcr:
             all_rationales = iminfo['all_rationales']
             all_rationales_tokens = [[self.vocab_dict.word2idx(w) for w in rationale] for rationale in all_rationales]
             image_feat = np.load(iminfo['feature_path'])
-            seq_length = len(question_inds)
-            question_seq_batch[:seq_length, i_per_qar] = question_inds
+            seq_length = min(len(question_inds), self.T_q_encoder)
+            question_seq_batch[:seq_length, i_per_qar] = question_inds[:seq_length]
 
             if self.load_answer:
                 # Get the index of the correct answer choice.
@@ -170,13 +170,13 @@ class BatchLoaderVcr:
 
                 # For each set of answers per-question, populate the list of supported answers in a sequence for embedding_lookup.
                 for token_list in all_answers_token_list[i]:
-                    seq_length = len(token_list)
-                    all_answers_seq_batch[:seq_length, i] = token_list
+                    seq_length = min(len(token_list), self.T_a_encoder)
+                    all_answers_seq_batch[:seq_length, i] = token_list[:seq_length]
                     all_answers_length_batch[i] = seq_length
                 # For each set of rationales per-question, populate the list of supported rationales in a sequence for embedding_lookup.
                 for token_list in all_rationales_token_list[i]:
-                    seq_length = len(token_list)
-                    all_rationales_seq_batch[:seq_length, i] = token_list
+                    seq_length = min(len(token_list), self.T_r_encoder)
+                    all_rationales_seq_batch[:seq_length, i] = token_list[:seq_length]
                     all_rationales_length_batch[i] = seq_length
 
             if self.load_gt_layout:

@@ -11,8 +11,14 @@ cfg = build_cfg_from_argparse()
 
 # Start session
 os.environ["CUDA_VISIBLE_DEVICES"] = str(cfg.GPU_ID)
+# 0 = all messages are logged (default behavior)
+# 1 = INFO messages are not printed
+# 2 = INFO and WARNING messages are not printed
+# 3 = INFO, WARNING, and ERROR messages are not printed
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 sess = tf.Session(config=tf.ConfigProto(
-    gpu_options=tf.GPUOptions(allow_growth=cfg.GPU_MEM_GROWTH, allocator_type='BFC'), log_device_placement=True))
+    gpu_options=tf.GPUOptions(allow_growth=cfg.GPU_MEM_GROWTH)))
 
 batch_size=cfg.TRAIN.BATCH_SIZE
 
