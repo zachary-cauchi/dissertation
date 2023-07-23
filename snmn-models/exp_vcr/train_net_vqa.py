@@ -254,6 +254,8 @@ for n_batch, batch in enumerate(data_reader.batches()):
 
             # Generated profile can be viewed by opening a Chrome browser at https://ui.perfetto.dev/ and uploading the above timeline.csv file.
             profiler.profile_graph(options = opts)
+            
+            log_writer.add_run_metadata(run_metadata=run_meta, global_step=n_iter + 1, tag=f'profile_data_{n_iter + 1}')
 
         snapshot_file = os.path.join(snapshot_dir, f"{(n_iter + 1):08d}_{cfg.MODEL.VCR_TASK_TYPE}")
         snapshot_saver.save(sess, snapshot_file, write_meta_graph=True, global_step=n_iter+1)
@@ -268,4 +270,7 @@ ALL_ADVICE = {
     'OperationChecker': {}
 }
 profiler.advise(options = ALL_ADVICE)
-print('Done')
+print('Done. Final results:')
+print(f"exp: {cfg.EXP_NAME}, task_type = {cfg.MODEL.VCR_TASK_TYPE}, iter = {n_iter + 1}, elapsed = {int(elapsed // 3600)}h {int(elapsed // 60) % 60}m {int(elapsed % 60)}s\n\t" +
+              f"loss (vqa) = {loss_vqa_val}, loss (layout) = {loss_layout_val}, loss (rec) = {loss_rec_val}\n\t" +
+              f"accuracy (avg) = {avg_accuracy}, accuracy (cur) = {accuracy}")
