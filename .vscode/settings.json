@@ -1,4 +1,6 @@
 {
     "python.venvPath": "~/anaconda3/envs/",
-    "editor.renderWhitespace": "all"
+    "editor.renderWhitespace": "all",
+    "python.autoComplete.extraPaths": [ ".vscode/stubs" ],
+    "python.analysis.extraPaths": [ ".vscode/stubs" ]
 }

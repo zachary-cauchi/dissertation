@@ -36,7 +36,7 @@
 
 	"hostRequirements": {
 		"gpu": true
-	}
+	},
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
@@ -44,8 +44,8 @@
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": [],
 
-	// Use 'postCreateCommand' to run commands after the container is created.
-	// "postCreateCommand": "pip3 install --user -r requirements.txt",
+	// Add tensorflow types to intellisense (https://jagaimox.wordpress.com/2020/12/28/configure-python-intellisense-on-vscode-for-tensorflow-1-14-or-1-15/)
+	"postCreateCommand": "mkdir .vscode/stubs && ln -s /usr/local/lib/python3.8/dist-packages/tensorflow_core/ .vscode/stubs/tensorflow"
 
 	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
 	// "remoteUser": "root"
