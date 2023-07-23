@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import tensorflow as tf
+import time
 
 from models_vcr.model import Model
 from models_vcr.config import build_cfg_from_argparse
@@ -143,6 +144,8 @@ summary_trn.append(tf.summary.scalar("loss/rec", loss_rec_ph))
 summary_trn.append(tf.summary.scalar("eval/vqa/accuracy", accuracy_ph))
 log_step_trn = tf.summary.merge(summary_trn)
 
+start_time = time.time()
+
 # Run training
 avg_accuracy, accuracy_decay = 0., 0.99
 for n_batch, batch in enumerate(data_reader.batches()):
@@ -190,7 +193,8 @@ for n_batch, batch in enumerate(data_reader.batches()):
 
     # Add to TensorBoard summary
     if (n_iter+1) % cfg.TRAIN.LOG_INTERVAL == 0:
-        print(f"exp: {cfg.EXP_NAME}, task_type = {cfg.MODEL.VCR_TASK_TYPE}, iter = {n_iter + 1}\n\t" +
+        elapsed = time.time() - start_time
+        print(f"exp: {cfg.EXP_NAME}, task_type = {cfg.MODEL.VCR_TASK_TYPE}, iter = {n_iter + 1}, elapsed = {int(elapsed // 3600)}h {int(elapsed // 60) % 60}m {int(elapsed % 60)}s\n\t" +
               f"loss (vqa) = {loss_vqa_val}, loss (layout) = {loss_layout_val}, loss (rec) = {loss_rec_val}\n\t" +
               f"accuracy (avg) = {avg_accuracy}, accuracy (cur) = {accuracy}")
         summary = sess.run(log_step_trn, {
