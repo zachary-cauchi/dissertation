@@ -132,7 +132,7 @@ np.save(os.path.join(snapshot_dir, 'cfg.npy'), np.array(cfg))
 # Write summary to TensorBoard
 log_dir = cfg.TRAIN.LOG_DIR % cfg.EXP_NAME
 os.makedirs(log_dir, exist_ok=True)
-log_writer = tf.summary.FileWriter(log_dir, tf.get_default_graph())
+log_writer = tf.summary.FileWriter(log_dir, sess.graph)
 loss_vqa_ph = tf.placeholder(tf.float32, [])
 loss_layout_ph = tf.placeholder(tf.float32, [])
 loss_rec_ph = tf.placeholder(tf.float32, [])
@@ -146,12 +146,19 @@ log_step_trn = tf.summary.merge(summary_trn)
 
 start_time = time.time()
 
+# Initialise the profiler.
+ProfileOptionBuilder = tf.profiler.ProfileOptionBuilder
+profiler = tf.profiler.Profiler(sess.graph)
+
 # Run training
 avg_accuracy, accuracy_decay = 0., 0.99
 for n_batch, batch in enumerate(data_reader.batches()):
     n_iter = n_batch + cfg.TRAIN.START_ITER
     if n_iter >= cfg.TRAIN.MAX_ITER:
         break
+
+    save_snapshot = True if ((n_iter+1) % cfg.TRAIN.SNAPSHOT_INTERVAL == 0 or (n_iter+1) == cfg.TRAIN.MAX_ITER) else False
+    do_profile = True if save_snapshot and n_iter > 2498 else False
 
     feed_dict = {question_seq_batch: batch['question_seq_batch'],
                  question_length_batch: batch['question_length_batch'],
@@ -168,9 +175,21 @@ for n_batch, batch in enumerate(data_reader.batches()):
     if cfg.TRAIN.USE_GT_LAYOUT:
         feed_dict[gt_layout_question_batch] = batch['gt_layout_question_batch']
 
-    module_logits, vqa_scores_val, loss_vqa_val, loss_layout_val, loss_rec_val, _ = sess.run(
-        (model.module_logits, model.vqa_scores, loss_vqa, loss_layout, loss_rec, train_op),
-        feed_dict)
+    fetches = (model.module_logits, model.vqa_scores, loss_vqa, loss_layout, loss_rec, train_op)
+    # Profile and capture metadata for this run only if we're on a specific iteration.
+    if do_profile:
+        run_meta = tf.compat.v1.RunMetadata()
+        output = sess.run(
+            fetches,
+            feed_dict,
+            options = tf.compat.v1.RunOptions(trace_level=tf.RunOptions.FULL_TRACE),
+            run_metadata=run_meta)
+    else:
+        output = sess.run(
+            fetches,
+            feed_dict)
+
+    module_logits, vqa_scores_val, loss_vqa_val, loss_layout_val, loss_rec_val, _ = output
 
     # compute accuracy
     vqa_q_labels = batch[correct_label_batch_name]
@@ -194,19 +213,50 @@ for n_batch, batch in enumerate(data_reader.batches()):
     # Add to TensorBoard summary
     if (n_iter+1) % cfg.TRAIN.LOG_INTERVAL == 0:
         elapsed = time.time() - start_time
+
         print(f"exp: {cfg.EXP_NAME}, task_type = {cfg.MODEL.VCR_TASK_TYPE}, iter = {n_iter + 1}, elapsed = {int(elapsed // 3600)}h {int(elapsed // 60) % 60}m {int(elapsed % 60)}s\n\t" +
               f"loss (vqa) = {loss_vqa_val}, loss (layout) = {loss_layout_val}, loss (rec) = {loss_rec_val}\n\t" +
               f"accuracy (avg) = {avg_accuracy}, accuracy (cur) = {accuracy}")
-        summary = sess.run(log_step_trn, {
-            loss_vqa_ph: loss_vqa_val,
-            loss_layout_ph: loss_layout_val,
-            loss_rec_ph: loss_rec_val,
-            accuracy_ph: avg_accuracy})
+        
+        summary = sess.run(log_step_trn,
+            {
+                loss_vqa_ph: loss_vqa_val,
+                loss_layout_ph: loss_layout_val,
+                loss_rec_ph: loss_rec_val,
+                accuracy_ph: avg_accuracy
+            })
+
         log_writer.add_summary(summary, n_iter+1)
 
     # Save snapshot
-    if ((n_iter+1) % cfg.TRAIN.SNAPSHOT_INTERVAL == 0 or
-            (n_iter+1) == cfg.TRAIN.MAX_ITER):
+    if save_snapshot:
+        if do_profile:
+            profiler.add_step(n_iter, run_meta)
+
+            # Profile the parameters of your model.
+            profiler.profile_name_scope(options=(ProfileOptionBuilder.trainable_variables_parameter()))
+
+            # Generate an operation and memory usage timeline saved in the snapshots directory.
+            profiler.profile_name_scope(options=(ProfileOptionBuilder.trainable_variables_parameter()))
+            opts = (ProfileOptionBuilder(tf.profiler.ProfileOptionBuilder.time_and_memory())
+                    .with_step(n_iter)
+                    .with_timeline_output(f'{snapshot_dir}/timeline.csv')
+                    .build())
+
+            # Generated profile can be viewed by opening a Chrome browser at https://ui.perfetto.dev/ and uploading the above timeline.csv file.
+            profiler.profile_graph(options = opts)
+
         snapshot_file = os.path.join(snapshot_dir, f"{(n_iter + 1):08d}_{cfg.MODEL.VCR_TASK_TYPE}")
         snapshot_saver.save(sess, snapshot_file, write_meta_graph=True, global_step=n_iter+1)
         print('snapshot saved to ' + snapshot_file)
+
+print('Training iterations complete. Run profile advisor...')
+# Profiler advice
+ALL_ADVICE = {
+    'ExpensiveOperationChecker': {},
+    'AcceleratorUtilizationChecker': {},
+    'JobChecker': {},  # Only available internally.
+    'OperationChecker': {}
+}
+profiler.advise(options = ALL_ADVICE)
+print('Done')
