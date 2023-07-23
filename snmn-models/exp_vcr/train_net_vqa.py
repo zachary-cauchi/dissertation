@@ -18,6 +18,10 @@ os.environ["CUDA_VISIBLE_DEVICES"] = str(cfg.GPU_ID)
 # 3 = INFO, WARNING, and ERROR messages are not printed
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+
+# TODO: Enable XLA graph optimisations
+tf.config.optimizer.set_jit('autoclustering')
+
 sess = tf.Session(config=tf.ConfigProto(
     gpu_options=tf.GPUOptions(allow_growth=cfg.GPU_MEM_GROWTH)))
 
@@ -100,6 +104,11 @@ loss_total = loss_train + cfg.TRAIN.WEIGHT_DECAY * model.l2_reg
 
 # Train with Adam
 solver = tf.train.AdamOptimizer(learning_rate=cfg.TRAIN.SOLVER.LR)
+# This will do a few things:
+#   * Enable Automatic Mixed Precision (AMP) which will mix in float16 types in the graph.
+#   * Enable XLA graph optimisation which compiles the generated graph for improved performance.
+#   * Enables use of Tensor Cores on supporting Nvidia GPUs.
+solver = tf.train.experimental.enable_mixed_precision_graph_rewrite(solver, loss_scale='dynamic')
 grads_and_vars = solver.compute_gradients(loss_total)
 if cfg.TRAIN.CLIP_GRADIENTS:
     print('clipping gradients to max norm: %f' % cfg.TRAIN.GRAD_MAX_NORM)
