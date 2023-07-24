@@ -8,3 +8,5 @@ Attempts to reduce VRAM usage to allow for increased batch size.
   * Try rework the architecture completely perhaps (See [https://stackoverflow.com/a/66032522](https://stackoverflow.com/a/66032522)).
 * Updated imdb_stats file generation to produce the token length counts.
   * Rationales over 100 tokens for instance barely reach a combined 0.01%, so reducing T_ENCODER length to 99 shouldn't affect performance of training.
+* Added XLA and AMP support.
+* Increased resnet feature size to 8x8 to try activate mixed precision mode.

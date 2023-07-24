@@ -212,12 +212,57 @@
             "name": "VCR: build imdb files",
             "type": "python",
             "request": "launch",
-            "program": "./build_vcr_imdb_r152_7x7.py",
+            "program": "./build_vcr_imdb_r152.py",
+            "cwd": "${workspaceFolder}/snmn-models/exp_vcr/data",
+            "python": "${command:python.interpreterPath}",
+            "console": "integratedTerminal",
+            "args": [
+                "--res",
+                "7"
+            ]
+        },
+
+        {
+            "name": "VCR: extract resnet features",
+            "type": "python",
+            "request": "launch",
+            "program": "./extract_resnet152_c5.py",
             "cwd": "${workspaceFolder}/snmn-models/exp_vcr/data",
             "python": "${command:python.interpreterPath}",
             "console": "integratedTerminal",
             "args": [
             ]
+        },
+
+        {
+            "name": "VCR: download BERT embeddings",
+            "type": "python",
+            "request": "launch",
+            "program": "./get_bert_embeddings.py",
+            "cwd": "${workspaceFolder}/snmn-models/exp_vcr/data",
+            "python": "${command:python.interpreterPath}",
+            "console": "integratedTerminal",
+            "args": [
+            ]
+        },
+
+        {
+            "name": "r2c: extract_features",
+            "type": "python",
+            "request": "launch",
+            "program": "./extract_features.py",
+            "cwd": "${workspaceFolder}/r2c/data/get_bert_embeddings",
+            "python": "${command:python.interpreterPath}",
+            "console": "integratedTerminal",
+            "args": [
+                "--name",
+                "bert",
+                "--split=train"
+            ],
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "0",
+                "PYTHONPATH": "../../:$PYTHONPATH"
+            }
         }
     ]
 }
