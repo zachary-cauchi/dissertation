@@ -1,10 +1,16 @@
 import numpy as np
 import json
 import os
+import argparse
 
 import sys; sys.path.append('../../')  # NOQA
 from collections import Counter
 from word2number import w2n
+
+parser = argparse.ArgumentParser(prog='build_vcr_imdb_r152.py', description='Build the VCR imdb files.')
+parser.add_argument('--res', type=str, default='8', required=False,
+                    help='Size of the resnet features (eg. \'--res 8\' will look for 8x8 resnets)')
+args = parser.parse_args()
 
 annotations_dir = '../vcr_dataset/Annotations'
 images_dir = '../vcr_dataset/vcr1images'
@@ -13,8 +19,8 @@ corpus_bert_file = './corpus_bert_vcr.txt'
 vocabulary_file = './vocabulary_vcr.txt'
 answers_file = './answers_%s_vcr.txt'
 rationales_file = './rationales_%s_vcr.txt'
-imdb_out_dir = './imdb_r152_7x7'
-resnet_feature_dir = './resnet152_c5_7x7'
+imdb_out_dir = f'./imdb_r152_{args.res}x{args.res}'
+resnet_feature_dir = f'./resnet152_c5_{args.res}x{args.res}'
 file_sets = {
     'train.jsonl': { 'load_answers': True, 'load_rationales': True },
     'val.jsonl': { 'load_answers': True, 'load_rationales': True },
