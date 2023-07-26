@@ -71,7 +71,7 @@ model = Model(
     all_rationales_length_batch,
     image_feat_batch,
     num_vocab=num_vocab,
-    num_choices=1,
+    num_choices=data_reader.batch_loader.num_combinations,
     module_names=module_names,
     is_training=True
 )
@@ -85,8 +85,8 @@ if cfg.TRAIN.VQA_USE_SOFT_SCORE:
             logits=model.vqa_scores, labels=soft_score_batch), name='vqa_loss_function')
 else:
     loss_vqa = tf.reduce_mean(
-        tf.nn.sigmoid_cross_entropy_with_logits(
-            logits=model.vqa_scores, labels=correct_label_batch), name='vqa_sigmoid_loss_function')
+        tf.nn.softmax_cross_entropy_with_logits_v2(
+            logits=model.vqa_scores, labels=tf.stop_gradient(correct_label_batch)), name='vqa_sigmoid_loss_function')
 
 # Loss function for expert layout.
 if cfg.TRAIN.USE_GT_LAYOUT:
@@ -186,17 +186,12 @@ for n_batch, batch in enumerate(data_reader.batches()):
 
     fetches = (model.module_logits, model.vqa_scores, loss_vqa, loss_layout, loss_rec, train_op)
     # Profile and capture metadata for this run only if we're on a specific iteration.
-    if do_profile:
-        run_meta = tf.compat.v1.RunMetadata()
-        output = sess.run(
-            fetches,
-            feed_dict,
-            options = tf.compat.v1.RunOptions(trace_level=tf.RunOptions.FULL_TRACE),
-            run_metadata=run_meta)
-    else:
-        output = sess.run(
-            fetches,
-            feed_dict)
+    run_meta = tf.compat.v1.RunMetadata() if do_profile else None
+    output = sess.run(
+        fetches,
+        feed_dict,
+        options = tf.compat.v1.RunOptions(trace_level=tf.RunOptions.FULL_TRACE) if do_profile else None,
+        run_metadata=run_meta)
 
     module_logits, vqa_scores_val, loss_vqa_val, loss_layout_val, loss_rec_val, _ = output
 

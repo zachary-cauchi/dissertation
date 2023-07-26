@@ -68,7 +68,7 @@ class Model:
             self.params = [
                 v for v in tf.trainable_variables() if scope in v.op.name]
             self.l2_reg = tf.add_n(
-                [tf.nn.l2_loss(v) for v in self.params
+                [tf.nn.l2_loss(v, name=f'l2_{v.op.name}') for v in self.params
                  if v.op.name.endswith('weights')])
 
             # tensors for visualization
