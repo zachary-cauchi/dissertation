@@ -4,9 +4,9 @@ MODEL:
   W_FEAT: 7
   FEAT_DIM: 2048
   T_CTRL: 12
-  T_Q_ENCODER: 170
-  T_A_ENCODER: 170
-  T_R_ENCODER: 170
+  T_Q_ENCODER: 56
+  T_A_ENCODER: 56
+  T_R_ENCODER: 56
   VCR_TASK_TYPE: Q_2_A
   NMN:
     STACK:
@@ -26,9 +26,10 @@ TRAIN:
   BATCH_SIZE: 64
   SOLVER:
     LR: 1e-4
+    USE_SPARSE_SOFTMAX_LABELS: True
   VQA_USE_SOFT_SCORE: False
   VQA_SCORE_INIT: -8.  # roughly sigmoid(-8) = 1/3000
-  SNAPSHOT_INTERVAL: 2500
+  SNAPSHOT_INTERVAL: 5000
 TEST:
   EVAL_FILE: './exp_vcr/eval_outputs_vcr/%s/vcr_%s_%s_%s_results.json'
   SPLIT_VQA: 'val'

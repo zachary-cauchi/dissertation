@@ -6,7 +6,14 @@ from . import controller, nmn, input_unit, output_unit, vis
 
 
 class Model:
-    def __init__(self, question_seq_batch, all_answers_seq_batch, all_rationales_seq_batch, question_length_batch, all_answers_length_batch, all_rationales_length_batch, image_feat_batch,
+    def __init__(self,
+                 question_seq_batch,
+                 all_answers_seq_batch,
+                 all_rationales_seq_batch,
+                 question_length_batch,
+                 all_answers_length_batch,
+                 all_rationales_length_batch,
+                 image_feat_batch,
                  num_vocab, num_choices, module_names, is_training,
                  scope='model', reuse=None):
         """
@@ -21,7 +28,10 @@ class Model:
         with tf.variable_scope(scope, reuse=reuse):
             self.T_ctrl = cfg.MODEL.T_CTRL
             # Question + answer + rationale input so 3 total input sequences.
-            self.seq_in_count = 3
+            if cfg.MODEL.VCR_TASK_TYPE == 'Q_2_A':
+                self.seq_in_count = 2
+            else:
+                self.seq_in_count = 3
 
             # Input unit
             lstm_seq, lstm_encodings, embed_seq = input_unit.build_input_unit(

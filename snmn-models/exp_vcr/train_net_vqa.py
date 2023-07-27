@@ -57,9 +57,14 @@ question_seq_batch = tf.placeholder(tf.int32, [None, None], name='question_seq_b
 correct_label_batch = tf.placeholder(tf.int32, [None], name=f'correct_{correct_label_batch_name}')
 all_answers_seq_batch = tf.placeholder(tf.int32, [None, None], name='all_answers_seq_batch')
 all_answers_length_batch = tf.placeholder(tf.int32, [None], name='all_answers_length_batch')
-rationale_label_batch = tf.placeholder(tf.float32, [None], name='rationale_label_batch')
-all_rationales_seq_batch = tf.placeholder(tf.int32, [None, None], name='all_rationales_seq_batch')
-all_rationales_length_batch = tf.placeholder(tf.int32, [None], name='all_rationales_length_batch')
+if data_reader.batch_loader.load_rationale:
+    rationale_label_batch = tf.placeholder(tf.float32, [None], name='rationale_label_batch')
+    all_rationales_seq_batch = tf.placeholder(tf.int32, [None, None], name='all_rationales_seq_batch')
+    all_rationales_length_batch = tf.placeholder(tf.int32, [None], name='all_rationales_length_batch')
+else:
+    rationale_label_batch = None
+    all_rationales_seq_batch = None
+    all_rationales_length_batch = None
 question_length_batch = tf.placeholder(tf.int32, [None], name='question_length_batch')
 image_feat_batch = tf.placeholder(
     tf.float32, [None, cfg.MODEL.H_FEAT, cfg.MODEL.W_FEAT, cfg.MODEL.FEAT_DIM], name='image_feat_batch')
@@ -180,8 +185,13 @@ for n_batch, batch in enumerate(data_reader.batches()):
                  correct_label_batch: batch[correct_label_batch_name],
                  all_answers_seq_batch: batch['all_answers_seq_batch'],
                  all_answers_length_batch: batch['all_answers_length_batch'],
-                 all_rationales_seq_batch: batch['all_rationales_seq_batch'],
-                 all_rationales_length_batch: batch['all_rationales_length_batch']}
+                 }
+    
+    if data_reader.batch_loader.load_rationale:
+        feed_dict.update(
+            all_rationales_seq_batch=batch['all_rationales_seq_batch'],
+            all_rationales_length_batch=batch['all_rationales_length_batch']
+        )
 
     if cfg.TRAIN.VQA_USE_SOFT_SCORE:
         feed_dict[soft_score_batch] = batch['soft_score_batch']

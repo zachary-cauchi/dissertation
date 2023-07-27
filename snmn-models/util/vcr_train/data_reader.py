@@ -18,24 +18,33 @@ class BatchLoaderVcr:
         self.T_r_encoder = data_params['T_r_encoder']
 
         # peek one example to see whether answer and gt_layout are in the data
-        self.load_answer = (
+        self.load_correct_answer = (
             'valid_answers' in self.imdb[0])
-        self.load_rationale = (
+        self.load_correct_rationale = (
             'valid_rationales' in self.imdb[0])
         self.load_gt_layout = (
             ('load_gt_layout' in data_params and data_params['load_gt_layout'])
             and ('gt_layout_qa_tokens' in self.imdb[0] and
                  self.imdb[0]['gt_layout_qa_tokens'] is not None))
+        self.load_rationale = data_params['vcr_task_type'] == 'QA_2_R' or data_params['vcr_task_type'] == 'Q_2_AR'
 
         self.num_answers = len(self.imdb[0]['all_answers'])
         self.num_rationales = len(self.imdb[0]['all_rationales'])
 
-        self.num_combinations = self.num_answers * self.num_rationales
+        if data_params['vcr_task_type'] == 'Q_2_A':
+            self.num_combinations = self.num_answers
+        elif data_params['vcr_task_type'] == 'QA_2_R':
+            self.num_combinations = self.num_rationales
+        else:
+            self.num_combinations = self.num_answers * self.num_rationales
 
-        if not self.load_answer:
-            print('imdb does not contain answers')
+        if not self.load_correct_answer:
+            print('imdb does not contain correct answers')
+        if not self.load_correct_rationale:
+            print('imdb does not contain correct rationales')
+
         if not self.load_rationale:
-            print('imdb does not contain rationales')
+            print('Model is running in neither QA_2_R nor Q_2_AR')
 
         self.T_decoder = data_params['T_decoder']
         self.layout_dict = text_processing.VocabDict(
@@ -72,8 +81,9 @@ class BatchLoaderVcr:
             (self.T_q_encoder, actual_batch_size), np.int32)
         all_answers_seq_batch = np.zeros((self.T_a_encoder, actual_batch_size), np.int32)
         all_answers_length_batch = np.zeros((actual_batch_size), np.int32)
-        all_rationales_seq_batch = np.zeros((self.T_r_encoder, actual_batch_size), np.int32)
-        all_rationales_length_batch = np.zeros((actual_batch_size), np.int32)
+        if self.load_rationale:
+            all_rationales_seq_batch = np.zeros((self.T_r_encoder, actual_batch_size), np.int32)
+            all_rationales_length_batch = np.zeros((actual_batch_size), np.int32)
 
         question_length_batch = np.zeros(actual_batch_size, np.int32)
         image_feat_batch = np.zeros(
@@ -84,10 +94,11 @@ class BatchLoaderVcr:
         qstr_list = [None]*actual_batch_size
         all_answers_list = [None]*actual_batch_size
         all_answers_token_list = [None] * actual_batch_size
-        all_rationales_list = [None] * actual_batch_size
-        all_rationales_token_list = [None] * actual_batch_size
+        if self.load_rationale:
+            all_rationales_list = [None] * actual_batch_size
+            all_rationales_token_list = [None] * actual_batch_size
 
-        if self.load_answer:
+        if self.load_correct_answer:
             answer_label_batch = np.zeros([actual_batch_size], np.float32)
             answer_onehot_batch = np.zeros([actual_batch_size], np.int32)
             if self.load_soft_score:
@@ -95,7 +106,7 @@ class BatchLoaderVcr:
                 soft_score_batch = np.zeros(
                     (actual_batch_size, num_choices), np.float32)
         
-        if self.load_rationale:
+        if self.load_correct_rationale:
             rationale_label_batch = np.zeros([actual_batch_size], np.float32)
             rationale_onehot_batch = np.zeros([actual_batch_size], np.int32)
             if self.load_soft_score:
@@ -103,13 +114,17 @@ class BatchLoaderVcr:
                 soft_score_batch = np.zeros(
                     (actual_batch_size, num_choices), np.float32)
         
-        if self.load_answer and self.load_rationale:
+        if self.load_correct_answer and self.load_correct_rationale:
             answer_and_rationale_label_batch = np.zeros([actual_batch_size], np.float32)
 
         if self.load_gt_layout:
             gt_layout_question_batch = self.layout_dict.word2idx('_NoOp') * np.ones(
                 (self.T_decoder, actual_batch_size), np.int32)
 
+        # Precalculate the divisor and mod for later use. Sorry for the code mess.
+        i_ans_divisor = self.num_combinations // self.num_answers
+        i_rat_mod = self.num_combinations // self.num_rationales
+        
         # Populate the arrays with each possible q-a pair.
         # Iterate over each sample,
         for i_per_sample, i_per_qar in zip(range(len(sample_ids)), range(0, actual_batch_size, combinations_per_sample)):
@@ -119,23 +134,24 @@ class BatchLoaderVcr:
 
             all_answers = iminfo['all_answers']
             all_answers_tokens = [[self.vocab_dict.word2idx(w) for w in answer] for answer in all_answers]
-            all_rationales = iminfo['all_rationales']
-            all_rationales_tokens = [[self.vocab_dict.word2idx(w) for w in rationale] for rationale in all_rationales]
+            if self.load_rationale:
+                all_rationales = iminfo['all_rationales']
+                all_rationales_tokens = [[self.vocab_dict.word2idx(w) for w in rationale] for rationale in all_rationales]
             image_feat = np.load(iminfo['feature_path'])
             seq_length = min(len(question_inds), self.T_q_encoder)
             question_seq_batch[:seq_length, i_per_qar] = question_inds[:seq_length]
 
-            if self.load_answer:
+            if self.load_correct_answer:
                 # Get the index of the correct answer choice.
                 answer = iminfo['valid_answers'].index(0)
-            if self.load_rationale:
+            if self.load_correct_rationale and self.load_rationale:
                 # Get the index of the correct rationale choice.
                 rationale = iminfo['valid_rationales'].index(0)
 
             sample_range_in_batch = range(i_per_qar, i_per_qar + combinations_per_sample)
             for n, i in enumerate(sample_range_in_batch):
-                i_ans = n // self.num_answers
-                i_rat = n % self.num_answers
+                i_ans = n // i_ans_divisor
+                i_rat = n % i_rat_mod
                 question_length_batch[i] = seq_length
                 # The i:i+1 slice is necessary to unwrap the enclosing array of the image features.
                 image_feat_batch[i:i+1] = image_feat
@@ -144,10 +160,11 @@ class BatchLoaderVcr:
                 qstr_list[i] = iminfo['question_str']
                 all_answers_list[i] = all_answers[i_ans]
                 all_answers_token_list[i] = [all_answers_tokens[i_ans]]
-                all_rationales_list[i] = all_rationales[i_rat]
-                all_rationales_token_list[i] = [all_rationales_tokens[i_rat]]
+                if self.load_rationale:
+                    all_rationales_list[i] = all_rationales[i_rat]
+                    all_rationales_token_list[i] = [all_rationales_tokens[i_rat]]
 
-                if self.load_answer:
+                if self.load_correct_answer:
                     answer_label_batch[i] = 1. if answer == i_ans else 0.
                     answer_onehot_batch[i] = answer_label_batch[i]
 
@@ -156,11 +173,11 @@ class BatchLoaderVcr:
                     #     soft_score_target = iminfo['soft_score_target']
                     #     soft_score_batch[i_per_sample, soft_score_inds] = soft_score_target
                 
-                if self.load_rationale:
+                if self.load_correct_rationale and self.load_rationale:
                     rationale_label_batch[i] = 1. if rationale == i_rat else 0.
                     rationale_onehot_batch[i] = rationale_label_batch[i]
 
-                if self.load_answer and self.load_rationale:
+                if self.load_correct_answer and self.load_correct_rationale and self.load_rationale:
                     answer_and_rationale_label_batch[i] = 1. if rationale == i_rat and answer == i_ans else 0.
 
                     # if self.load_soft_score:
@@ -173,11 +190,12 @@ class BatchLoaderVcr:
                     seq_length = min(len(token_list), self.T_a_encoder)
                     all_answers_seq_batch[:seq_length, i] = token_list[:seq_length]
                     all_answers_length_batch[i] = seq_length
-                # For each set of rationales per-question, populate the list of supported rationales in a sequence for embedding_lookup.
-                for token_list in all_rationales_token_list[i]:
-                    seq_length = min(len(token_list), self.T_r_encoder)
-                    all_rationales_seq_batch[:seq_length, i] = token_list[:seq_length]
-                    all_rationales_length_batch[i] = seq_length
+                if self.load_rationale:
+                    # For each set of rationales per-question, populate the list of supported rationales in a sequence for embedding_lookup.
+                    for token_list in all_rationales_token_list[i]:
+                        seq_length = min(len(token_list), self.T_r_encoder)
+                        all_rationales_seq_batch[:seq_length, i] = token_list[:seq_length]
+                        all_rationales_length_batch[i] = seq_length
 
             if self.load_gt_layout:
                 # Get and load the gt layout for each question-answer available.
@@ -209,26 +227,30 @@ class BatchLoaderVcr:
                      all_answers_token_list=all_answers_token_list,
                      all_answers_seq_batch=all_answers_seq_batch,
                      all_answers_length_batch=all_answers_length_batch,
-                     answer_onehot_batch=answer_onehot_batch,
-                     all_rationales_list=all_rationales_list,
-                     all_rationales_token_list=all_rationales_token_list,
-                     all_rationales_seq_batch=all_rationales_seq_batch,
-                     all_rationales_length_batch=all_rationales_length_batch,
-                     rationale_onehot_batch=rationale_onehot_batch,)
+                     answer_onehot_batch=answer_onehot_batch)
 
-        if self.load_answer:
+        if self.load_rationale:
+            batch.update(
+                all_rationales_list=all_rationales_list,
+                all_rationales_token_list=all_rationales_token_list,
+                all_rationales_seq_batch=all_rationales_seq_batch,
+                all_rationales_length_batch=all_rationales_length_batch,
+                rationale_onehot_batch=rationale_onehot_batch,
+            )
+
+        if self.load_correct_answer:
             if self.data_params['use_sparse_softmax_labels'] == True:
                 batch['answer_label_batch'] = np.where(np.reshape(answer_label_batch, (len(answer_label_batch) // self.num_combinations, self.num_combinations)) == 1.)[1]
             else:
                 batch['answer_label_batch'] = answer_label_batch
             if self.load_soft_score:
                 batch['soft_score_batch'] = soft_score_batch
-        if self.load_rationale:
+        if self.load_correct_rationale and self.load_rationale:
             if self.data_params['use_sparse_softmax_labels'] == True:
                 batch['rationale_label_batch'] = np.where(np.reshape(rationale_label_batch, (len(rationale_label_batch) // self.num_combinations, self.num_combinations)) == 1.)[1]
             else:
                 batch['rationale_label_batch'] = rationale_label_batch
-        if self.load_answer and self.load_rationale:
+        if self.load_correct_answer and self.load_correct_rationale and self.load_rationale:
             if self.data_params['use_sparse_softmax_labels'] == True:
                 batch['answer_and_rationale_label_batch'] = np.where(np.reshape(answer_and_rationale_label_batch, (len(answer_and_rationale_label_batch) // self.num_combinations, self.num_combinations)) == 1.)[1]
             else:
