@@ -41,9 +41,14 @@ class Model:
 
             # Output unit
             if cfg.MODEL.BUILD_VQA:
-                self.vqa_scores = output_unit.build_output_unit_vqa(
+                vqa_scores = output_unit.build_output_unit_vqa(
                     lstm_encodings, self.nmn.mem_last, num_choices,
                     apply_dropout=is_training)
+                
+                if cfg.TRAIN.SOLVER.USE_SPARSE_SOFTMAX_LABELS == True:
+                    self.vqa_scores = tf.reshape(vqa_scores, (tf.shape(vqa_scores)[0] // num_choices, num_choices))
+                else:
+                    self.vqa_scores = vqa_scores
             if cfg.MODEL.BUILD_LOC:
                 loc_scores, bbox_offset, bbox_offset_fcn = \
                     output_unit.build_output_unit_loc(

@@ -217,13 +217,22 @@ class BatchLoaderVcr:
                      rationale_onehot_batch=rationale_onehot_batch,)
 
         if self.load_answer:
-            batch['answer_label_batch'] = answer_label_batch
+            if self.data_params['use_sparse_softmax_labels'] == True:
+                batch['answer_label_batch'] = np.where(np.reshape(answer_label_batch, (len(answer_label_batch) // self.num_combinations, self.num_combinations)) == 1.)[1]
+            else:
+                batch['answer_label_batch'] = answer_label_batch
             if self.load_soft_score:
                 batch['soft_score_batch'] = soft_score_batch
         if self.load_rationale:
-            batch['rationale_label_batch'] = rationale_label_batch
+            if self.data_params['use_sparse_softmax_labels'] == True:
+                batch['rationale_label_batch'] = np.where(np.reshape(rationale_label_batch, (len(rationale_label_batch) // self.num_combinations, self.num_combinations)) == 1.)[1]
+            else:
+                batch['rationale_label_batch'] = rationale_label_batch
         if self.load_answer and self.load_rationale:
-            batch['answer_and_rationale_label_batch'] = answer_and_rationale_label_batch
+            if self.data_params['use_sparse_softmax_labels'] == True:
+                batch['answer_and_rationale_label_batch'] = np.where(np.reshape(answer_and_rationale_label_batch, (len(answer_and_rationale_label_batch) // self.num_combinations, self.num_combinations)) == 1.)[1]
+            else:
+                batch['answer_and_rationale_label_batch'] = answer_and_rationale_label_batch
         if self.load_gt_layout:
             batch['gt_layout_question_batch'] = gt_layout_question_batch
 

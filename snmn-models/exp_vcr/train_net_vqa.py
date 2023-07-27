@@ -40,7 +40,8 @@ data_reader = DataReader(
     vocab_layout_file=cfg.VOCAB_LAYOUT_FILE, T_decoder=cfg.MODEL.T_CTRL,
     load_soft_score=cfg.TRAIN.VQA_USE_SOFT_SCORE,
     feed_answers_with_input=cfg.MODEL.INPUT.USE_ANSWERS,
-    vcr_task_type=cfg.MODEL.VCR_TASK_TYPE)
+    vcr_task_type=cfg.MODEL.VCR_TASK_TYPE,
+    use_sparse_softmax_labels=cfg.TRAIN.SOLVER.USE_SPARSE_SOFTMAX_LABELS)
 num_vocab = data_reader.batch_loader.vocab_dict.num_vocab
 num_answers = data_reader.batch_loader.num_combinations
 module_names = data_reader.batch_loader.layout_dict.word_list
@@ -53,7 +54,7 @@ elif data_reader.data_params['vcr_task_type'] == 'Q_2_AR':
 
 # Inputs and model
 question_seq_batch = tf.placeholder(tf.int32, [None, None], name='question_seq_batch')
-correct_label_batch = tf.placeholder(tf.float32, [None], name=f'correct_{correct_label_batch_name}')
+correct_label_batch = tf.placeholder(tf.int32, [None], name=f'correct_{correct_label_batch_name}')
 all_answers_seq_batch = tf.placeholder(tf.int32, [None, None], name='all_answers_seq_batch')
 all_answers_length_batch = tf.placeholder(tf.int32, [None], name='all_answers_length_batch')
 rationale_label_batch = tf.placeholder(tf.float32, [None], name='rationale_label_batch')
@@ -83,10 +84,14 @@ if cfg.TRAIN.VQA_USE_SOFT_SCORE:
     loss_vqa = tf.reduce_mean(
         tf.nn.sigmoid_cross_entropy_with_logits(
             logits=model.vqa_scores, labels=soft_score_batch), name='vqa_loss_function')
+elif cfg.TRAIN.SOLVER.USE_SPARSE_SOFTMAX_LABELS:
+    loss_vqa = tf.reduce_mean(
+        tf.nn.sparse_softmax_cross_entropy_with_logits(
+            logits=model.vqa_scores, labels=tf.stop_gradient(correct_label_batch)), name='vqa_sparse_softmax_loss_function')
 else:
     loss_vqa = tf.reduce_mean(
         tf.nn.softmax_cross_entropy_with_logits_v2(
-            logits=model.vqa_scores, labels=tf.stop_gradient(correct_label_batch)), name='vqa_sigmoid_loss_function')
+            logits=model.vqa_scores, labels=tf.stop_gradient(correct_label_batch)), name='vqa_softmax_loss_function')
 
 # Loss function for expert layout.
 if cfg.TRAIN.USE_GT_LAYOUT:
@@ -198,16 +203,17 @@ for n_batch, batch in enumerate(data_reader.batches()):
     # compute accuracy
     vqa_q_labels = batch[correct_label_batch_name]
 
-    # Reshape the expected results into a one-hot encoded vector.
-    vqa_q_labels = np.reshape(vqa_q_labels, (len(vqa_q_labels) // num_answers, num_answers))
+    if not cfg.TRAIN.SOLVER.USE_SPARSE_SOFTMAX_LABELS:
+        # Reshape the expected results into a one-hot encoded vector.
+        vqa_q_labels = np.reshape(vqa_q_labels, (len(vqa_q_labels) // num_answers, num_answers))
 
-    # Get the indices of the correct answer.
-    vqa_q_labels = np.where(vqa_q_labels == 1.)[1]
+        # Get the indices of the correct answer.
+        vqa_q_labels = np.where(vqa_q_labels == 1.)[1]
 
-    # Reshape the predictions into a softmax vector.
-    vqa_scores_val = np.reshape(vqa_scores_val, (len(vqa_scores_val) // num_answers, num_answers))
-
-    # Convert them into a one-hot encoded vector.
+        # Reshape the predictions into a softmax vector.
+        vqa_scores_val = np.reshape(vqa_scores_val, (len(vqa_scores_val) // num_answers, num_answers))
+    
+    # Convert the logits into the predicted indices of the correct answer.
     vqa_predictions = np.argmax(vqa_scores_val, axis=1)
 
     accuracy = np.mean(vqa_predictions == vqa_q_labels)
@@ -243,7 +249,7 @@ for n_batch, batch in enumerate(data_reader.batches()):
             # Generate an operation and memory usage timeline saved in the snapshots directory.
             profiler.profile_name_scope(options=(ProfileOptionBuilder.trainable_variables_parameter()))
             opts = (ProfileOptionBuilder(tf.profiler.ProfileOptionBuilder.time_and_memory())
-                    .with_step(n_iter)
+                    .with_step(n_iter + 1)
                     .with_timeline_output(f'{snapshot_dir}/timeline.csv')
                     .build())
 
