@@ -2,6 +2,8 @@ import os
 import numpy as np
 import tensorflow as tf
 import time
+import signal
+import sys
 
 from models_vcr.model import Model
 from models_vcr.config import build_cfg_from_argparse
@@ -169,119 +171,133 @@ start_time = time.time()
 ProfileOptionBuilder = tf.profiler.ProfileOptionBuilder
 profiler = tf.profiler.Profiler(sess.graph)
 
-# Run training
-avg_accuracy, accuracy_decay = 0., 0.99
-for n_batch, batch in enumerate(data_reader.batches()):
-    n_iter = n_batch + cfg.TRAIN.START_ITER
-    if n_iter >= cfg.TRAIN.MAX_ITER:
-        break
+try:
+    # Run training
+    avg_accuracy, accuracy_decay = 0., 0.99
+    for n_batch, batch in enumerate(data_reader.batches()):
+        n_iter = n_batch + cfg.TRAIN.START_ITER
+        if n_iter >= cfg.TRAIN.MAX_ITER:
+            break
 
-    save_snapshot = True if ((n_iter+1) % cfg.TRAIN.SNAPSHOT_INTERVAL == 0 or (n_iter+1) == cfg.TRAIN.MAX_ITER) else False
-    do_profile = True if save_snapshot and n_iter > 2498 else False
+        save_snapshot = True if ((n_iter+1) % cfg.TRAIN.SNAPSHOT_INTERVAL == 0 or (n_iter+1) == cfg.TRAIN.MAX_ITER) else False
+        do_profile = True if save_snapshot and n_iter > 2498 else False
 
-    feed_dict = {question_seq_batch: batch['question_seq_batch'],
-                 question_length_batch: batch['question_length_batch'],
-                 image_feat_batch: batch['image_feat_batch'],
-                 correct_label_batch: batch[correct_label_batch_name],
-                 all_answers_seq_batch: batch['all_answers_seq_batch'],
-                 all_answers_length_batch: batch['all_answers_length_batch'],
-                 }
-    
-    if data_reader.batch_loader.load_rationale:
-        feed_dict.update(
-            all_rationales_seq_batch=batch['all_rationales_seq_batch'],
-            all_rationales_length_batch=batch['all_rationales_length_batch']
-        )
-
-    if cfg.TRAIN.VQA_USE_SOFT_SCORE:
-        feed_dict[soft_score_batch] = batch['soft_score_batch']
-
-    if cfg.TRAIN.USE_GT_LAYOUT:
-        feed_dict[gt_layout_question_batch] = batch['gt_layout_question_batch']
-
-    fetches = (model.module_logits, model.vqa_scores, loss_vqa, loss_layout, loss_rec, train_op)
-    # Profile and capture metadata for this run only if we're on a specific iteration.
-    run_meta = tf.compat.v1.RunMetadata() if do_profile else None
-    output = sess.run(
-        fetches,
-        feed_dict,
-        options = tf.compat.v1.RunOptions(trace_level=tf.RunOptions.FULL_TRACE) if do_profile else None,
-        run_metadata=run_meta)
-
-    module_logits, vqa_scores_val, loss_vqa_val, loss_layout_val, loss_rec_val, _ = output
-
-    # compute accuracy
-    vqa_q_labels = batch[correct_label_batch_name]
-
-    if not cfg.TRAIN.SOLVER.USE_SPARSE_SOFTMAX_LABELS:
-        # Reshape the expected results into a one-hot encoded vector.
-        vqa_q_labels = np.reshape(vqa_q_labels, (len(vqa_q_labels) // num_answers, num_answers))
-
-        # Get the indices of the correct answer.
-        vqa_q_labels = np.where(vqa_q_labels == 1.)[1]
-
-        # Reshape the predictions into a softmax vector.
-        vqa_scores_val = np.reshape(vqa_scores_val, (len(vqa_scores_val) // num_answers, num_answers))
-    
-    # Convert the logits into the predicted indices of the correct answer.
-    vqa_predictions = np.argmax(vqa_scores_val, axis=1)
-
-    accuracy = np.mean(vqa_predictions == vqa_q_labels)
-
-    avg_accuracy += (1-accuracy_decay) * (accuracy-avg_accuracy)
-
-    # Add to TensorBoard summary
-    if (n_iter+1) % cfg.TRAIN.LOG_INTERVAL == 0:
-        elapsed = time.time() - start_time
-
-        print(f"exp: {cfg.EXP_NAME}, task_type = {cfg.MODEL.VCR_TASK_TYPE}, iter = {n_iter + 1}, elapsed = {int(elapsed // 3600)}h {int(elapsed // 60) % 60}m {int(elapsed % 60)}s\n\t" +
-              f"loss (vqa) = {loss_vqa_val}, loss (layout) = {loss_layout_val}, loss (rec) = {loss_rec_val}\n\t" +
-              f"accuracy (avg) = {avg_accuracy}, accuracy (cur) = {accuracy}")
+        feed_dict = {question_seq_batch: batch['question_seq_batch'],
+                    question_length_batch: batch['question_length_batch'],
+                    image_feat_batch: batch['image_feat_batch'],
+                    correct_label_batch: batch[correct_label_batch_name],
+                    all_answers_seq_batch: batch['all_answers_seq_batch'],
+                    all_answers_length_batch: batch['all_answers_length_batch'],
+                    }
         
-        summary = sess.run(log_step_trn,
-            {
-                loss_vqa_ph: loss_vqa_val,
-                loss_layout_ph: loss_layout_val,
-                loss_rec_ph: loss_rec_val,
-                accuracy_ph: avg_accuracy
-            })
+        if data_reader.batch_loader.load_rationale:
+            feed_dict.update(
+                all_rationales_seq_batch=batch['all_rationales_seq_batch'],
+                all_rationales_length_batch=batch['all_rationales_length_batch']
+            )
 
-        log_writer.add_summary(summary, n_iter+1)
+        if cfg.TRAIN.VQA_USE_SOFT_SCORE:
+            feed_dict[soft_score_batch] = batch['soft_score_batch']
 
-    # Save snapshot
-    if save_snapshot:
-        if do_profile:
-            profiler.add_step(n_iter, run_meta)
+        if cfg.TRAIN.USE_GT_LAYOUT:
+            feed_dict[gt_layout_question_batch] = batch['gt_layout_question_batch']
 
-            # Profile the parameters of your model.
-            profiler.profile_name_scope(options=(ProfileOptionBuilder.trainable_variables_parameter()))
+        fetches = (model.module_logits, model.vqa_scores, loss_vqa, loss_layout, loss_rec, train_op)
+        # Profile and capture metadata for this run only if we're on a specific iteration.
+        run_meta = tf.compat.v1.RunMetadata() if do_profile else None
+        output = sess.run(
+            fetches,
+            feed_dict,
+            options = tf.compat.v1.RunOptions(trace_level=tf.RunOptions.FULL_TRACE) if do_profile else None,
+            run_metadata=run_meta)
 
-            # Generate an operation and memory usage timeline saved in the snapshots directory.
-            profiler.profile_name_scope(options=(ProfileOptionBuilder.trainable_variables_parameter()))
-            opts = (ProfileOptionBuilder(tf.profiler.ProfileOptionBuilder.time_and_memory())
-                    .with_step(n_iter + 1)
-                    .with_timeline_output(f'{snapshot_dir}/timeline.csv')
-                    .build())
+        module_logits, vqa_scores_val, loss_vqa_val, loss_layout_val, loss_rec_val, _ = output
 
-            # Generated profile can be viewed by opening a Chrome browser at https://ui.perfetto.dev/ and uploading the above timeline.csv file.
-            profiler.profile_graph(options = opts)
+        # compute accuracy
+        vqa_q_labels = batch[correct_label_batch_name]
+
+        if not cfg.TRAIN.SOLVER.USE_SPARSE_SOFTMAX_LABELS:
+            # Reshape the expected results into a one-hot encoded vector.
+            vqa_q_labels = np.reshape(vqa_q_labels, (len(vqa_q_labels) // num_answers, num_answers))
+
+            # Get the indices of the correct answer.
+            vqa_q_labels = np.where(vqa_q_labels == 1.)[1]
+
+            # Reshape the predictions into a softmax vector.
+            vqa_scores_val = np.reshape(vqa_scores_val, (len(vqa_scores_val) // num_answers, num_answers))
+        
+        # Convert the logits into the predicted indices of the correct answer.
+        vqa_predictions = np.argmax(vqa_scores_val, axis=1)
+
+        accuracy = np.mean(vqa_predictions == vqa_q_labels)
+
+        avg_accuracy += (1-accuracy_decay) * (accuracy-avg_accuracy)
+
+        # Add to TensorBoard summary
+        if (n_iter+1) % cfg.TRAIN.LOG_INTERVAL == 0:
+            elapsed = time.time() - start_time
+
+            print(f"exp: {cfg.EXP_NAME}, task_type = {cfg.MODEL.VCR_TASK_TYPE}, iter = {n_iter + 1}, elapsed = {int(elapsed // 3600)}h {int(elapsed // 60) % 60}m {int(elapsed % 60)}s\n\t" +
+                f"loss (vqa) = {loss_vqa_val}, loss (layout) = {loss_layout_val}, loss (rec) = {loss_rec_val}\n\t" +
+                f"accuracy (avg) = {avg_accuracy}, accuracy (cur) = {accuracy}")
             
-            log_writer.add_run_metadata(run_metadata=run_meta, global_step=n_iter + 1, tag=f'profile_data_{n_iter + 1}')
+            summary = sess.run(log_step_trn,
+                {
+                    loss_vqa_ph: loss_vqa_val,
+                    loss_layout_ph: loss_layout_val,
+                    loss_rec_ph: loss_rec_val,
+                    accuracy_ph: avg_accuracy
+                })
 
-        snapshot_file = os.path.join(snapshot_dir, f"{(n_iter + 1):08d}_{cfg.MODEL.VCR_TASK_TYPE}")
-        snapshot_saver.save(sess, snapshot_file, write_meta_graph=True, global_step=n_iter+1)
-        print('snapshot saved to ' + snapshot_file)
+            log_writer.add_summary(summary, n_iter+1)
 
-print('Training iterations complete. Run profile advisor...')
-# Profiler advice
-ALL_ADVICE = {
-    'ExpensiveOperationChecker': {},
-    'AcceleratorUtilizationChecker': {},
-    'JobChecker': {},  # Only available internally.
-    'OperationChecker': {}
-}
-profiler.advise(options = ALL_ADVICE)
-print('Done. Final results:')
-print(f"exp: {cfg.EXP_NAME}, task_type = {cfg.MODEL.VCR_TASK_TYPE}, iter = {n_iter + 1}, elapsed = {int(elapsed // 3600)}h {int(elapsed // 60) % 60}m {int(elapsed % 60)}s\n\t" +
-              f"loss (vqa) = {loss_vqa_val}, loss (layout) = {loss_layout_val}, loss (rec) = {loss_rec_val}\n\t" +
-              f"accuracy (avg) = {avg_accuracy}, accuracy (cur) = {accuracy}")
+        # Save snapshot
+        if save_snapshot:
+            if do_profile:
+                profiler.add_step(n_iter + 1, run_meta)
+
+                # Profile the parameters of your model.
+                profiler.profile_name_scope(options=(ProfileOptionBuilder.trainable_variables_parameter()))
+
+                # Generate an operation and memory usage timeline saved in the snapshots directory.
+                profiler.profile_name_scope(options=(ProfileOptionBuilder.trainable_variables_parameter()))
+                opts = (ProfileOptionBuilder(tf.profiler.ProfileOptionBuilder.time_and_memory())
+                        .with_step(n_iter + 1)
+                        .with_timeline_output(f'{snapshot_dir}/timeline.csv')
+                        .build())
+
+                # Generated profile can be viewed by opening a Chrome browser at https://ui.perfetto.dev/ and uploading the above timeline.csv file.
+                profiler.profile_graph(options = opts)
+                
+                log_writer.add_run_metadata(run_metadata=run_meta, global_step=n_iter + 1, tag=f'profile_data_{n_iter + 1}')
+
+            snapshot_file = os.path.join(snapshot_dir, f"{(n_iter + 1):08d}_{cfg.MODEL.VCR_TASK_TYPE}")
+            snapshot_saver.save(sess, snapshot_file, write_meta_graph=True, global_step=n_iter+1)
+            print('snapshot saved to ' + snapshot_file)
+
+    print('Training iterations complete. Run profile advisor...')
+    # Profiler advice
+    ALL_ADVICE = {
+        'ExpensiveOperationChecker': {},
+        'AcceleratorUtilizationChecker': {},
+        'JobChecker': {},  # Only available internally.
+        'OperationChecker': {}
+    }
+    profiler.advise(options = ALL_ADVICE)
+    print('Done. Final results:')
+    print(f"exp: {cfg.EXP_NAME}, task_type = {cfg.MODEL.VCR_TASK_TYPE}, iter = {n_iter}, elapsed = {int(elapsed // 3600)}h {int(elapsed // 60) % 60}m {int(elapsed % 60)}s\n\t" +
+                f"loss (vqa) = {loss_vqa_val}, loss (layout) = {loss_layout_val}, loss (rec) = {loss_rec_val}\n\t" +
+                f"accuracy (avg) = {avg_accuracy}, accuracy (cur) = {accuracy}")
+except KeyboardInterrupt:
+    print('Interrupt called. Saving current checkpoint and exiting.')
+    summary = sess.run(log_step_trn,
+        {
+            loss_vqa_ph: loss_vqa_val,
+            loss_layout_ph: loss_layout_val,
+            loss_rec_ph: loss_rec_val,
+            accuracy_ph: avg_accuracy
+        })
+
+    log_writer.add_summary(summary, n_iter+1)
+    print('Saved checkpoint. Exiting.')
+    sys.exit(1)
