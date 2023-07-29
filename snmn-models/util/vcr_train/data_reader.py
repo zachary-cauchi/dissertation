@@ -139,7 +139,11 @@ class BatchLoaderVcr:
                 all_rationales_tokens = [[self.vocab_dict.word2idx(w) for w in rationale] for rationale in all_rationales]
             image_feat = np.load(iminfo['feature_path'])
             seq_length = min(len(question_inds), self.T_q_encoder)
-            question_seq_batch[:seq_length, i_per_qar] = question_inds[:seq_length]
+            
+            sample_range_in_batch = range(i_per_qar, i_per_qar + combinations_per_sample)
+            # Assign the question sequence to each column for each combination.
+            question_seq_batch.T[sample_range_in_batch, :seq_length] = question_inds[:seq_length]
+            question_length_batch[sample_range_in_batch] = seq_length
 
             if self.load_correct_answer:
                 # Get the index of the correct answer choice.
@@ -148,11 +152,9 @@ class BatchLoaderVcr:
                 # Get the index of the correct rationale choice.
                 rationale = iminfo['valid_rationales'].index(0)
 
-            sample_range_in_batch = range(i_per_qar, i_per_qar + combinations_per_sample)
             for n, i in enumerate(sample_range_in_batch):
                 i_ans = n // i_ans_divisor
                 i_rat = n % i_rat_mod
-                question_length_batch[i] = seq_length
                 # The i:i+1 slice is necessary to unwrap the enclosing array of the image features.
                 image_feat_batch[i:i+1] = image_feat
                 image_path_list[i] = iminfo['image_path']
