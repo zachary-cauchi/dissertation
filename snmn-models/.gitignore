@@ -8,6 +8,7 @@
 *.swp
 
 exp_*/data/*
+!exp_vcr/data/bert_vocab.txt
 !exp_*/data/*.py
 !exp_*/data/*.sh
 exp_*/tfmodel
