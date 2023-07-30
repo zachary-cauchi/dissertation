@@ -58,26 +58,29 @@ def open_image_metadata_file(qar):
     with open(os.path.join(images_dir, metadata_name)) as f:
         return json.load(f)
 
-def preprocess_token(token, qar, metadata):
+def preprocess_token(token, qar, metadata) -> 'list[str]':
     # Resolve the token if the token is a reference to an object.
+    # Since a token can be a list of one or more references, process all of them first.
+    
     if isinstance(token, list):
-        resolved_token = metadata['names'][token[0]].lower().strip()
+        resolved_tokens = [ metadata['names'][t].lower().strip() for t in token ]
     else:
-        resolved_token = token.lower().strip()
+        resolved_tokens = [ token.lower().strip() ]
 
-    # If the token is one or more number words, convert it to a number.
-    is_worded_number = all(word_num_checker_dict.get(subtoken) is not None for subtoken in resolved_token.split(token_delimeter)) and resolved_token != 'and' and resolved_token != 'point'
-    if (is_worded_number):
-        resolved_token = w2n.word_to_num(resolved_token)
-        if (type(resolved_token) is float and resolved_token.is_integer()):
-            resolved_token = str(int(resolved_token))
-        else:
-            resolved_token = str(resolved_token)
+    for rt in resolved_tokens:
+        # If the token is one or more number words, convert it to a number.
+        is_worded_number = all(word_num_checker_dict.get(subtoken) is not None for subtoken in rt.split(token_delimeter)) and rt != 'and' and rt != 'point'
+        if (is_worded_number):
+            rt = w2n.word_to_num(rt)
+            if (type(rt) is float and rt.is_integer()):
+                rt = str(int(rt))
+            else:
+                rt = str(rt)
 
-    return resolved_token
+    return resolved_tokens
 
 def update_vocab(qar):
-    sentences = qar['question'], *qar['answer_choices'], *qar['rationale_choices']
+    sentences: list[list[str]] = qar['question'], *qar['answer_choices'], *qar['rationale_choices']
     metadata = open_image_metadata_file(qar)
 
     # Iterate through all tokens in the QAR, replacing any object references with their classname where appropriate.
@@ -85,13 +88,17 @@ def update_vocab(qar):
     for sentence in sentences:
         for i, token in enumerate(sentence):
             # Resolve the token if the token is a reference to an object.
-            resolved_token = preprocess_token(token, qar, metadata)
+            resolved_tokens = preprocess_token(token, qar, metadata)
 
-            sentence[i] = resolved_token
+            for j, rt in enumerate(resolved_tokens):
+                if j == 0:
+                    sentence[i] = rt
+                else:
+                    sentence.insert(i + j, rt)
 
-            vocab[resolved_token] += 1
-            # TODO: Add correctness check to prevent duplicate/wrong sentences.
-            corpus.append(resolved_token)
+                vocab[rt] += 1
+                # TODO: Add correctness check to prevent duplicate/wrong sentences.
+                corpus.append(rt)
 
 def extract_folds_from_file_set(file_set, params):
     load_answers = params['load_answers']
@@ -135,7 +142,7 @@ def extract_folds_from_file_set(file_set, params):
         if (load_answers):
             if (split not in split_answers):
                 split_answers[split] = [ '<unk>' ]
-            answer_i = [i for i in qar['answer_match_iter'] if qar['answer_match_iter'][i] == 0][0]
+            answer_i = qar['answer_label']
             split_answers[split].append(qar['answer_choices'][answer_i])
             corpus_entry += sentence_delimeter + token_delimeter.join(qar['answer_choices'][answer_i])
         
@@ -143,7 +150,7 @@ def extract_folds_from_file_set(file_set, params):
         if (load_rationales):
             if (split not in split_rationales):
                 split_rationales[split] = [ '<unk>' ]
-            rationale_i = [i for i in qar['rationale_match_iter'] if qar['rationale_match_iter'][i] == 0][0]
+            rationale_i = qar['rationale_label']
             split_rationales[split].append(qar['rationale_choices'][rationale_i])
             corpus_entry += sentence_delimeter + token_delimeter.join(qar['rationale_choices'][rationale_i])
         
@@ -182,7 +189,9 @@ def build_imdb(fold_name, with_answers = True, with_rationales = True):
 
         if with_answers:
             imdb_entry['valid_answers'] = qar['answer_match_iter']
+            imdb_entry['valid_answer_index'] = qar['answer_label']
             imdb_entry['valid_rationales'] = qar['rationale_match_iter']
+            imdb_entry['valid_rationale_index'] = qar['rationale_label']
 
         imdb.append(imdb_entry)
 
@@ -260,23 +269,26 @@ for file_set, params in file_sets.items():
         q_length_counter[q_len] += 1
         if (q_len > q_longest_len):
             qid = entry['question_id']
+            q_longest_len = q_len
         
         for answer in entry['all_answers']:
             a_len = len(answer)
             a_length_counter[a_len] += 1
             if (a_len > a_longest_len):
                 aid = entry['question_id']
+                a_longest_len = a_len
         
         for rationale in entry['all_rationales']:
             r_len = len(rationale)
             r_length_counter[r_len] += 1
             if (r_len > r_longest_len):
                 rid = entry['question_id']
+                r_longest_len = r_len
 
     longest_token_sequences[file_set] = {
-        'question': (qid, q_length_counter),
-        'answer': (aid, a_length_counter),
-        'rationale': (rid, r_length_counter),
+        'question': (qid, q_longest_len, q_length_counter),
+        'answer': (aid, a_longest_len, a_length_counter),
+        'rationale': (rid, r_longest_len, r_length_counter),
     }
 
     imdb_filename = f'imdb_{os.path.splitext(file_set)[0]}.npy'
@@ -286,15 +298,17 @@ for file_set, params in file_sets.items():
 
 with open('imdb_stats.txt', 'w') as stats:
     for key, entry in longest_token_sequences.items():
-        q_counter: Counter = entry['question'][1]
-        a_counter: Counter = entry['answer'][1]
-        r_counter: Counter = entry['rationale'][1]
+        q_counter: Counter = entry['question'][2]
+        a_counter: Counter = entry['answer'][2]
+        r_counter: Counter = entry['rationale'][2]
+
+        longest_q_token = sorted(q_counter.items(), key = lambda x: x[0], reverse = True)
 
         msg = [
             f'Longest token sequences for {key}\n'
-            f"  * Question: {list(q_counter.items())[0][0]} tokens from question \'{entry['question'][0]}\'\n"
-            f"  * Answer: {list(a_counter.items())[0][0]} tokens from answer \'{entry['answer'][0]}\'\n"
-            f"  * Rationale: {list(r_counter.items())[0][0]} tokens from rationale \'{entry['rationale'][0]}\'\n"
+            f"  * Question: {entry['question'][1]} tokens from question \'{entry['question'][0]}\'\n"
+            f"  * Answer: {entry['answer'][1]} tokens from answer \'{entry['answer'][0]}\'\n"
+            f"  * Rationale: {entry['rationale'][1]} tokens from rationale \'{entry['rationale'][0]}\'\n"
             '\n\nPrinting longest token occurrences:\n'
         ]
         
@@ -303,13 +317,13 @@ with open('imdb_stats.txt', 'w') as stats:
         r_count = sum(r_counter.values())
 
         msg.append('Questions:\n')
-        msg.extend(f'  * {len}: {len_count // 4} ({len_count/q_count:.2%})\n' for len, len_count in sorted(q_counter.items(), key = lambda x: x[0], reverse = True))
+        msg.extend(f'  * {len}: {len_count} ({len_count/q_count:.2%})\n' for len, len_count in sorted(q_counter.items(), key = lambda x: x[0], reverse = True))
         msg.append('\n\n')
         msg.append('Answers:\n')
-        msg.extend(f'  * {len}: {len_count // 4} ({len_count/a_count:.2%})\n' for len, len_count in sorted(a_counter.items(), key = lambda x: x[0], reverse = True))
+        msg.extend(f'  * {len}: {len_count} ({len_count/a_count:.2%})\n' for len, len_count in sorted(a_counter.items(), key = lambda x: x[0], reverse = True))
         msg.append('\n\n')
         msg.append('Rationales:\n')
-        msg.extend(f'  * {len}: {len_count // 4} ({len_count/r_count:.2%})\n' for len, len_count in sorted(r_counter.items(), key = lambda x: x[0], reverse = True))
+        msg.extend(f'  * {len}: {len_count} ({len_count/r_count:.2%})\n' for len, len_count in sorted(r_counter.items(), key = lambda x: x[0], reverse = True))
         msg.append('\n\n')
 
         msg = ''.join(msg)
