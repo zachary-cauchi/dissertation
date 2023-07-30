@@ -8,6 +8,9 @@ RUN groupadd --gid $USER_GID $USERNAME \
     && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
     && chown -R $USER_UID:$USER_GID /workspace
 
+RUN mkdir -p /workspaces/snmn/.vscode/stubs \
+    && ln -s /usr/local/lib/python3.8/dist-packages/tensorflow_core/ /workspaces/snmn/.vscode/stubs/tensorflow
+
 USER ${USERNAME}
 
 COPY --chown=${USERNAME}:${USERNAME} requirements.txt /tmp/
