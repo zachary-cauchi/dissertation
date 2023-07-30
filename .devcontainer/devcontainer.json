@@ -45,8 +45,8 @@
 	// "forwardPorts": [],
 
 	// Add tensorflow types to intellisense (https://jagaimox.wordpress.com/2020/12/28/configure-python-intellisense-on-vscode-for-tensorflow-1-14-or-1-15/)
-	"postCreateCommand": "mkdir .vscode/stubs && ln -s /usr/local/lib/python3.8/dist-packages/tensorflow_core/ .vscode/stubs/tensorflow"
+	"postCreateCommand": "mkdir .vscode/stubs && ln -s /usr/local/lib/python3.8/dist-packages/tensorflow_core/ .vscode/stubs/tensorflow",
 
 	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
-	// "remoteUser": "root"
+	"remoteUser": "snmn"
 }
