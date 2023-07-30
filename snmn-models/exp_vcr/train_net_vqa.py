@@ -299,5 +299,7 @@ except KeyboardInterrupt:
         })
 
     log_writer.add_summary(summary, n_iter+1)
+    snapshot_file = os.path.join(snapshot_dir, f"{(n_iter + 1):08d}_{cfg.MODEL.VCR_TASK_TYPE}")
+    snapshot_saver.save(sess, snapshot_file, write_meta_graph=True, global_step=n_iter+1)
     print('Saved checkpoint. Exiting.')
     sys.exit(1)
