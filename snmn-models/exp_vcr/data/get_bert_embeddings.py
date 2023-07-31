@@ -3,72 +3,77 @@ from urllib.parse import urlparse
 import os
 import h5py
 import numpy as np
+import copy
 
 filesets = [
-    ('imdb_train.npy', 'bert_da_answer_train.h5', 'bert_da_rationale_train.h5'),
-    ('imdb_val.npy', 'bert_da_answer_val.h5', 'bert_da_rationale_val.h5')
+    # ('imdb_train.npy', 'bert_da_answer_train.h5', 'bert_da_rationale_train.h5'),
+    # ('imdb_val.npy', 'bert_da_answer_val.h5', 'bert_da_rationale_val.h5'),
+    ('imdb_test.npy', 'bert_da_answer_test.h5', 'bert_da_rationale_test.h5')
 ]
 
-def parse_h5_file(filename, qar_ids, parsed_ctxs, parsed_answers):
+def get_embeddings_from_group(hgroup):
+    ans = []
+    ctx = []
 
-    print(f'Parsing {h5_file}')
-    with h5py.File(os.path.join('./bert_embeddings', filename), 'r') as hf:
-        for key, subset in tqdm(list(hf.items())[:]):
-            answers = []
-            ctx = []
-
-            qar_ids.append(int(key))
-            for subkey, dataset in subset.items():
-                if subkey.startswith('answer_'):
-                    if subkey.startswith('answer_answer') or subkey.startswith('answer_rationale'):
-                        answers.append(np.array(dataset, np.float16))
-                    else:
-                        raise ValueError(f'Unexpected key {subkey}')
-                elif subkey.startswith('ctx_'):
-                    ctx.append(np.array(dataset, np.float16))
-                else:
-                    raise ValueError(f'Unexpected key {subkey}')
-
-            parsed_answers.append(answers)
-            parsed_ctxs.append(ctx)
-
-    return qar_ids, parsed_ctxs, parsed_answers
+    for subkey, dataset in hgroup.items():
+        if subkey.startswith('answer_'):
+            if subkey.startswith('answer_answer') or subkey.startswith('answer_rationale'):
+                ans.append(np.array(dataset, np.float16))
+            else:
+                raise ValueError(f'Unexpected key {subkey}')
+        elif subkey.startswith('ctx_'):
+            ctx.append(np.array(dataset, np.float16))
+        else:
+            raise ValueError(f'Unexpected key {subkey}')
+    return ctx, ans
 
 for imdb_file, ans_file, rat_file in filesets:
-    imdb_qars = np.load(os.path.join('imdb_r152_7x7', imdb_file), allow_pickle=True)
+    print(f'Loading {imdb_file}.')
+    src_qars = np.load(os.path.join('imdb_r152_7x7', imdb_file), allow_pickle=True)
+    print('Done, loading destination file.')
+    dst_qars = np.memmap(os.path.join('imdb_bert_r152_7x7', imdb_file), dtype='object', mode='w+', shape=len(src_qars))
 
-    ans_qar_ids = []
-    rat_qar_ids = []
-    parsed_ctx_answers = []
-    parsed_ctx_rationales = []
-    parsed_answers = []
-    parsed_rationales = []
+    is_test = 'valid_answer_index' not in src_qars[0]
 
-    for ctx_dst, dst, ids, h5_file in zip([parsed_ctx_answers, parsed_ctx_rationales], [parsed_answers, parsed_rationales], [ans_qar_ids, rat_qar_ids], [ans_file, rat_file]):
-        parse_h5_file(h5_file, ids, ctx_dst, dst)
+    print('Processing.')
+    with h5py.File(os.path.join('./bert_embeddings', ans_file), 'r') as ahf, h5py.File(os.path.join('./bert_embeddings', rat_file), 'r') as rhf:
+        # Iterate over all QAR sets.
+        for i, qar in enumerate(tqdm(src_qars)):
+            # Look up the corresponding embeddings from the dataset.
+            ans_embeddings = ahf[str(i)]
+            rat_embeddings = rhf[str(i)]
 
-    ans_sorted_qars = np.array(imdb_qars)[ans_qar_ids]
-    rat_sorted_qars = np.array(imdb_qars)[rat_qar_ids]
+            # Extract the context and answer/rationale embeddings.
+            ctx_answers, answers = get_embeddings_from_group(ans_embeddings)
+            ctx_rationales, rationales = get_embeddings_from_group(rat_embeddings)
 
-    assert ans_qar_ids == rat_qar_ids, 'The answer and rationale embeddings are out-of-order'
+            # Perform some assertions to assure ourselves the data was extracted properly.
+            if is_test:
+                assert len(ctx_rationales) == len(qar['all_answers']) * len(qar['all_rationales']), 'Not all combinations of answers and rationales were found.'
+            else:
+                assert np.shape(ctx_answers)[2] == np.shape(ctx_rationales)[2] and np.shape(ctx_answers)[0] == np.shape(ctx_rationales)[0], 'Shapes of answer and rationale contexts do not match.'
 
-    for i, (ctx_ans, ans, ctx_rat, rat, ans_sorted_qar, rat_sorted_qar) in enumerate(zip(parsed_ctx_answers, parsed_answers, parsed_ctx_rationales, parsed_rationales, ans_sorted_qars, rat_sorted_qars)):
-        assert np.shape(ctx_ans)[2] == np.shape(ctx_rat)[2] and np.shape(ctx_ans)[2] == np.shape(ctx_rat)[2], 'Shapes of contexts do not match.'
-        
-        assert np.shape(ctx_ans)[1] == len(ans_sorted_qar['question_tokens']), 'Shapes of answer contexts do not match length of question.'
+            assert np.shape(ctx_answers)[1] == len(qar['question_tokens']), 'Shapes of answer contexts do not match length of question.'
 
-        for a, qar_a in zip(ans, ans_sorted_qar['all_answers']):
-            assert len(a) == len(qar_a), f'Answer pairing {str(a)} and {str(qar_a)} don\'t match.'
-        for i, (ctx, r),  in enumerate(zip(ctx_rat, rat)):
-            # TODO: Split the embeddings into separate question and answer contexts.
-            rat_i = i % len(rat_sorted_qar['all_rationales'])
-            rat_sorted_qar['all_rationales']
-            assert len(ctx) == len(rat_sorted_qar['question_tokens']) + len(rat_sorted_qar['all_answers'][rat_sorted_qar['valid_answer_index']]), 'Shapes of rationale contexts do not match length of question and correct answer.'
-            assert len(r) == len(rat_sorted_qar['all_rationales'][rat_i]), f'Rationale pairing {str(r)} and {str(rat_sorted_qar["all_rationales"][rat_i])} don\'t match.'
-        
-        ans_sorted_qar['bert_ctx_answers'] = ctx_ans
-        ans_sorted_qar['bert_answer_answers'] = ans
-        rat_sorted_qar['bert_ctx_rationales'] = ctx_rat
-        rat_sorted_qar['bert_answer_rationales'] = rat
-    
-    print('Done')
+            for a, qar_a in zip(answers, qar['all_answers']):
+                assert len(a) == len(qar_a), f'Answer pairing {str(a)} and {str(qar_a)} don\'t match.'
+
+            for j, (ctx, r),  in enumerate(zip(ctx_rationales, rationales)):
+                # TODO: Split the embeddings into separate question and answer contexts.
+                rat_i = j % len(qar['all_rationales'])
+                if is_test:
+                    ans_i = int(j // len(qar['all_rationales']))
+                    assert len(ctx) == len(qar['question_tokens']) + len(qar['all_answers'][ans_i]), 'Shapes of rationale contexts do not match length of question and correct answer.'
+                else:
+                    assert len(ctx) == len(qar['question_tokens']) + len(qar['all_answers'][qar['valid_answer_index']]), 'Shapes of rationale contexts do not match length of question and correct answer.'
+                assert len(r) == len(qar['all_rationales'][rat_i]), f'Rationale pairing {str(r)} and {str(qar["all_rationales"][rat_i])} don\'t match.'
+
+            dst_qars[i] = copy.deepcopy(qar)
+            dst_qars[i]['bert_ctx_answers'] = ctx_answers
+            dst_qars[i]['bert_answer_answers'] = answers
+            dst_qars[i]['bert_ctx_rationales'] = ctx_rationales
+            dst_qars[i]['bert_answer_rationales'] = rationales
+            if i % 10000 == 0:
+                dst_qars.flush()
+        dst_qars.flush()
+    print(f'Processing of {imdb_file} done.')
