@@ -22,6 +22,8 @@ __C.VOCAB_ANSWER_FILE = './exp_vcr/data/answers_%s_vcr.txt'
 __C.IMDB_FILE = './exp_vcr/data/imdb/imdb_%s.npy'
 
 __C.USE_FIXED_WORD_EMBED = False
+__C.USE_BERT_SENTENCE_EMBED = False
+__C.BERT_EMBED_FILE = './exp_vcr/data/bert_embeddings/bert_da_%s_%s.h5'
 __C.FIXED_WORD_EMBED_FILE = ''
 
 # --------------------------------------------------------------------------- #
@@ -158,6 +160,8 @@ def _postprocess_cfg():  # NoQA
 def _validate_cfg():
     if __C.MODEL.VCR_TASK_TYPE not in ('Q_2_A', 'QA_2_R', 'Q_2_AR'):
         raise ValueError(f'MODEL.VCR_TASK_TYPE is set to {__C.MODEL.VCR_TASK_TYPE} which is invalid. Valid options are \'Q_2_A\', \'QA_2_R\', \'Q_2_AR\'')
+    if __C.USE_BERT_SENTENCE_EMBED and __C.USE_FIXED_WORD_EMBED:
+        raise ValueError(f'Bert and word embeddings are both enabled when only one can be used. Disable one or disable both.')
 
 def build_cfg_from_argparse(args_list=None):
     """Load config with command line options (`--cfg` and a list of options)"""

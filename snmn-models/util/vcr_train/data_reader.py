@@ -1,5 +1,6 @@
 import threading
 import queue
+import h5py
 import numpy as np
 
 from util import text_processing
@@ -16,6 +17,15 @@ class BatchLoaderVcr:
         self.T_q_encoder = data_params['T_q_encoder']
         self.T_a_encoder = data_params['T_a_encoder']
         self.T_r_encoder = data_params['T_r_encoder']
+
+        if data_params['load_bert_embeddings'] == True:
+            print('Loading BERT embeddings.')
+            self.ans_hf = h5py.File(data_params['bert_answer_embeddings_path'], 'r')
+            self.rat_hf = h5py.File(data_params['bert_rationale_embeddings_path'], 'r')
+            self.bert_dim = len(self.ans_hf['0']['answer_answer0'][0])
+            self.load_bert = True
+        else:
+            self.load_bert = False
 
         # peek one example to see whether answer and gt_layout are in the data
         self.load_correct_answer = (
@@ -64,6 +74,42 @@ class BatchLoaderVcr:
         feats = np.load(self.imdb[0]['feature_path'])
         self.feat_H, self.feat_W, self.feat_D = feats.shape[1:]
 
+    def get_embeddings_from_group(self, hgroup):
+        ans = []
+        ctx = []
+
+        for subkey, dataset in hgroup.items():
+            if subkey.startswith('answer_'):
+                if subkey.startswith('answer_answer') or subkey.startswith('answer_rationale'):
+                    ans.append(np.array(dataset, np.float16))
+                else:
+                    raise ValueError(f'Unexpected key {subkey}')
+            elif subkey.startswith('ctx_'):
+                ctx.append(np.array(dataset, np.float16))
+            else:
+                raise ValueError(f'Unexpected key {subkey}')
+        return ctx, ans
+
+    def validate_embeddings(self, ctx_answers, ctx_rationales, answers, rationales, qar):
+        if not self.load_correct_answer:
+            assert len(ctx_rationales) == len(qar['all_answers']) * len(qar['all_rationales']), 'Not all combinations of answers and rationales were found.'
+        else:
+            assert np.shape(ctx_answers)[2] == np.shape(ctx_rationales)[2] and np.shape(ctx_answers)[0] == np.shape(ctx_rationales)[0], 'Shapes of answer and rationale contexts do not match.'
+
+        assert np.shape(ctx_answers)[1] == len(qar['question_tokens']), 'Shapes of answer contexts do not match length of question.'
+
+        for a, qar_a in zip(answers, qar['all_answers']):
+            assert len(a) == len(qar_a), f'Answer pairing {str(a)} and {str(qar_a)} don\'t match.'
+
+        for j, (ctx, r),  in enumerate(zip(ctx_rationales, rationales)):
+            rat_i = j % len(qar['all_rationales'])
+            if not self.load_correct_answer:
+                ans_i = int(j // len(qar['all_rationales']))
+                assert len(ctx) == len(qar['question_tokens']) + len(qar['all_answers'][ans_i]), 'Shapes of rationale contexts do not match length of question and correct answer.'
+            else:
+                assert len(ctx) == len(qar['question_tokens']) + len(qar['all_answers'][qar['valid_answer_index']]), 'Shapes of rationale contexts do not match length of question and correct answer.'
+            assert len(r) == len(qar['all_rationales'][rat_i]), f'Rationale pairing {str(r)} and {str(qar["all_rationales"][rat_i])} don\'t match.'
+
     def load_one_batch(self, sample_ids):
         if self.vcr_task_type == 'Q_2_AR':
             combinations_per_sample = self.num_answers * self.num_rationales
@@ -84,6 +130,11 @@ class BatchLoaderVcr:
         if self.load_rationale:
             all_rationales_seq_batch = np.zeros((self.T_r_encoder, actual_batch_size), np.int32)
             all_rationales_length_batch = np.zeros((actual_batch_size), np.int32)
+        if self.load_bert:
+            bert_question_embeddings_batch = np.zeros((actual_batch_size, self.T_q_encoder, self.bert_dim), np.float16)
+            bert_answer_embeddings_batch = np.zeros((actual_batch_size, self.T_a_encoder, self.bert_dim), np.float16)
+            if self.load_rationale:
+                bert_rationale_embeddings_batch = np.zeros((actual_batch_size, self.T_r_encoder, self.bert_dim), np.float16)
 
         question_length_batch = np.zeros(actual_batch_size, np.int32)
         image_feat_batch = np.zeros(
@@ -128,7 +179,8 @@ class BatchLoaderVcr:
         # Populate the arrays with each possible q-a pair.
         # Iterate over each sample,
         for i_per_sample, i_per_qar in zip(range(len(sample_ids)), range(0, actual_batch_size, combinations_per_sample)):
-            iminfo = self.imdb[sample_ids[i_per_sample]]
+            id = sample_ids[i_per_sample]
+            iminfo = self.imdb[id]
             question_inds = [
                 self.vocab_dict.word2idx(w) for w in iminfo['question_tokens']]
 
@@ -151,6 +203,17 @@ class BatchLoaderVcr:
             if self.load_correct_rationale and self.load_rationale:
                 # Get the index of the correct rationale choice.
                 rationale = iminfo['valid_rationales'].index(0)
+            
+            if self.load_bert:
+                # Look up the corresponding embeddings from the dataset.
+                ans_embeddings = self.ans_hf[str(id)]
+                rat_embeddings = self.rat_hf[str(id)]
+
+                # Extract the context and answer/rationale embeddings.
+                bert_ctx_answers, bert_answers = self.get_embeddings_from_group(ans_embeddings)
+                bert_ctx_rationales, bert_rationales = self.get_embeddings_from_group(rat_embeddings)
+
+                self.validate_embeddings(bert_ctx_answers, bert_ctx_rationales, bert_answers, bert_rationales, iminfo)
 
             for n, i in enumerate(sample_range_in_batch):
                 i_ans = n // i_ans_divisor
@@ -192,12 +255,31 @@ class BatchLoaderVcr:
                     seq_length = min(len(token_list), self.T_a_encoder)
                     all_answers_seq_batch[:seq_length, i] = token_list[:seq_length]
                     all_answers_length_batch[i] = seq_length
+
                 if self.load_rationale:
                     # For each set of rationales per-question, populate the list of supported rationales in a sequence for embedding_lookup.
                     for token_list in all_rationales_token_list[i]:
                         seq_length = min(len(token_list), self.T_r_encoder)
                         all_rationales_seq_batch[:seq_length, i] = token_list[:seq_length]
                         all_rationales_length_batch[i] = seq_length
+
+                q_len = question_length_batch[i]
+                a_len = all_answers_length_batch[i]
+                if self.vcr_task_type == 'Q_2_A':
+                    bert_question_embeddings_batch[i][:q_len] = bert_ctx_answers[i_ans]
+                    bert_answer_embeddings_batch[i][:a_len] = bert_answers[i_ans]
+                else:
+                    r_len = all_rationales_length_batch[i]
+                    assert True == False, 'Still have to finish this bit: Load all answer embeddings combos.'
+                    if self.load_correct_answer:
+                        # How to handle this part still confuses me cos of how we train rationales (all answer combinations).
+                        bert_question_embeddings_batch[i][:q_len] = bert_ctx_rationales[n][:q_len]
+                        bert_answer_embeddings_batch[i][:a_len] = bert_ctx_rationales[n][q_len:]
+                        bert_rationale_embeddings_batch[i][:r_len] = bert_rationales[n]
+                    else:
+                        bert_question_embeddings_batch[i][:q_len] = bert_ctx_rationales[n][:q_len]
+                        bert_answer_embeddings_batch[i][:a_len] = bert_ctx_rationales[n][q_len:]
+                        bert_rationale_embeddings_batch[i][:r_len] = bert_rationales[n]
 
             if self.load_gt_layout:
                 # Get and load the gt layout for each question-answer available.
@@ -260,6 +342,12 @@ class BatchLoaderVcr:
         if self.load_gt_layout:
             batch['gt_layout_question_batch'] = gt_layout_question_batch
 
+        if self.load_bert:
+            batch['bert_question_embeddings_batch'] = bert_question_embeddings_batch
+            batch['bert_answer_embeddings_batch'] = bert_answer_embeddings_batch
+            if self.load_rationale:
+                batch['bert_rationale_embeddings_batch'] = bert_rationale_embeddings_batch
+
         return batch
 
 
@@ -272,6 +360,7 @@ class DataReader:
         else:
             raise TypeError('unknown imdb format.')
         print('Done')
+
         self.imdb = imdb
         self.shuffle = shuffle
         self.one_pass = one_pass
