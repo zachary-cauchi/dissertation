@@ -1,4 +1,4 @@
-EXP_NAME: vcr_bert_scratch
+EXP_NAME: vcr_q_a_bert_scratch
 MODEL:
   H_FEAT: 7
   W_FEAT: 7

@@ -133,7 +133,23 @@
                 "--cfg",
                 "exp_vcr/cfgs/vcr_q_a_scratch.yaml",
                 "TEST.ITER",
-                "120000"
+                "75000"
+            ]
+        },
+
+        {
+            "name": "VCR: Test QA BERT scratch",
+            "type": "python",
+            "request": "launch",
+            "program": "./exp_vcr/test_net_vqa.py",
+            "cwd": "${workspaceFolder}/snmn-models",
+            "python": "${command:python.interpreterPath}",
+            "console": "integratedTerminal",
+            "args": [
+                "--cfg",
+                "exp_vcr/cfgs/vcr_q_a_bert_scratch.yaml",
+                "TEST.ITER",
+                "60000"
             ]
         },
 

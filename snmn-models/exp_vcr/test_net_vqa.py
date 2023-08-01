@@ -42,7 +42,10 @@ data_reader = DataReader(
     load_soft_score=cfg.TRAIN.VQA_USE_SOFT_SCORE,
     feed_answers_with_input=cfg.MODEL.INPUT.USE_ANSWERS,
     vcr_task_type=cfg.MODEL.VCR_TASK_TYPE,
-    use_sparse_softmax_labels=cfg.TRAIN.SOLVER.USE_SPARSE_SOFTMAX_LABELS)
+    use_sparse_softmax_labels=cfg.TRAIN.SOLVER.USE_SPARSE_SOFTMAX_LABELS,
+    load_bert_embeddings = cfg.USE_BERT_SENTENCE_EMBED,
+    bert_answer_embeddings_path = cfg.BERT_EMBED_FILE % ('answer', cfg.TEST.SPLIT_VQA),
+    bert_rationale_embeddings_path = cfg.BERT_EMBED_FILE % ('rationale', cfg.TEST.SPLIT_VQA))
 num_vocab = data_reader.batch_loader.vocab_dict.num_vocab
 num_answers = data_reader.batch_loader.num_combinations
 module_names = data_reader.batch_loader.layout_dict.word_list
@@ -75,6 +78,14 @@ else:
     rationale_label_batch = None
     all_rationales_seq_batch = None
     all_rationales_length_batch = None
+if data_reader.batch_loader.load_bert:
+    bert_question_embeddings_batch = tf.placeholder(tf.float16, [None, None, data_reader.batch_loader.bert_dim], name='bert_question_embeddings_batch')
+    bert_answer_embeddings_batch = tf.placeholder(tf.float16, [None, None, data_reader.batch_loader.bert_dim], name='bert_answer_embeddings_batch')
+    bert_rationale_embeddings_batch = tf.placeholder(tf.float16, [None, None, data_reader.batch_loader.bert_dim], name='bert_rationale_embeddings_batch')
+else:
+    bert_question_embeddings_batch = None
+    bert_answer_embeddings_batch = None
+    bert_rationale_embeddings_batch = None
 question_length_batch = tf.placeholder(tf.int32, [None], name='question_length_batch')
 image_feat_batch = tf.placeholder(
     tf.float32, [None, cfg.MODEL.H_FEAT, cfg.MODEL.W_FEAT, cfg.MODEL.FEAT_DIM], name='image_feat_batch')
@@ -85,6 +96,9 @@ model = Model(
     question_length_batch,
     all_answers_length_batch,
     all_rationales_length_batch,
+    bert_question_embeddings_batch,
+    bert_answer_embeddings_batch,
+    bert_rationale_embeddings_batch,
     image_feat_batch,
     num_vocab=num_vocab,
     num_choices=data_reader.batch_loader.num_combinations,
@@ -148,6 +162,12 @@ for n_batch, batch in enumerate(data_reader.batches()):
             all_rationales_seq_batch=batch['all_rationales_seq_batch'],
             all_rationales_length_batch=batch['all_rationales_length_batch']
         )
+
+    if data_reader.batch_loader.load_bert:
+        feed_dict[bert_question_embeddings_batch] = batch['bert_question_embeddings_batch']
+        feed_dict[bert_answer_embeddings_batch] = batch['bert_answer_embeddings_batch']
+        if data_reader.batch_loader.load_rationale:
+            feed_dict[bert_rationale_embeddings_batch] = batch['bert_rationale_embeddings_batch']
 
     fetch_list_val = sess.run(fetch_list, feed_dict=feed_dict)
 
