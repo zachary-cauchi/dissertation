@@ -131,10 +131,10 @@ class BatchLoaderVcr:
             all_rationales_seq_batch = np.zeros((self.T_r_encoder, actual_batch_size), np.int32)
             all_rationales_length_batch = np.zeros((actual_batch_size), np.int32)
         if self.load_bert:
-            bert_question_embeddings_batch = np.zeros((actual_batch_size, self.T_q_encoder, self.bert_dim), np.float16)
-            bert_answer_embeddings_batch = np.zeros((actual_batch_size, self.T_a_encoder, self.bert_dim), np.float16)
+            bert_question_embeddings_batch = np.zeros((self.T_q_encoder, actual_batch_size, self.bert_dim), np.float16)
+            bert_answer_embeddings_batch = np.zeros((self.T_a_encoder, actual_batch_size, self.bert_dim), np.float16)
             if self.load_rationale:
-                bert_rationale_embeddings_batch = np.zeros((actual_batch_size, self.T_r_encoder, self.bert_dim), np.float16)
+                bert_rationale_embeddings_batch = np.zeros((self.T_r_encoder, actual_batch_size, self.bert_dim), np.float16)
 
         question_length_batch = np.zeros(actual_batch_size, np.int32)
         image_feat_batch = np.zeros(
@@ -263,23 +263,24 @@ class BatchLoaderVcr:
                         all_rationales_seq_batch[:seq_length, i] = token_list[:seq_length]
                         all_rationales_length_batch[i] = seq_length
 
-                q_len = question_length_batch[i]
-                a_len = all_answers_length_batch[i]
-                if self.vcr_task_type == 'Q_2_A':
-                    bert_question_embeddings_batch[i][:q_len] = bert_ctx_answers[i_ans]
-                    bert_answer_embeddings_batch[i][:a_len] = bert_answers[i_ans]
-                else:
-                    r_len = all_rationales_length_batch[i]
-                    assert True == False, 'Still have to finish this bit: Load all answer embeddings combos.'
-                    if self.load_correct_answer:
-                        # How to handle this part still confuses me cos of how we train rationales (all answer combinations).
-                        bert_question_embeddings_batch[i][:q_len] = bert_ctx_rationales[n][:q_len]
-                        bert_answer_embeddings_batch[i][:a_len] = bert_ctx_rationales[n][q_len:]
-                        bert_rationale_embeddings_batch[i][:r_len] = bert_rationales[n]
+                if self.load_bert:
+                    q_len = question_length_batch[i]
+                    a_len = all_answers_length_batch[i]
+                    if self.vcr_task_type == 'Q_2_A':
+                        bert_question_embeddings_batch[:q_len, i] = bert_ctx_answers[i_ans][:q_len]
+                        bert_answer_embeddings_batch[:a_len, i] = bert_answers[i_ans][:a_len]
                     else:
-                        bert_question_embeddings_batch[i][:q_len] = bert_ctx_rationales[n][:q_len]
-                        bert_answer_embeddings_batch[i][:a_len] = bert_ctx_rationales[n][q_len:]
-                        bert_rationale_embeddings_batch[i][:r_len] = bert_rationales[n]
+                        r_len = all_rationales_length_batch[i]
+                        assert True == False, 'Still have to finish this bit: Load all answer embeddings combos.'
+                        if self.load_correct_answer:
+                            # How to handle this part still confuses me cos of how we train rationales (all answer combinations).
+                            bert_question_embeddings_batch[:q_len, i] = bert_ctx_rationales[n][:q_len]
+                            bert_answer_embeddings_batch[:a_len, i] = bert_ctx_rationales[n][q_len:]
+                            bert_rationale_embeddings_batch[:r_len, i] = bert_rationales[n]
+                        else:
+                            bert_question_embeddings_batch[:q_len, i] = bert_ctx_rationales[n][:q_len]
+                            bert_answer_embeddings_batch[:a_len, i] = bert_ctx_rationales[n][q_len:a_len]
+                            bert_rationale_embeddings_batch[:r_len, i] = bert_rationales[n]
 
             if self.load_gt_layout:
                 # Get and load the gt layout for each question-answer available.

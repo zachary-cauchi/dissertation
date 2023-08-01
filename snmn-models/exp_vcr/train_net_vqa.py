@@ -70,6 +70,14 @@ else:
     rationale_label_batch = None
     all_rationales_seq_batch = None
     all_rationales_length_batch = None
+if data_reader.batch_loader.load_bert:
+    bert_question_embeddings_batch = tf.placeholder(tf.float16, [None, None, data_reader.batch_loader.bert_dim], name='bert_question_embeddings_batch')
+    bert_answer_embeddings_batch = tf.placeholder(tf.float16, [None, None, data_reader.batch_loader.bert_dim], name='bert_answer_embeddings_batch')
+    bert_rationale_embeddings_batch = tf.placeholder(tf.float16, [None, None, data_reader.batch_loader.bert_dim], name='bert_rationale_embeddings_batch')
+else:
+    bert_question_embeddings_batch = None
+    bert_answer_embeddings_batch = None
+    bert_rationale_embeddings_batch = None
 question_length_batch = tf.placeholder(tf.int32, [None], name='question_length_batch')
 image_feat_batch = tf.placeholder(
     tf.float32, [None, cfg.MODEL.H_FEAT, cfg.MODEL.W_FEAT, cfg.MODEL.FEAT_DIM], name='image_feat_batch')
@@ -80,6 +88,9 @@ model = Model(
     question_length_batch,
     all_answers_length_batch,
     all_rationales_length_batch,
+    bert_question_embeddings_batch,
+    bert_answer_embeddings_batch,
+    bert_rationale_embeddings_batch,
     image_feat_batch,
     num_vocab=num_vocab,
     num_choices=data_reader.batch_loader.num_combinations,
@@ -194,10 +205,14 @@ try:
                     }
         
         if data_reader.batch_loader.load_rationale:
-            feed_dict.update(
-                all_rationales_seq_batch=batch['all_rationales_seq_batch'],
-                all_rationales_length_batch=batch['all_rationales_length_batch']
-            )
+            feed_dict[all_rationales_seq_batch] = batch['all_rationales_seq_batch']
+            feed_dict[all_rationales_length_batch] = batch['all_rationales_length_batch']
+
+        if data_reader.batch_loader.load_bert:
+            feed_dict[bert_question_embeddings_batch] = batch['bert_question_embeddings_batch']
+            feed_dict[bert_answer_embeddings_batch] = batch['bert_answer_embeddings_batch']
+            if data_reader.batch_loader.load_rationale:
+                feed_dict[bert_rationale_embeddings_batch] = batch['bert_rationale_embeddings_batch']
 
         if cfg.TRAIN.VQA_USE_SOFT_SCORE:
             feed_dict[soft_score_batch] = batch['soft_score_batch']

@@ -13,6 +13,9 @@ class Model:
                  question_length_batch,
                  all_answers_length_batch,
                  all_rationales_length_batch,
+                 bert_question_embeddings_batch,
+                 bert_answer_embeddings_batch,
+                 bert_rationale_embeddings_batch,
                  image_feat_batch,
                  num_vocab, num_choices, module_names, is_training,
                  scope='model', reuse=None):
@@ -35,7 +38,7 @@ class Model:
 
             # Input unit
             lstm_seq, lstm_encodings, embed_seq = input_unit.build_input_unit(
-                question_seq_batch, all_answers_seq_batch, all_rationales_seq_batch, question_length_batch, all_answers_length_batch, all_rationales_length_batch, num_vocab, self.seq_in_count)
+                question_seq_batch, all_answers_seq_batch, all_rationales_seq_batch, question_length_batch, all_answers_length_batch, all_rationales_length_batch, bert_question_embeddings_batch, bert_answer_embeddings_batch, bert_rationale_embeddings_batch, num_vocab, self.seq_in_count)
             kb_batch = input_unit.build_kb_batch(image_feat_batch)
 
             # Controller and NMN
