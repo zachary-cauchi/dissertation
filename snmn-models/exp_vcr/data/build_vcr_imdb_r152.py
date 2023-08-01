@@ -37,6 +37,7 @@ img2qid = {}
 qid2que = {}
 corpus = []
 vocab = Counter()
+vocab['<unk>'] += 1
 split_answers = {}
 split_rationales = {}
 
@@ -67,7 +68,7 @@ def preprocess_token(token, qar, metadata) -> 'list[str]':
     else:
         resolved_tokens = [ token.lower().strip() ]
 
-    for rt in resolved_tokens:
+    for i, rt in enumerate(resolved_tokens):
         # If the token is one or more number words, convert it to a number.
         is_worded_number = all(word_num_checker_dict.get(subtoken) is not None for subtoken in rt.split(token_delimeter)) and rt != 'and' and rt != 'point'
         if (is_worded_number):
@@ -76,6 +77,7 @@ def preprocess_token(token, qar, metadata) -> 'list[str]':
                 rt = str(int(rt))
             else:
                 rt = str(rt)
+            resolved_tokens[i] = rt
 
     return resolved_tokens
 
