@@ -29,9 +29,9 @@
 		}
 	},
 
+	// Add "CUDA_VISIBLE_DEVICES": "0" if using only the first gpu is necessary.
 	"containerEnv": {
-		"PYTHONPATH": ".:$PYTHONPATH",
-		"CUDA_VISIBLE_DEVICES": "0"
+		"PYTHONPATH": ".:$PYTHONPATH"
 	},
 
 	"hostRequirements": {
