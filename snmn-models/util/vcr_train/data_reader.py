@@ -1,4 +1,3 @@
-from contextlib import contextmanager
 import h5py
 import numpy as np
 import tensorflow as tf
@@ -29,10 +28,10 @@ class DataReader:
 
         if data_params['load_bert_embeddings'] == True:
             print('Loading BERT embeddings.')
-            self.ans_hf = h5py.File(data_params['bert_answer_embeddings_path'], 'r')
-            self.rat_hf = h5py.File(data_params['bert_rationale_embeddings_path'], 'r')
-            self.bert_dim = len(self.ans_hf['0']['answer_answer0'][0])
             self.load_bert = True
+            self.ans_hf = h5py.File(self.data_params['bert_answer_embeddings_path'], mode='r')
+            self.rat_hf = h5py.File(self.data_params['bert_rationale_embeddings_path'], mode='r')
+            self.bert_dim = len(self.ans_hf['0']['answer_answer0'][0])
         else:
             self.load_bert = False
 
@@ -112,7 +111,8 @@ class DataReader:
         if self.load_bert:
             self.output_types['bert_question_embeddings_batch'] = tf.float16
             self.output_types['bert_answer_embeddings_batch'] = tf.float16
-            self.output_types['bert_rationale_embeddings_batch'] = tf.float16
+            if self.load_rationale:
+                self.output_types['bert_rationale_embeddings_batch'] = tf.float16
 
         self.output_shapes = {
             'image_feat_batch': tf.TensorShape([self.feat_H, self.feat_W, self.feat_D]),
@@ -134,10 +134,11 @@ class DataReader:
         if self.load_bert:
             self.output_shapes['bert_question_embeddings_batch'] = tf.TensorShape([None, self.bert_dim])
             self.output_shapes['bert_answer_embeddings_batch'] = tf.TensorShape([None, self.bert_dim])
-            self.output_shapes['bert_rationale_embeddings_batch'] = tf.TensorShape([None, self.bert_dim])
+            if self.load_rationale:
+                self.output_shapes['bert_rationale_embeddings_batch'] = tf.TensorShape([None, self.bert_dim])
 
         # Vqa data loader
-        self.dataset = tf.compat.v1.data.Dataset.from_generator(self.batches, self.output_types, self.output_shapes).batch(self.actual_batch_size)
+        self.dataset: tf.compat.v1.data.Dataset = tf.compat.v1.data.Dataset.from_generator(self.batches, self.output_types, self.output_shapes).batch(self.actual_batch_size)
         if not self.data_params['use_sparse_softmax_labels']:
             print('Sparse softmax labels disabled. Enabling dataset shuffling.')
             self.dataset = self.dataset.shuffle(buffer_size=32)
@@ -149,24 +150,16 @@ class DataReader:
         # for test in self.batches():
         #     print(len(test))
 
-    @contextmanager
-    def load_bert_dataset(self, filename) -> h5py.File:
-        if self.load_bert:
-            with h5py.File(filename, 'r'):
-                yield
-        else:
-            yield
-
     def to_time_major(self, element):
         element['question_seq_batch'] = tf.transpose(element['question_seq_batch'])
         element['all_answers_seq_batch'] = tf.transpose(element['all_answers_seq_batch'])
         if self.load_rationale:
             element['all_rationales_seq_batch'] = tf.transpose(element['all_rationales_seq_batch'])
         if self.load_bert:
-            element['bert_question_embeddings_batch'] = tf.transpose(element['bert_question_embeddings_batch'])
-            element['bert_answer_embeddings_batch'] = tf.transpose(element['bert_answer_embeddings_batch'])
+            element['bert_question_embeddings_batch'] = tf.transpose(element['bert_question_embeddings_batch'], [1, 0, 2])
+            element['bert_answer_embeddings_batch'] = tf.transpose(element['bert_answer_embeddings_batch'], [1, 0, 2])
             if self.load_rationale:
-                element['bert_rationale_embeddings_batch'] = tf.transpose(element['bert_rationale_embeddings_batch'])
+                element['bert_rationale_embeddings_batch'] = tf.transpose(element['bert_rationale_embeddings_batch'], [1, 0, 2])
         return element
 
     def flatten_batch_task_dims(self, element):
@@ -184,11 +177,9 @@ class DataReader:
 
     def batches(self):
         num_samples = len(self.imdb)
-        # with self.load_bert_dataset(self.data_params['bert_answer_embeddings_path']) as ans_hf, self.load_bert_dataset(self.data_params['bert_rationale_embeddings_path']) as rat_hf:
-        #     self.ans_hf = ans_hf
-        #     self.rat_hf = rat_hf
         for sample_id in np.random.permutation(num_samples):
             collection = self.load_one(sample_id)
+
             for i in range(self.num_combinations):
                 record = {}
                 record['image_feat_batch'] = collection['image_feat_batch'][i]
@@ -209,7 +200,8 @@ class DataReader:
                 if self.load_bert:
                     record['bert_question_embeddings_batch'] = collection['bert_question_embeddings_batch'][:, i]
                     record['bert_answer_embeddings_batch'] = collection['bert_answer_embeddings_batch'][:, i]
-                    record['bert_rationale_embeddings_batch'] = collection['bert_rationale_embeddings_batch'][:, i]
+                    if self.load_rationale:
+                        record['bert_rationale_embeddings_batch'] = collection['bert_rationale_embeddings_batch'][:, i]
                 yield record
 
     def get_embeddings_from_group(self, hgroup):
@@ -336,8 +328,8 @@ class DataReader:
 
         if self.load_bert:
             # Look up the corresponding embeddings from the dataset.
-            ans_embeddings = self.ans_hf[str(id)]
-            rat_embeddings = self.rat_hf[str(id)]
+            ans_embeddings = self.ans_hf[str(sample_id)]
+            rat_embeddings = self.rat_hf[str(sample_id)]
 
             # Extract the context and answer/rationale embeddings.
             bert_ctx_answers, bert_answers = self.get_embeddings_from_group(ans_embeddings)

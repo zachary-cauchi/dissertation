@@ -71,7 +71,10 @@ else:
 if data_reader.load_bert:
     bert_question_embeddings_batch = next_element['bert_question_embeddings_batch']
     bert_answer_embeddings_batch = next_element['bert_answer_embeddings_batch']
-    bert_rationale_embeddings_batch = next_element['bert_rationale_embeddings_batch']
+    if data_reader.load_rationale:
+        bert_rationale_embeddings_batch = next_element['bert_rationale_embeddings_batch']
+    else:
+        bert_rationale_embeddings_batch = None
 else:
     bert_question_embeddings_batch = None
     bert_answer_embeddings_batch = None
@@ -189,7 +192,6 @@ sess.run(iterator.initializer)
 avg_accuracy, accuracy_decay = 0., 0.99
 try:
     for n_iter in range(cfg.TRAIN.START_ITER, cfg.TRAIN.MAX_ITER - 1):
-
         save_snapshot = True if ((n_iter+1) % cfg.TRAIN.SNAPSHOT_INTERVAL == 0 or (n_iter+1) == cfg.TRAIN.MAX_ITER) else False
         do_profile = True if save_snapshot and n_iter > 2498 else False
 
