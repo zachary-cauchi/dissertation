@@ -47,40 +47,37 @@ data_reader = DataReader(
     load_bert_embeddings = cfg.USE_BERT_SENTENCE_EMBED,
     bert_answer_embeddings_path = cfg.BERT_EMBED_FILE % ('answer', cfg.TRAIN.SPLIT_VQA),
     bert_rationale_embeddings_path = cfg.BERT_EMBED_FILE % ('rationale', cfg.TRAIN.SPLIT_VQA))
-num_vocab = data_reader.batch_loader.vocab_dict.num_vocab
-num_answers = data_reader.batch_loader.num_combinations
-module_names = data_reader.batch_loader.layout_dict.word_list
-if data_reader.data_params['vcr_task_type'] == 'Q_2_A':
-    correct_label_batch_name = 'answer_label_batch'
-elif data_reader.data_params['vcr_task_type'] == 'QA_2_R':
-    correct_label_batch_name = 'rationale_label_batch'
-elif data_reader.data_params['vcr_task_type'] == 'Q_2_AR':
-    correct_label_batch_name = 'answer_and_rationale_label_batch'
+num_vocab = data_reader.vocab_dict.num_vocab
+num_answers = data_reader.num_combinations
+module_names = data_reader.layout_dict.word_list
+correct_label_batch_name = data_reader.correct_label_batch_name
 
-# Inputs and model
-question_seq_batch = tf.placeholder(tf.int32, [None, None], name='question_seq_batch')
-correct_label_batch = tf.placeholder(tf.int32, [None], name=f'correct_{correct_label_batch_name}')
-all_answers_seq_batch = tf.placeholder(tf.int32, [None, None], name='all_answers_seq_batch')
-all_answers_length_batch = tf.placeholder(tf.int32, [None], name='all_answers_length_batch')
-if data_reader.batch_loader.load_rationale:
-    rationale_label_batch = tf.placeholder(tf.float32, [None], name='rationale_label_batch')
-    all_rationales_seq_batch = tf.placeholder(tf.int32, [None, None], name='all_rationales_seq_batch')
-    all_rationales_length_batch = tf.placeholder(tf.int32, [None], name='all_rationales_length_batch')
+dataset: tf.compat.v1.data.Dataset = data_reader.dataset
+dataset = dataset.repeat(64)
+iterator = tf.compat.v1.data.make_initializable_iterator(dataset)
+next_element = iterator.get_next()
+
+question_seq_batch = next_element['question_seq_batch']
+correct_label_batch = next_element[correct_label_batch_name]
+all_answers_seq_batch = next_element['all_answers_seq_batch']
+all_answers_length_batch = next_element['all_answers_length_batch']
+if data_reader.load_rationale:
+    all_rationales_seq_batch = next_element['all_rationales_seq_batch']
+    all_rationales_length_batch = next_element['all_rationales_length_batch']
 else:
-    rationale_label_batch = None
     all_rationales_seq_batch = None
     all_rationales_length_batch = None
-if data_reader.batch_loader.load_bert:
-    bert_question_embeddings_batch = tf.placeholder(tf.float16, [None, None, data_reader.batch_loader.bert_dim], name='bert_question_embeddings_batch')
-    bert_answer_embeddings_batch = tf.placeholder(tf.float16, [None, None, data_reader.batch_loader.bert_dim], name='bert_answer_embeddings_batch')
-    bert_rationale_embeddings_batch = tf.placeholder(tf.float16, [None, None, data_reader.batch_loader.bert_dim], name='bert_rationale_embeddings_batch')
+if data_reader.load_bert:
+    bert_question_embeddings_batch = next_element['bert_question_embeddings_batch']
+    bert_answer_embeddings_batch = next_element['bert_answer_embeddings_batch']
+    bert_rationale_embeddings_batch = next_element['bert_rationale_embeddings_batch']
 else:
     bert_question_embeddings_batch = None
     bert_answer_embeddings_batch = None
     bert_rationale_embeddings_batch = None
-question_length_batch = tf.placeholder(tf.int32, [None], name='question_length_batch')
-image_feat_batch = tf.placeholder(
-    tf.float32, [None, cfg.MODEL.H_FEAT, cfg.MODEL.W_FEAT, cfg.MODEL.FEAT_DIM], name='image_feat_batch')
+question_length_batch = next_element['question_length_batch']
+image_feat_batch = next_element['image_feat_batch']
+
 model = Model(
     question_seq_batch,
     all_answers_seq_batch,
@@ -93,7 +90,7 @@ model = Model(
     bert_rationale_embeddings_batch,
     image_feat_batch,
     num_vocab=num_vocab,
-    num_choices=data_reader.batch_loader.num_combinations,
+    num_choices=data_reader.num_combinations,
     module_names=module_names,
     is_training=True
 )
@@ -111,8 +108,8 @@ elif cfg.TRAIN.SOLVER.USE_SPARSE_SOFTMAX_LABELS:
             logits=model.vqa_scores, labels=tf.stop_gradient(correct_label_batch)), name='vqa_sparse_softmax_loss_function')
 else:
     loss_vqa = tf.reduce_mean(
-        tf.nn.softmax_cross_entropy_with_logits_v2(
-            logits=model.vqa_scores, labels=tf.stop_gradient(correct_label_batch)), name='vqa_softmax_loss_function')
+        tf.nn.sigmoid_cross_entropy_with_logits(
+            logits=model.vqa_scores, labels=tf.stop_gradient(correct_label_batch)), name='vqa_sigmoid_loss_function')
 
 # Loss function for expert layout.
 if cfg.TRAIN.USE_GT_LAYOUT:
@@ -185,54 +182,28 @@ start_time = time.time()
 ProfileOptionBuilder = tf.profiler.ProfileOptionBuilder
 profiler = tf.profiler.Profiler(sess.graph)
 
+sess.run(iterator.initializer)
+
+# Run training
+avg_accuracy, accuracy_decay = 0., 0.99
 try:
-    # Run training
-    avg_accuracy, accuracy_decay = 0., 0.99
-    for n_batch, batch in enumerate(data_reader.batches()):
-        n_iter = n_batch + cfg.TRAIN.START_ITER
-        if n_iter >= cfg.TRAIN.MAX_ITER:
-            break
+    for n_iter in range(cfg.TRAIN.START_ITER, cfg.TRAIN.MAX_ITER - 1):
 
         save_snapshot = True if ((n_iter+1) % cfg.TRAIN.SNAPSHOT_INTERVAL == 0 or (n_iter+1) == cfg.TRAIN.MAX_ITER) else False
         do_profile = True if save_snapshot and n_iter > 2498 else False
 
-        feed_dict = {question_seq_batch: batch['question_seq_batch'],
-                    question_length_batch: batch['question_length_batch'],
-                    image_feat_batch: batch['image_feat_batch'],
-                    correct_label_batch: batch[correct_label_batch_name],
-                    all_answers_seq_batch: batch['all_answers_seq_batch'],
-                    all_answers_length_batch: batch['all_answers_length_batch'],
-                    }
+        fetches = (model.module_logits, model.vqa_scores, loss_vqa, loss_layout, loss_rec, correct_label_batch, train_op)
         
-        if data_reader.batch_loader.load_rationale:
-            feed_dict[all_rationales_seq_batch] = batch['all_rationales_seq_batch']
-            feed_dict[all_rationales_length_batch] = batch['all_rationales_length_batch']
-
-        if data_reader.batch_loader.load_bert:
-            feed_dict[bert_question_embeddings_batch] = batch['bert_question_embeddings_batch']
-            feed_dict[bert_answer_embeddings_batch] = batch['bert_answer_embeddings_batch']
-            if data_reader.batch_loader.load_rationale:
-                feed_dict[bert_rationale_embeddings_batch] = batch['bert_rationale_embeddings_batch']
-
-        if cfg.TRAIN.VQA_USE_SOFT_SCORE:
-            feed_dict[soft_score_batch] = batch['soft_score_batch']
-
-        if cfg.TRAIN.USE_GT_LAYOUT:
-            feed_dict[gt_layout_question_batch] = batch['gt_layout_question_batch']
-
-        fetches = (model.module_logits, model.vqa_scores, loss_vqa, loss_layout, loss_rec, train_op)
         # Profile and capture metadata for this run only if we're on a specific iteration.
         run_meta = tf.compat.v1.RunMetadata() if do_profile else None
         output = sess.run(
             fetches,
-            feed_dict,
             options = tf.compat.v1.RunOptions(trace_level=tf.RunOptions.FULL_TRACE) if do_profile else None,
             run_metadata=run_meta)
 
-        module_logits, vqa_scores_val, loss_vqa_val, loss_layout_val, loss_rec_val, _ = output
+        module_logits, vqa_scores_val, loss_vqa_val, loss_layout_val, loss_rec_val, vqa_q_labels, _ = output
 
         # compute accuracy
-        vqa_q_labels = batch[correct_label_batch_name]
 
         if not cfg.TRAIN.SOLVER.USE_SPARSE_SOFTMAX_LABELS:
             # Reshape the expected results into a one-hot encoded vector.
@@ -292,20 +263,6 @@ try:
             snapshot_file = os.path.join(snapshot_dir, f"{(n_iter + 1):08d}_{cfg.MODEL.VCR_TASK_TYPE}")
             snapshot_saver.save(sess, snapshot_file, write_meta_graph=True, global_step=n_iter+1)
             print('snapshot saved to ' + snapshot_file)
-
-    print('Training iterations complete. Run profile advisor...')
-    # Profiler advice
-    ALL_ADVICE = {
-        'ExpensiveOperationChecker': {},
-        'AcceleratorUtilizationChecker': {},
-        'JobChecker': {},  # Only available internally.
-        'OperationChecker': {}
-    }
-    profiler.advise(options = ALL_ADVICE)
-    print('Done. Final results:')
-    print(f"exp: {cfg.EXP_NAME}, task_type = {cfg.MODEL.VCR_TASK_TYPE}, iter = {n_iter}, elapsed = {int(elapsed // 3600)}h {int(elapsed // 60) % 60}m {int(elapsed % 60)}s\n\t" +
-                f"loss (vqa) = {loss_vqa_val}, loss (layout) = {loss_layout_val}, loss (rec) = {loss_rec_val}\n\t" +
-                f"accuracy (avg) = {avg_accuracy}, accuracy (cur) = {accuracy}")
 except KeyboardInterrupt:
     print('Interrupt called. Saving current checkpoint and exiting.')
     summary = sess.run(log_step_trn,
@@ -321,3 +278,18 @@ except KeyboardInterrupt:
     snapshot_saver.save(sess, snapshot_file, write_meta_graph=True, global_step=n_iter+1)
     print('Saved checkpoint. Exiting.')
     sys.exit(1)
+except tf.errors.OutOfRangeError:
+    print('Training iterations complete. Run profile advisor...')
+
+# Profiler advice
+ALL_ADVICE = {
+    'ExpensiveOperationChecker': {},
+    'AcceleratorUtilizationChecker': {},
+    'JobChecker': {},  # Only available internally.
+    'OperationChecker': {}
+}
+profiler.advise(options = ALL_ADVICE)
+print('Done. Iterations complete. TF has run out of elements to train on/finished. Final results:')
+print(f"exp: {cfg.EXP_NAME}, task_type = {cfg.MODEL.VCR_TASK_TYPE}, iter = {n_iter}, elapsed = {int(elapsed // 3600)}h {int(elapsed // 60) % 60}m {int(elapsed % 60)}s\n\t" +
+            f"loss (vqa) = {loss_vqa_val}, loss (layout) = {loss_layout_val}, loss (rec) = {loss_rec_val}\n\t" +
+            f"accuracy (avg) = {avg_accuracy}, accuracy (cur) = {accuracy}")
