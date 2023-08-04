@@ -133,7 +133,7 @@
                 "--cfg",
                 "exp_vcr/cfgs/vcr_q_a_scratch.yaml",
                 "TEST.ITER",
-                "75000"
+                "70000"
             ]
         },
 

@@ -1,8 +1,8 @@
-import argparse
 import os
 import json
 import numpy as np
 import tensorflow as tf
+import itertools
 
 from models_vcr.model import Model
 from models_vcr.config import build_cfg_from_argparse
@@ -12,7 +12,8 @@ from util.vcr_train.data_reader import DataReader
 cfg = build_cfg_from_argparse()
 
 # Start session
-os.environ["CUDA_VISIBLE_DEVICES"] = str(cfg.GPU_ID)
+if os.environ["CUDA_VISIBLE_DEVICES"] is None:
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(cfg.GPU_ID)
 # 0 = all messages are logged (default behavior)
 # 1 = INFO messages are not printed
 # 2 = INFO and WARNING messages are not printed
@@ -46,9 +47,10 @@ data_reader = DataReader(
     load_bert_embeddings = cfg.USE_BERT_SENTENCE_EMBED,
     bert_answer_embeddings_path = cfg.BERT_EMBED_FILE % ('answer', cfg.TEST.SPLIT_VQA),
     bert_rationale_embeddings_path = cfg.BERT_EMBED_FILE % ('rationale', cfg.TEST.SPLIT_VQA))
-num_vocab = data_reader.batch_loader.vocab_dict.num_vocab
-num_answers = data_reader.batch_loader.num_combinations
-module_names = data_reader.batch_loader.layout_dict.word_list
+num_vocab = data_reader.vocab_dict.num_vocab
+num_answers = data_reader.num_combinations
+module_names = data_reader.layout_dict.word_list
+correct_label_batch_name = data_reader.correct_label_batch_name
 
 # Eval files
 if cfg.TEST.GEN_EVAL_FILE:
@@ -58,37 +60,32 @@ if cfg.TEST.GEN_EVAL_FILE:
     os.makedirs(os.path.dirname(eval_file), exist_ok=True)
     output_qids_answers = []
 
-if data_reader.data_params['vcr_task_type'] == 'Q_2_A':
-    correct_label_batch_name = 'answer_label_batch'
-elif data_reader.data_params['vcr_task_type'] == 'QA_2_R':
-    correct_label_batch_name = 'rationale_label_batch'
-elif data_reader.data_params['vcr_task_type'] == 'Q_2_AR':
-    correct_label_batch_name = 'answer_and_rationale_label_batch'
+dataset: tf.compat.v1.data.Dataset = data_reader.dataset
+iterator = tf.compat.v1.data.make_initializable_iterator(dataset)
+next_element = iterator.get_next()
 
 # Inputs and model
-question_seq_batch = tf.placeholder(tf.int32, [None, None], name='question_seq_batch')
-correct_label_batch = tf.placeholder(tf.int32, [None], name=f'correct_{correct_label_batch_name}')
-all_answers_seq_batch = tf.placeholder(tf.int32, [None, None], name='all_answers_seq_batch')
-all_answers_length_batch = tf.placeholder(tf.int32, [None], name='all_answers_length_batch')
-if data_reader.batch_loader.load_rationale:
-    rationale_label_batch = tf.placeholder(tf.float32, [None], name='rationale_label_batch')
-    all_rationales_seq_batch = tf.placeholder(tf.int32, [None, None], name='all_rationales_seq_batch')
-    all_rationales_length_batch = tf.placeholder(tf.int32, [None], name='all_rationales_length_batch')
+question_seq_batch = next_element['question_seq_batch']
+correct_label_batch = next_element[correct_label_batch_name]
+all_answers_seq_batch = next_element['all_answers_seq_batch']
+all_answers_length_batch = next_element['all_answers_length_batch']
+if data_reader.load_rationale:
+    all_rationales_seq_batch = next_element['all_rationales_seq_batch']
+    all_rationales_length_batch = next_element['all_rationales_length_batch']
 else:
-    rationale_label_batch = None
     all_rationales_seq_batch = None
     all_rationales_length_batch = None
-if data_reader.batch_loader.load_bert:
-    bert_question_embeddings_batch = tf.placeholder(tf.float16, [None, None, data_reader.batch_loader.bert_dim], name='bert_question_embeddings_batch')
-    bert_answer_embeddings_batch = tf.placeholder(tf.float16, [None, None, data_reader.batch_loader.bert_dim], name='bert_answer_embeddings_batch')
-    bert_rationale_embeddings_batch = tf.placeholder(tf.float16, [None, None, data_reader.batch_loader.bert_dim], name='bert_rationale_embeddings_batch')
+if data_reader.load_bert:
+    bert_question_embeddings_batch = next_element['bert_question_embeddings_batch']
+    bert_answer_embeddings_batch = next_element['bert_answer_embeddings_batch']
+    bert_rationale_embeddings_batch = next_element['bert_rationale_embeddings_batch']
 else:
     bert_question_embeddings_batch = None
     bert_answer_embeddings_batch = None
     bert_rationale_embeddings_batch = None
-question_length_batch = tf.placeholder(tf.int32, [None], name='question_length_batch')
-image_feat_batch = tf.placeholder(
-    tf.float32, [None, cfg.MODEL.H_FEAT, cfg.MODEL.W_FEAT, cfg.MODEL.FEAT_DIM], name='image_feat_batch')
+question_length_batch = next_element['question_length_batch']
+image_feat_batch = next_element['image_feat_batch']
+
 model = Model(
     question_seq_batch,
     all_answers_seq_batch,
@@ -101,7 +98,7 @@ model = Model(
     bert_rationale_embeddings_batch,
     image_feat_batch,
     num_vocab=num_vocab,
-    num_choices=data_reader.batch_loader.num_combinations,
+    num_choices=data_reader.num_combinations,
     module_names=module_names,
     is_training=False
 )
@@ -114,7 +111,6 @@ if cfg.TEST.USE_EMA:
         for v in tf.global_variables()}
 else:
     var_names = {v.op.name: v for v in tf.global_variables()}
-# snapshot_file = cfg.TEST.SNAPSHOT_FILE % (cfg.EXP_NAME, cfg.TEST.ITER)
 snapshot_dir = cfg.TRAIN.SNAPSHOT_DIR % cfg.EXP_NAME
 snapshot_file = os.path.join(snapshot_dir, f"{(cfg.TEST.ITER):08d}_{cfg.MODEL.VCR_TASK_TYPE}-{cfg.TEST.ITER}")
 snapshot_saver = tf.train.Saver(var_names)
@@ -127,91 +123,78 @@ vis_dir = os.path.join(
 os.makedirs(result_dir, exist_ok=True)
 os.makedirs(vis_dir, exist_ok=True)
 
+sess.run(iterator.initializer)
+
 # Run test
 answer_correct, num_questions = 0, 0
-for n_batch, batch in enumerate(data_reader.batches()):
-    if correct_label_batch_name not in batch:
-        batch[correct_label_batch_name] = -np.ones(
-            len(batch['image_feat_batch']), np.int32)
-        if num_questions == 0:
-            print('imdb has no answer labels. Using dummy labels.\n\n'
-                  '**The final accuracy will be zero (no labels provided)**\n')
-    
-    fetch_list = [model.vqa_scores]
-    answer_incorrect = num_questions - answer_correct
+try:
+    for n_batch in itertools.count():
+        if not data_reader.load_correct_answer:
+            vqa_q_labels = -np.ones(
+                len(data_reader.actual_batch_size), np.int32)
+            if num_questions == 0:
+                print('imdb has no answer labels. Using dummy labels.\n\n'
+                    '**The final accuracy will be zero (no labels provided)**\n')
+        
+        fetch_list = [model.vqa_scores, next_element]
+        answer_incorrect = num_questions - answer_correct
 
-    if cfg.TEST.VIS_SEPARATE_CORRECTNESS:
-        run_vis = (
-            answer_correct < cfg.TEST.NUM_VIS_CORRECT or
-            answer_incorrect < cfg.TEST.NUM_VIS_INCORRECT)
-    else:
-        run_vis = num_questions < cfg.TEST.NUM_VIS
-    if run_vis:
-        fetch_list.append(model.vis_outputs)
+        if cfg.TEST.VIS_SEPARATE_CORRECTNESS:
+            run_vis = (
+                answer_correct < cfg.TEST.NUM_VIS_CORRECT or
+                answer_incorrect < cfg.TEST.NUM_VIS_INCORRECT)
+        else:
+            run_vis = num_questions < cfg.TEST.NUM_VIS
+        if run_vis:
+            fetch_list.append(model.vis_outputs)
 
-    feed_dict = {
-        question_seq_batch: batch['question_seq_batch'],
-        question_length_batch: batch['question_length_batch'],
-        image_feat_batch: batch['image_feat_batch'],
-        all_answers_seq_batch: batch['all_answers_seq_batch'],
-        all_answers_length_batch: batch['all_answers_length_batch']
-    }
+        fetch_list_val = sess.run(fetch_list)
 
-    if data_reader.batch_loader.load_rationale:
-        feed_dict.update(
-            all_rationales_seq_batch=batch['all_rationales_seq_batch'],
-            all_rationales_length_batch=batch['all_rationales_length_batch']
-        )
+        batch = fetch_list_val[1]
 
-    if data_reader.batch_loader.load_bert:
-        feed_dict[bert_question_embeddings_batch] = batch['bert_question_embeddings_batch']
-        feed_dict[bert_answer_embeddings_batch] = batch['bert_answer_embeddings_batch']
-        if data_reader.batch_loader.load_rationale:
-            feed_dict[bert_rationale_embeddings_batch] = batch['bert_rationale_embeddings_batch']
+        # visualization
+        if run_vis:
+            model.vis_batch_vqa(
+                data_reader, batch, fetch_list_val[-1], num_questions,
+                answer_correct, answer_incorrect, vis_dir, num_answers)
 
-    fetch_list_val = sess.run(fetch_list, feed_dict=feed_dict)
+        # compute accuracy
 
-    # visualization
-    if run_vis:
-        model.vis_batch_vqa(
-            data_reader, batch, fetch_list_val[-1], num_questions,
-            answer_correct, answer_incorrect, vis_dir, num_answers)
+        vqa_scores_val = fetch_list_val[0]
 
-    # compute accuracy
-
-    vqa_scores_val = fetch_list_val[0]
-
-    if not cfg.TRAIN.SOLVER.USE_SPARSE_SOFTMAX_LABELS:
-        # Reshape the predictions into a softmax vector.
-        vqa_scores_val = np.reshape(vqa_scores_val, (len(vqa_scores_val) // num_answers, num_answers))
-
-    # Convert them into a one-hot encoded vector.
-    vqa_predictions = np.argmax(vqa_scores_val, axis=1)
-    
-    if cfg.TEST.GEN_EVAL_FILE:
-        qid_list = [batch['qid_list'][i] for i in range(0, len(batch['qid_list']) // num_answers, num_answers)]
-        output_qids_answers += [
-            {'question_id': int(qid), 'answer': p.item(), 'answer_str': ' '.join(batch['all_answers_list'][(i * num_answers) + p])}
-            for i, (qid, p) in enumerate(zip(qid_list, vqa_predictions))]
-
-    if data_reader.batch_loader.load_correct_answer:
-        vqa_labels = batch['answer_label_batch']
         if not cfg.TRAIN.SOLVER.USE_SPARSE_SOFTMAX_LABELS:
-        # Reshape the expected results into a one-hot encoded vector.
-            vqa_labels = np.reshape(vqa_labels, (len(vqa_labels) // num_answers, num_answers))
-            # Get the indices of the correct answer.
-            vqa_labels = np.where(vqa_labels == 1.)[1]
-    else:
-        # dummy labels with all -1 (so accuracy will be zero)
-        vqa_labels = -np.ones(vqa_scores_val.shape[0], np.int32)
+            # Reshape the predictions into a softmax vector.
+            vqa_scores_val = np.reshape(vqa_scores_val, (len(vqa_scores_val) // num_answers, num_answers))
 
-    answer_correct += np.sum(vqa_predictions == vqa_labels)
-    num_questions += len(vqa_labels)
+        # Convert them into a one-hot encoded vector.
+        vqa_predictions = np.argmax(vqa_scores_val, axis=1)
 
-    accuracy = answer_correct / num_questions
+        if cfg.TEST.GEN_EVAL_FILE:
+            samples = data_reader.imdb[batch['qid_list']]
+            output_qids_answers += [
+                { 'question_id': int(batch['qid_list'][i]), 'question_str': samples[i]['question_str'], 'answer': str(p), 'answer_str': ' '.join(samples[i]['all_answers'][batch['answer_index'][i]]) } for i, p in zip(range(0, len(batch['qid_list']), num_answers), vqa_predictions)
+            ]
 
-    if n_batch % 20 == 0:
-        print(f'exp: {cfg.EXP_NAME}, iter = {cfg.TEST.ITER}, accumulated accuracy on {cfg.TEST.SPLIT_VQA} = {accuracy} ({answer_correct} / {answer_incorrect})')
+        if data_reader.load_correct_answer:
+            vqa_labels = batch[data_reader.correct_label_batch_name]
+            if not cfg.TRAIN.SOLVER.USE_SPARSE_SOFTMAX_LABELS:
+            # Reshape the expected results into a one-hot encoded vector.
+                vqa_labels = np.reshape(vqa_labels, (len(vqa_labels) // num_answers, num_answers))
+                # Get the indices of the correct answer.
+                vqa_labels = np.where(vqa_labels == 1.)[1]
+        else:
+            # dummy labels with all -1 (so accuracy will be zero)
+            vqa_labels = -np.ones(vqa_scores_val.shape[0], np.int32)
+
+        answer_correct += np.sum(vqa_predictions == vqa_labels)
+        num_questions += len(vqa_labels)
+
+        accuracy = answer_correct / num_questions
+
+        if n_batch % 20 == 0:
+            print(f'exp: {cfg.EXP_NAME}, iter = {cfg.TEST.ITER}, accumulated accuracy on {cfg.TEST.SPLIT_VQA} = {accuracy} ({answer_correct} / {answer_incorrect})')
+except tf.errors.OutOfRangeError:
+    print('Completed testing suite. Saving results.')
 
 with open(eval_file, 'w') as f:
         json.dump(output_qids_answers, f, indent=2)

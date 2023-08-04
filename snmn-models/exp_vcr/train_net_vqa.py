@@ -13,7 +13,8 @@ from util.vcr_train.data_reader import DataReader
 cfg = build_cfg_from_argparse()
 
 # Start session
-os.environ["CUDA_VISIBLE_DEVICES"] = str(cfg.GPU_ID)
+if os.environ["CUDA_VISIBLE_DEVICES"] is None:
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(cfg.GPU_ID)
 # 0 = all messages are logged (default behavior)
 # 1 = INFO messages are not printed
 # 2 = INFO and WARNING messages are not printed

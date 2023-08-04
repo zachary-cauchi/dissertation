@@ -64,6 +64,8 @@ class DataReader:
         else:
             self.num_combinations = self.num_answers * self.num_rationales
 
+        self.actual_batch_size = data_params['batch_size'] * self.num_combinations
+
         if not self.load_correct_answer:
             print('imdb does not contain correct answers')
         if not self.load_correct_rationale:
@@ -94,8 +96,11 @@ class DataReader:
             'image_feat_batch': tf.float32,
             'question_seq_batch': tf.int32,
             'question_length_batch': tf.int32,
+            'answer_index': tf.int32,
             'all_answers_seq_batch': tf.int32,
             'all_answers_length_batch': tf.int32,
+            'image_path_list': tf.string,
+            'qid_list': tf.int32
         }
         if self.load_correct_answer:
             self.output_types['answer_label_batch'] = tf.int32 if self.data_params['use_sparse_softmax_labels'] else tf.float32
@@ -113,8 +118,11 @@ class DataReader:
             'image_feat_batch': tf.TensorShape([self.feat_H, self.feat_W, self.feat_D]),
             'question_seq_batch': tf.TensorShape([None]),
             'question_length_batch': tf.TensorShape([]),
+            'answer_index': tf.TensorShape([]),
             'all_answers_seq_batch': tf.TensorShape([None]),
             'all_answers_length_batch': tf.TensorShape([]),
+            'image_path_list': tf.TensorShape([]),
+            'qid_list': tf.TensorShape([])
         }
         if self.load_correct_answer:
             self.output_shapes['answer_label_batch'] = tf.TensorShape([])
@@ -129,7 +137,7 @@ class DataReader:
             self.output_shapes['bert_rationale_embeddings_batch'] = tf.TensorShape([None, self.bert_dim])
 
         # Vqa data loader
-        self.dataset = tf.compat.v1.data.Dataset.from_generator(self.batches, self.output_types, self.output_shapes).batch(data_params['batch_size'] * self.num_combinations)
+        self.dataset = tf.compat.v1.data.Dataset.from_generator(self.batches, self.output_types, self.output_shapes).batch(self.actual_batch_size)
         if not self.data_params['use_sparse_softmax_labels']:
             print('Sparse softmax labels disabled. Enabling dataset shuffling.')
             self.dataset = self.dataset.shuffle(buffer_size=32)
@@ -140,11 +148,6 @@ class DataReader:
         self.dataset = self.dataset.map(self.to_time_major)
         # for test in self.batches():
         #     print(len(test))
-
-    def get_next_element(self):
-        iterator = tf.compat.v1.data.make_initializable_iterator(self.dataset)
-        next_element = iterator.get_next()
-        return next_element
 
     @contextmanager
     def load_bert_dataset(self, filename) -> h5py.File:
@@ -191,8 +194,11 @@ class DataReader:
                 record['image_feat_batch'] = collection['image_feat_batch'][i]
                 record['question_seq_batch'] = collection['question_seq_batch'][:, i]
                 record['question_length_batch'] = collection['question_length_batch'][i]
+                record['answer_index'] = collection['answer_index'][i]
                 record['all_answers_seq_batch'] = collection['all_answers_seq_batch'][:, i]
                 record['all_answers_length_batch'] = collection['all_answers_length_batch'][i]
+                record['image_path_list'] = collection['image_path_list'][i]
+                record['qid_list'] = collection['qid_list'][i]
                 if self.load_correct_answer:
                     record['answer_label_batch'] = collection['answer_label_batch'][i]
                 if self.load_rationale:
@@ -267,6 +273,8 @@ class DataReader:
         image_path_list = [None]*self.num_combinations
         qid_list = [None]*self.num_combinations
         qstr_list = [None]*self.num_combinations
+        sample_index = [None]*self.num_combinations
+        answer_index = [None]*self.num_combinations
         all_answers_list = [None]*self.num_combinations
         all_answers_token_list = [None] * self.num_combinations
         if self.load_rationale:
@@ -345,7 +353,9 @@ class DataReader:
             image_path_list[i] = iminfo['image_path']
             qid_list[i] = iminfo['question_id']
             qstr_list[i] = iminfo['question_str']
-            all_answers_list[i] = all_answers[i_ans]
+            sample_index[i] = sample_id
+            answer_index[i] = i_ans
+            all_answers_list[i] = np.array(all_answers[i_ans])
             all_answers_token_list[i] = [all_answers_tokens[i_ans]]
             if self.load_rationale:
                 all_rationales_list[i] = all_rationales[i_rat]
@@ -427,8 +437,12 @@ class DataReader:
         batch = dict(question_seq_batch=question_seq_batch,
                      question_length_batch=question_length_batch,
                      image_feat_batch=image_feat_batch,
+                     answer_index=answer_index,
+                     all_answers_list=all_answers_list,
                      all_answers_seq_batch=all_answers_seq_batch,
                      all_answers_length_batch=all_answers_length_batch,
+                     qid_list=qid_list,
+                     image_path_list=image_path_list
                 )
 
         if self.load_rationale:
