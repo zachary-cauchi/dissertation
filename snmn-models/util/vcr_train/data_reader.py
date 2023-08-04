@@ -139,12 +139,15 @@ class DataReader:
 
         # Vqa data loader
         self.dataset: tf.compat.v1.data.Dataset = tf.compat.v1.data.Dataset.from_generator(self.batches, self.output_types, self.output_shapes).batch(self.actual_batch_size)
-        if not self.data_params['use_sparse_softmax_labels']:
-            print('Sparse softmax labels disabled. Enabling dataset shuffling.')
-            self.dataset = self.dataset.shuffle(buffer_size=32)
-        else:
-            print('Sparse softmax labels enabled. Using unshuffled prefetch instead.')
-            self.dataset =self.dataset.prefetch(buffer_size=32)
+        self.prefetch_size=64
+        print(f'Using unshuffled prefetch of size {self.prefetch_size}.')
+        self.dataset.prefetch(buffer_size=self.prefetch_size)
+        # if not self.data_params['use_sparse_softmax_labels']:
+        #     print('Sparse softmax labels disabled. Enabling dataset shuffling.')
+        #     self.dataset = self.dataset.shuffle(buffer_size=32)
+        # else:
+        #     print('Sparse softmax labels enabled. Using unshuffled prefetch instead.')
+        #     self.dataset =self.dataset.prefetch(buffer_size=32)
         
         self.dataset = self.dataset.map(self.to_time_major)
         # for test in self.batches():
