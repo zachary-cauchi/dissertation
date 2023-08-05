@@ -1,56 +1,34 @@
+import sys
 import os
 from regex import regex as re
 from typing import Callable
+
 import tensorflow as tf
 
 from models_vcr.model import Model
 from models_vcr.config import build_cfg_from_argparse
 from util.vcr_train.data_reader import DataReader
 
-# Load config
-cfg = build_cfg_from_argparse()
+def create_data_reader(split: str, cfg):
+    imdb_file = cfg.IMDB_FILE % split
+    data_reader = DataReader(
+        imdb_file, shuffle=True, one_pass=False, batch_size=batch_size,
+        vocab_question_file=cfg.VOCAB_QUESTION_FILE,
+        T_q_encoder=cfg.MODEL.T_Q_ENCODER,
+        T_a_encoder=cfg.MODEL.T_A_ENCODER,
+        T_r_encoder=cfg.MODEL.T_R_ENCODER,
+        vocab_answer_file=cfg.VOCAB_ANSWER_FILE % cfg.TRAIN.SPLIT_VQA,
+        load_gt_layout=cfg.TRAIN.USE_GT_LAYOUT,
+        vocab_layout_file=cfg.VOCAB_LAYOUT_FILE, T_decoder=cfg.MODEL.T_CTRL,
+        load_soft_score=cfg.TRAIN.VQA_USE_SOFT_SCORE,
+        feed_answers_with_input=cfg.MODEL.INPUT.USE_ANSWERS,
+        vcr_task_type=cfg.MODEL.VCR_TASK_TYPE,
+        use_sparse_softmax_labels=cfg.TRAIN.SOLVER.USE_SPARSE_SOFTMAX_LABELS,
+        load_bert_embeddings = cfg.USE_BERT_SENTENCE_EMBED,
+        bert_answer_embeddings_path = cfg.BERT_EMBED_FILE % ('answer', cfg.TRAIN.SPLIT_VQA),
+        bert_rationale_embeddings_path = cfg.BERT_EMBED_FILE % ('rationale', cfg.TRAIN.SPLIT_VQA))
 
-# Start session
-if 'CUDA_VISIBLE_DEVICES' not in os.environ:
-    os.environ["CUDA_VISIBLE_DEVICES"] = ','.join(cfg.GPU_ID)
-# 0 = all messages are logged (default behavior)
-# 1 = INFO messages are not printed
-# 2 = INFO and WARNING messages are not printed
-# 3 = INFO, WARNING, and ERROR messages are not printed
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0'
-tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.INFO)
-
-# Enables support for XLA optimisation
-tf.config.optimizer.set_jit('autoclustering')
-
-batch_size=cfg.TRAIN.BATCH_SIZE
-
-# Data files
-imdb_file = cfg.IMDB_FILE % cfg.TRAIN.SPLIT_VQA
-data_reader = DataReader(
-    imdb_file, shuffle=True, one_pass=False, batch_size=batch_size,
-    vocab_question_file=cfg.VOCAB_QUESTION_FILE,
-    T_q_encoder=cfg.MODEL.T_Q_ENCODER,
-    T_a_encoder=cfg.MODEL.T_A_ENCODER,
-    T_r_encoder=cfg.MODEL.T_R_ENCODER,
-    vocab_answer_file=cfg.VOCAB_ANSWER_FILE % cfg.TRAIN.SPLIT_VQA,
-    load_gt_layout=cfg.TRAIN.USE_GT_LAYOUT,
-    vocab_layout_file=cfg.VOCAB_LAYOUT_FILE, T_decoder=cfg.MODEL.T_CTRL,
-    load_soft_score=cfg.TRAIN.VQA_USE_SOFT_SCORE,
-    feed_answers_with_input=cfg.MODEL.INPUT.USE_ANSWERS,
-    vcr_task_type=cfg.MODEL.VCR_TASK_TYPE,
-    use_sparse_softmax_labels=cfg.TRAIN.SOLVER.USE_SPARSE_SOFTMAX_LABELS,
-    load_bert_embeddings = cfg.USE_BERT_SENTENCE_EMBED,
-    bert_answer_embeddings_path = cfg.BERT_EMBED_FILE % ('answer', cfg.TRAIN.SPLIT_VQA),
-    bert_rationale_embeddings_path = cfg.BERT_EMBED_FILE % ('rationale', cfg.TRAIN.SPLIT_VQA))
-num_vocab = data_reader.vocab_dict.num_vocab
-num_answers = data_reader.num_combinations
-module_names = data_reader.layout_dict.word_list
-correct_label_batch_name = data_reader.correct_label_batch_name
-
-# Due to the variables tf.train.ExponentialMovingAverage creates internally, I can't declare it in model_fn.
-# Instead, declaring it outside the model_fn to avoid the conflicts between it and the MirroredStrategy variables.
-ema = tf.train.ExponentialMovingAverage(decay=cfg.TRAIN.EMA_DECAY)
+    return data_reader
 
 def get_per_device_print_fn(tensor) -> Callable[[str], None]:
     device = tensor.device
@@ -63,17 +41,26 @@ def input_fn(is_training: bool = True):
 
     return dataset
 
+def get_model_fn_params(cfg, data_reader: DataReader):
+    return {
+        'cfg': cfg,
+        'num_vocab': data_reader.vocab_dict.num_vocab,
+        'num_answers': data_reader.num_answers,
+        'num_combinations': data_reader.num_combinations,
+        'load_rationale': data_reader.load_rationale,
+        'load_bert': data_reader.load_bert,
+        'module_names': data_reader.layout_dict.word_list,
+        'correct_label_batch_name': data_reader.correct_label_batch_name
+    }
+
 def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
     print_fn = get_per_device_print_fn(features['question_seq_batch'])
     
     print_fn('Initialising model')
     cfg = params['cfg']
-    num_vocab = params['num_vocab']
     num_answers = params['num_answers']
-    num_combinations = params['num_combinations']
     load_rationale = params['load_rationale']
     load_bert = params['load_bert']
-    module_names = params['module_names']
     correct_label_batch_name = params['correct_label_batch_name']
 
     if labels is None:
@@ -90,9 +77,9 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
         features['bert_answer_embeddings_batch'] if load_bert else None,
         features['bert_rationale_embeddings_batch'] if load_bert and load_rationale else None,
         features['image_feat_batch'],
-        num_vocab=num_vocab,
-        num_choices=num_combinations,
-        module_names=module_names,
+        num_vocab=params['num_vocab'],
+        num_choices=params['num_combinations'],
+        module_names=params['module_names'],
         is_training=mode==tf.estimator.ModeKeys.TRAIN,
         reuse=tf.AUTO_REUSE
     )
@@ -216,6 +203,31 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
         print_fn('Prediction mode initialised.')
         return tf.estimator.EstimatorSpec(mode=mode, predictions=model.vqa_scores)
 
+# Load config
+cfg = build_cfg_from_argparse()
+
+# Start session
+if 'CUDA_VISIBLE_DEVICES' not in os.environ:
+    os.environ["CUDA_VISIBLE_DEVICES"] = ','.join(cfg.GPU_ID)
+# 0 = all messages are logged (default behavior)
+# 1 = INFO messages are not printed
+# 2 = INFO and WARNING messages are not printed
+# 3 = INFO, WARNING, and ERROR messages are not printed
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0'
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.INFO)
+
+# Enables support for XLA optimisation
+tf.config.optimizer.set_jit('autoclustering')
+
+batch_size=cfg.TRAIN.BATCH_SIZE
+
+# Data files
+data_reader = create_data_reader(cfg.TRAIN.SPLIT_VQA, cfg)
+
+# Due to the variables tf.train.ExponentialMovingAverage creates internally, it can't be declared in the model_fn without conflicts.
+# Instead, it must be declared outside the model_fn to avoid the conflicts between it and the MirroredStrategy variables.
+ema = tf.train.ExponentialMovingAverage(decay=cfg.TRAIN.EMA_DECAY)
+
 # Multi-GPU configuration
 strategy = tf.contrib.distribute.MirroredStrategy()
 
@@ -228,33 +240,36 @@ config = tf.estimator.RunConfig(
     session_config=sess_config,
     log_step_count_steps=cfg.TRAIN.LOG_INTERVAL,
     save_summary_steps=cfg.TRAIN.LOG_INTERVAL,
-    save_checkpoints_steps=cfg.TRAIN.SNAPSHOT_INTERVAL,
+    save_checkpoints_steps=100, #cfg.TRAIN.SNAPSHOT_INTERVAL,
     keep_checkpoint_max=0
 )
 
 # Initialise memory profiler for additional debugging.
 profiler_hook = tf.train.ProfilerHook(save_steps=cfg.TRAIN.SNAPSHOT_INTERVAL, output_dir=snapshot_dir, show_dataflow=True, show_memory=True)
 
-params = {
-    'cfg': cfg,
-    'num_vocab': data_reader.vocab_dict.num_vocab,
-    'num_answers': data_reader.num_answers,
-    'num_combinations': data_reader.num_combinations,
-    'load_rationale': data_reader.load_rationale,
-    'load_bert': data_reader.load_bert,
-    'module_names': data_reader.layout_dict.word_list,
-    'correct_label_batch_name': correct_label_batch_name
-}
-
 print('Main: Initializing Estimator.')
-model = tf.estimator.Estimator(model_fn=model_fn, config=config, params=params)
+model = tf.estimator.Estimator(model_fn=model_fn, config=config, params=get_model_fn_params(cfg, data_reader))
 print('Main: Initialised.')
 print('Main: Beginning training.')
-# model.train(input_fn=lambda: input_fn(is_training=True), steps=cfg.TRAIN.MAX_ITER, hooks=[ profiler_hook ])
+model.train(input_fn=lambda: input_fn(is_training=True), steps=cfg.TRAIN.MAX_ITER, hooks=[ profiler_hook ])
 print('Main: Training completed. Evaluating checkpoints.')
 checkpoints = [ os.path.join(snapshot_dir, c.group(1)) for c in [re.match(pattern = '(model.ckpt-[^0].*).data-00000.*', string=s) for s in os.listdir(snapshot_dir)] if c is not None]
+if checkpoints is None or len(checkpoints) == 0:
+    print('Main: No checkpoints to evaluate. Exiting.')
+    sys.exit(0)
+
+print('Main: Creating eval data_reader.')
+del data_reader, model
+data_reader = create_data_reader(cfg.EVAL.SPLIT_VQA, cfg)
+print('Main: Creating new Estimator with updated eval data_reader')
+model = tf.estimator.Estimator(model_fn=model_fn, config=config, params=get_model_fn_params(cfg, data_reader))
+
 for checkpoint in checkpoints:
     print(f'Main: Evaluating checkpoint {checkpoint}')
-    eval_metrics = model.evaluate(input_fn=lambda: input_fn(is_training=False), steps=1000, checkpoint_path=checkpoint)
+    eval_metrics = model.evaluate(
+        input_fn=lambda: input_fn(is_training=False),
+        steps=cfg.EVAL.MAX_ITER if cfg.EVAL.MAX_ITER > 0 else None,
+        checkpoint_path=checkpoint
+    )
     print(f'Main: Evaluation results for checkpoint {checkpoint}: {eval_metrics}')
 print('Main: Completed evaluation. Exiting.')

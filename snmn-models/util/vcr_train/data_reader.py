@@ -155,7 +155,7 @@ class DataReader:
         
         dataset = dataset.map(self.to_time_major)
         dataset = dataset.map(self.name_tensors)
-        
+
         return dataset
     
     def name_tensors(self, element):
@@ -483,3 +483,9 @@ class DataReader:
                 batch['bert_rationale_embeddings_batch'] = bert_rationale_embeddings_batch
 
         return batch
+
+    def __del__(self):
+        if hasattr(self, 'ans_hf'):
+            self.ans_hf.close()
+        if hasattr(self, 'rat_hf'):
+            self.rat_hf.close()
