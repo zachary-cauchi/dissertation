@@ -137,6 +137,11 @@ class DataReader:
             if self.load_rationale:
                 self.output_shapes['bert_rationale_embeddings_batch'] = tf.TensorShape([None, self.bert_dim])
 
+    def init_dataset(self):
+        if hasattr(self, 'dataset'):
+            return self.dataset
+
+        print('Initialising dataset.')
         # Vqa data loader
         self.dataset: tf.compat.v1.data.Dataset = tf.compat.v1.data.Dataset.from_generator(self.batches, self.output_types, self.output_shapes).batch(self.actual_batch_size)
         self.prefetch_size=64
@@ -150,8 +155,15 @@ class DataReader:
         #     self.dataset =self.dataset.prefetch(buffer_size=32)
         
         self.dataset = self.dataset.map(self.to_time_major)
+        self.dataset = self.dataset.map(self.name_tensors)
         # for test in self.batches():
         #     print(len(test))
+        return self.dataset
+    
+    def name_tensors(self, element):
+        for key in element.keys():
+            element[key] = tf.identity(element[key], name=key)
+        return element
 
     def to_time_major(self, element):
         element['question_seq_batch'] = tf.transpose(element['question_seq_batch'])

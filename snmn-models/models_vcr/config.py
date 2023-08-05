@@ -13,7 +13,7 @@ cfg = __C
 # general options
 # --------------------------------------------------------------------------- #
 __C.EXP_NAME = '<fill-with-filename>'
-__C.GPU_ID = 0
+__C.GPU_ID = '0'
 __C.GPU_MEM_GROWTH = True
 
 __C.VOCAB_QUESTION_FILE = './exp_vcr/data/vocabulary_vcr.txt'

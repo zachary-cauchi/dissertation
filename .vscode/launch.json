@@ -74,6 +74,22 @@
         },
 
         {
+            "name": "VCR: Train QA scratch Multi-GPU",
+            "type": "python",
+            "request": "launch",
+            "program": "./exp_vcr/distribute_train_net_vqa.py",
+            "cwd": "${workspaceFolder}/snmn-models",
+            "python": "${command:python.interpreterPath}",
+            "console": "integratedTerminal",
+            "args": [
+                "--cfg",
+                "exp_vcr/cfgs/vcr_q_a_scratch_multigpu.yaml",
+                "TRAIN.MAX_ITER",
+                "120000"
+            ]
+        },
+
+        {
             "name": "VCR: Train QA scratch",
             "type": "python",
             "request": "launch",

@@ -38,13 +38,13 @@ class Model:
 
             # Input unit
             lstm_seq, lstm_encodings, embed_seq = input_unit.build_input_unit(
-                question_seq_batch, all_answers_seq_batch, all_rationales_seq_batch, question_length_batch, all_answers_length_batch, all_rationales_length_batch, bert_question_embeddings_batch, bert_answer_embeddings_batch, bert_rationale_embeddings_batch, num_vocab, self.seq_in_count)
-            kb_batch = input_unit.build_kb_batch(image_feat_batch)
+                question_seq_batch, all_answers_seq_batch, all_rationales_seq_batch, question_length_batch, all_answers_length_batch, all_rationales_length_batch, bert_question_embeddings_batch, bert_answer_embeddings_batch, bert_rationale_embeddings_batch, num_vocab, self.seq_in_count, reuse=reuse)
+            kb_batch = input_unit.build_kb_batch(image_feat_batch, reuse=reuse)
 
             # Controller and NMN
             num_module = len(module_names)
             self.controller = controller.Controller(
-                lstm_seq, lstm_encodings, embed_seq, question_length_batch, all_answers_length_batch, all_rationales_length_batch, num_module, self.seq_in_count)
+                lstm_seq, lstm_encodings, embed_seq, question_length_batch, all_answers_length_batch, all_rationales_length_batch, num_module, self.seq_in_count, reuse=reuse)
             self.c_list = self.controller.c_list
             self.module_logits = self.controller.module_logits
             self.module_probs = self.controller.module_probs
@@ -56,7 +56,7 @@ class Model:
             if cfg.MODEL.BUILD_VQA:
                 vqa_scores = output_unit.build_output_unit_vqa(
                     lstm_encodings, self.nmn.mem_last, num_choices,
-                    apply_dropout=is_training)
+                    apply_dropout=is_training, reuse=reuse)
                 
                 if cfg.TRAIN.SOLVER.USE_SPARSE_SOFTMAX_LABELS == True:
                     self.vqa_scores = tf.reshape(vqa_scores, (tf.shape(vqa_scores)[0] // num_choices, num_choices))
