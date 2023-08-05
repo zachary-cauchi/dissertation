@@ -50,7 +50,7 @@ class Model:
             self.module_probs = self.controller.module_probs
             self.module_prob_list = self.controller.module_prob_list
             self.nmn = nmn.NMN(
-                kb_batch, self.c_list, module_names, self.module_prob_list)
+                kb_batch, self.c_list, module_names, self.module_prob_list, reuse=reuse)
 
             # Output unit
             if cfg.MODEL.BUILD_VQA:
@@ -84,10 +84,10 @@ class Model:
                 self.rec_loss = tf.convert_to_tensor(0.)
 
             self.params = [
-                v for v in tf.trainable_variables() if scope in v.op.name]
+                v for v in tf.trainable_variables() if v.op.name.startswith(scope)]
             self.l2_reg = tf.add_n(
                 [tf.nn.l2_loss(v, name=f'l2_{v.op.name}') for v in self.params
-                 if v.op.name.endswith('weights')])
+                 if 'weights' in v.op.name])
 
             # tensors for visualization
             self.vis_outputs = {
