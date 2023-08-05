@@ -19,7 +19,7 @@ if 'CUDA_VISIBLE_DEVICES' not in os.environ:
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0'
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.INFO)
 
-# TODO: Enable XLA graph optimisations
+# Enables support for XLA optimisation
 tf.config.optimizer.set_jit('autoclustering')
 
 batch_size=cfg.TRAIN.BATCH_SIZE
@@ -55,9 +55,10 @@ def get_per_device_print_fn(tensor) -> Callable[[str], None]:
     device = tensor.device
     return lambda msg: print(f'{device}: {msg}')
 
-def input_fn():
+def input_fn(is_training: bool = True):
     dataset: tf.compat.v1.data.Dataset = data_reader.init_dataset()
-    dataset = dataset.repeat(64)
+    if is_training:
+        dataset = dataset.repeat(64)
 
     return dataset
 
@@ -147,9 +148,7 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
         vqa_q_labels = tf.cast(vqa_q_labels, tf.int64)
         vqa_predictions = tf.cast(vqa_predictions, tf.int64)
 
-        accuracy = tf.metrics.accuracy(labels=vqa_q_labels, predictions=vqa_predictions)
-
-        # avg_accuracy += (1-accuracy_decay) * (accuracy-avg_accuracy)
+        accuracy = tf.metrics.accuracy(labels=vqa_q_labels, predictions=vqa_predictions, name='accuracy_op')
 
     if mode == tf.estimator.ModeKeys.TRAIN:
         print_fn('Setting up optimizer.')
@@ -178,15 +177,40 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
             ema_op = ema.apply(model.params)
             train_op = tf.group(ema_op)
 
-        # tf.summary.scalar('accuracy/vqa-accuracy', accuracy[1])
-        # tf.summary.scalar('loss/vqa-loss', loss_total)
+        # Create a hook to update the metrics per run
+        class MetricHook(tf.train.SessionRunHook):
+            def before_run(self, run_context):
+                return tf.train.SessionRunArgs([accuracy[1]])
+
+        metric_hook = MetricHook()
+        with tf.device('/CPU:0'):
+            tf.summary.scalar('accuracy', accuracy[0])
+            summary_hook = tf.estimator.SummarySaverHook(save_steps=20, summary_op=tf.summary.merge_all())
+        # Print the accuracy to stdout every 20 steps.
+        logging_hook = tf.train.LoggingTensorHook({ 'accuracy': accuracy[0] }, every_n_iter=20)
 
         print_fn('Training mode initialised')
-        return tf.estimator.EstimatorSpec(mode=mode, loss=loss_total, train_op=train_op)
+        return tf.estimator.EstimatorSpec(mode=mode, loss=loss_total, train_op=train_op, training_hooks=[ summary_hook, metric_hook, logging_hook ])
 
     elif mode == tf.estimator.ModeKeys.EVAL:
+        # Calculate additional useful metrics for eval.
+        precision = tf.metrics.precision(labels=vqa_q_labels, predictions=vqa_predictions, name='precision_op')
+        recall = tf.metrics.recall(labels=vqa_q_labels, predictions=vqa_predictions, name='recall_op')
+        eval_metric_ops = {
+            'accuracy': accuracy,
+            'precision': precision,
+            'recall': recall
+        }
+
+        # Log the metrics to tensorboard
+        with tf.device('/CPU:0'):
+            tf.summary.scalar('accuracy', accuracy[1])
+            tf.summary.scalar('precision', precision[1])
+            tf.summary.scalar('recall', recall[1])
+
         print_fn('Eval mode initialised.')
-        return tf.estimator.EstimatorSpec(mode=mode, loss=loss_total, eval_metric_ops={ 'accuracy/vqa-accuracy': accuracy })
+
+        return tf.estimator.EstimatorSpec(mode=mode, loss=loss_total, eval_metric_ops=eval_metric_ops)
     else:
         print_fn('Prediction mode initialised.')
         return tf.estimator.EstimatorSpec(mode=mode, predictions=model.vqa_scores)
@@ -198,11 +222,13 @@ snapshot_dir = cfg.TRAIN.SNAPSHOT_DIR % cfg.EXP_NAME
 sess_config = tf.ConfigProto(gpu_options=tf.GPUOptions(allow_growth=cfg.GPU_MEM_GROWTH))
 config = tf.estimator.RunConfig(
     model_dir=snapshot_dir,
-    save_checkpoints_steps=5000,
     train_distribute=strategy,
+    eval_distribute=strategy,
     session_config=sess_config,
     log_step_count_steps=20,
-    keep_checkpoint_max=5
+    save_summary_steps=20,
+    save_checkpoints_steps=5000,
+    keep_checkpoint_max=0
 )
 
 params = {
@@ -220,8 +246,7 @@ print('Main: Initializing Estimator.')
 model = tf.estimator.Estimator(model_fn=model_fn, config=config, params=params)
 print('Main: Initialised.')
 print('Main: Beginning training.')
-# model.train(input_fn=input_fn, steps=cfg.TRAIN.MAX_ITER)
-# model.train(input_fn=input_fn, steps=5000)
+model.train(input_fn=lambda: input_fn(is_training=True), steps=cfg.TRAIN.MAX_ITER)
 print('Main: Training completed. Evaluating.')
-eval_metrics = model.evaluate(input_fn=input_fn, steps=100)
+eval_metrics = model.evaluate(input_fn=lambda: input_fn(is_training=False), steps=1000)
 print('Main: Completed evaluation. Exiting.')
