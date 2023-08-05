@@ -2,13 +2,14 @@ import numpy as np
 from .task_type_utils import get_name_prefix
 import tensorflow as tf
 from tensorflow import convert_to_tensor as to_T
+from tensorflow.contrib.cudnn_rnn import CudnnLSTM
 
 from .config import cfg
 from util.cnn import conv_elu_layer as conv_elu, conv_layer as conv
 
 # TODO: Fix method comment block.
 def build_input_unit(question_seq_batch, all_answers_seq_batch, all_rationales_seq_batch, question_length_batch, all_answers_length_batch, all_rationales_length_batch, bert_question_embeddings_batch, bert_answer_embeddings_batch, bert_rationale_embeddings_batch, num_vocab, seq_in_count,
-                     scope='input_unit', reuse=None):
+                     scope='input_unit', reuse=None, use_cudnn_lstm=True):
     """
     Preprocess the input sequence with a (single-layer) bidirectional LSTM.
 
@@ -38,7 +39,7 @@ def build_input_unit(question_seq_batch, all_answers_seq_batch, all_rationales_s
         assert lstm_dim % 2 == 0, \
             'lstm_dim is the dimension of [fw, bw] and must be a multiple of 2'
 
-        lstm_outs = ()
+        lstm_outs = [] if use_cudnn_lstm else ()
         embeds_seq = []
         lstm_encs = {}
 
@@ -64,20 +65,36 @@ def build_input_unit(question_seq_batch, all_answers_seq_batch, all_rationales_s
             # Casting required when using generated weights.
             embed_seq = tf.cast(embed_seq, tf.float32, name=prefix + '_cast_embeds_to_32')
 
-            cell_fw = tf.nn.rnn_cell.LSTMCell(lstm_dim//2, name=prefix + '_fw_lstm_cell')
-            cell_bw = tf.nn.rnn_cell.LSTMCell(lstm_dim//2, name=prefix + '_bw_lstm_cell')
+            if use_cudnn_lstm:
+                lstm_layer = CudnnLSTM(
+                    num_layers=1,
+                    num_units=lstm_dim // 2,
+                    direction='bidirectional',
+                    name=prefix + '_cudnn_lstm_and_rnn'
+                )
+
+                outputs, (output_h, output_c) = lstm_layer(inputs=embed_seq)
+
+                # concatenate the final hidden state of the forward and backward LSTM
+                # for question (or answer) representation
+                seq_encoding = tf.concat([output_h[0], output_h[1]], axis=1, name=prefix + '_create_encoded_representation')
+                lstm_outs.append(outputs)
+            else:
+                cell_fw = tf.nn.rnn_cell.LSTMCell(lstm_dim//2, name=prefix + '_fw_lstm_cell')
+                cell_bw = tf.nn.rnn_cell.LSTMCell(lstm_dim//2, name=prefix + '_bw_lstm_cell')
             
-            # Create the lstm, getting the output and their states.
-            outputs, states = tf.nn.bidirectional_dynamic_rnn(
-                cell_fw, cell_bw, inputs=embed_seq, dtype=embed_seq.dtype,
-                sequence_length=question_length_batch if i == 0 else all_answers_length_batch if i == 1 else all_rationales_length_batch,
-                time_major=True)
+                # Create the lstm, getting the output and their states.
+                outputs, states = tf.nn.bidirectional_dynamic_rnn(
+                    cell_fw, cell_bw, inputs=embed_seq, dtype=embed_seq.dtype,
+                    sequence_length=question_length_batch if i == 0 else all_answers_length_batch if i == 1 else all_rationales_length_batch,
+                    time_major=True,
+                    swap_memory=True)
 
-            # concatenate the final hidden state of the forward and backward LSTM
-            # for question (or answer) representation
-            seq_encoding = tf.concat([states[0].h, states[1].h], axis=1, name=prefix + '_create_encoded_representation')
+                # concatenate the final hidden state of the forward and backward LSTM
+                # for question (or answer) representation
+                seq_encoding = tf.concat([states[0].h, states[1].h], axis=1, name=prefix + '_create_encoded_representation')
+                lstm_outs = lstm_outs + outputs
 
-            lstm_outs = lstm_outs + outputs
             lstm_encs[prefix] = seq_encoding
             embeds_seq.append(embed_seq)
 
