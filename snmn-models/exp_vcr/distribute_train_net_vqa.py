@@ -1,4 +1,5 @@
 import os
+from regex import regex as re
 from typing import Callable
 import tensorflow as tf
 
@@ -185,9 +186,9 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
         metric_hook = MetricHook()
         with tf.device('/CPU:0'):
             tf.summary.scalar('accuracy', accuracy[0])
-            summary_hook = tf.estimator.SummarySaverHook(save_steps=20, summary_op=tf.summary.merge_all())
-        # Print the accuracy to stdout every 20 steps.
-        logging_hook = tf.train.LoggingTensorHook({ 'accuracy': accuracy[0] }, every_n_iter=20)
+            summary_hook = tf.estimator.SummarySaverHook(save_steps=cfg.TRAIN.LOG_INTERVAL, summary_op=tf.summary.merge_all())
+        # Print the accuracy to stdout every LOG_INTERVAL steps.
+        logging_hook = tf.train.LoggingTensorHook({ 'accuracy': accuracy[0] }, every_n_iter=cfg.TRAIN.LOG_INTERVAL)
 
         print_fn('Training mode initialised')
         return tf.estimator.EstimatorSpec(mode=mode, loss=loss_total, train_op=train_op, training_hooks=[ summary_hook, metric_hook, logging_hook ])
@@ -225,11 +226,14 @@ config = tf.estimator.RunConfig(
     train_distribute=strategy,
     eval_distribute=strategy,
     session_config=sess_config,
-    log_step_count_steps=20,
-    save_summary_steps=20,
-    save_checkpoints_steps=5000,
+    log_step_count_steps=cfg.TRAIN.LOG_INTERVAL,
+    save_summary_steps=cfg.TRAIN.LOG_INTERVAL,
+    save_checkpoints_steps=cfg.TRAIN.SNAPSHOT_INTERVAL,
     keep_checkpoint_max=0
 )
+
+# Initialise memory profiler for additional debugging.
+profiler_hook = tf.train.ProfilerHook(save_steps=cfg.TRAIN.SNAPSHOT_INTERVAL, output_dir=snapshot_dir, show_dataflow=True, show_memory=True)
 
 params = {
     'cfg': cfg,
@@ -246,7 +250,11 @@ print('Main: Initializing Estimator.')
 model = tf.estimator.Estimator(model_fn=model_fn, config=config, params=params)
 print('Main: Initialised.')
 print('Main: Beginning training.')
-model.train(input_fn=lambda: input_fn(is_training=True), steps=cfg.TRAIN.MAX_ITER)
-print('Main: Training completed. Evaluating.')
-eval_metrics = model.evaluate(input_fn=lambda: input_fn(is_training=False), steps=1000)
+# model.train(input_fn=lambda: input_fn(is_training=True), steps=cfg.TRAIN.MAX_ITER, hooks=[ profiler_hook ])
+print('Main: Training completed. Evaluating checkpoints.')
+checkpoints = [ os.path.join(snapshot_dir, c.group(1)) for c in [re.match(pattern = '(model.ckpt-[^0].*).data-00000.*', string=s) for s in os.listdir(snapshot_dir)] if c is not None]
+for checkpoint in checkpoints:
+    print(f'Main: Evaluating checkpoint {checkpoint}')
+    eval_metrics = model.evaluate(input_fn=lambda: input_fn(is_training=False), steps=1000, checkpoint_path=checkpoint)
+    print(f'Main: Evaluation results for checkpoint {checkpoint}: {eval_metrics}')
 print('Main: Completed evaluation. Exiting.')
