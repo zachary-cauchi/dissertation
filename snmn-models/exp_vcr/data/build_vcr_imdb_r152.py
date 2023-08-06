@@ -1,17 +1,22 @@
 import numpy as np
 import json
 import os
+import tqdm
 import argparse
+import tensorflow as tf
+import tfrecords_helpers
 
 import sys; sys.path.append('../../')  # NOQA
 from collections import Counter
 from word2number import w2n
 
 parser = argparse.ArgumentParser(prog='build_vcr_imdb_r152.py', description='Build the VCR imdb files.')
+parser.add_argument('--file_type', type=str, choices=['tfrecords', 'npy'], default='npy')
 parser.add_argument('--res', type=str, default='8', required=False,
                     help='Size of the resnet features (eg. \'--res 8\' will look for 8x8 resnets)')
 args = parser.parse_args()
 
+file_type = args.file_type
 annotations_dir = '../vcr_dataset/Annotations'
 images_dir = '../vcr_dataset/vcr1images'
 corpus_file = './corpus_vcr.txt'
@@ -19,8 +24,10 @@ corpus_bert_file = './corpus_bert_vcr.txt'
 vocabulary_file = './vocabulary_vcr.txt'
 answers_file = './answers_%s_vcr.txt'
 rationales_file = './rationales_%s_vcr.txt'
-imdb_out_dir = f'./imdb_r152_{args.res}x{args.res}'
-resnet_feature_dir = f'./resnet152_c5_{args.res}x{args.res}'
+imdb_out_dir = f'./imdb_r152_{args.res}x{args.res}' if file_type == 'npy' else f'./tfrecords_imdb_r152_{args.res}x{args.res}'
+resnet_feature_dir = f'./resnet152_c5_{args.res}x{args.res}' if file_type == 'npy' else f'./tfrecords_resnet152_c5_{args.res}x{args.res}'
+resnet_feature_ext = '.npy' if file_type == 'npy' else '.tfrecords'
+
 file_sets = {
     'train.jsonl': { 'load_answers': True, 'load_rationales': True },
     'val.jsonl': { 'load_answers': True, 'load_rationales': True },
@@ -110,13 +117,9 @@ def extract_folds_from_file_set(file_set, params):
         json_qars = list(f)
     
     qar_count = len(json_qars)
-    qar_count_digits = len('%s' % qar_count)
     print(f'Loading {qar_count} Question-Answer-Rationale objects')
 
-    for i, json_qar in enumerate(json_qars):
-        if i % 100 == 0:
-            print(f'({i + 1:0{qar_count_digits}}/{qar_count}) Processing QAR of file {file_set}')
-
+    for json_qar in tqdm.tqdm(json_qars, desc=f'Processing QAR of file {file_set}'):
         qar = json.loads(json_qar)
 
         split, qar_split_id = qar['annot_id'].split('-')
@@ -124,7 +127,6 @@ def extract_folds_from_file_set(file_set, params):
         match_fold = qar['match_fold']
 
         # Assign ids to respective dictionaries.
-
         if (match_fold not in split_folds):
             split_folds[match_fold] = []
         if (file_set not in file_splits):
@@ -162,17 +164,14 @@ def build_imdb(fold_name, with_answers = True, with_rationales = True):
     imdb = []
 
     print(f'Constructing imdb for fold {fold_name}.')
-    qar_count = len(split_folds[fold_name])
-    qar_count_digits = len('%s' % qar_count)
-    for i, qar in enumerate(split_folds[fold_name]):
-        if i % 1000 == 0:
-            print(f'({i + 1:0{qar_count_digits}}/{qar_count}) Processing imdb entry.')
+
+    for qar in tqdm.tqdm(split_folds[fold_name], desc='Processing imdb entry'):
 
         image_name = os.path.splitext(os.path.basename(qar['img_fn']))[0]
         image_path = os.path.realpath(os.path.join(images_dir, qar['img_fn']))
         image_id = int(qar['img_id'].split('-')[1])
         question_id = int(qar['annot_id'].split('-')[1])
-        feature_path = os.path.realpath(os.path.join(resnet_feature_dir, os.path.splitext(qar['img_fn'])[0] + '.npy'))
+        feature_path = os.path.realpath(os.path.join(resnet_feature_dir, os.path.splitext(qar['img_fn'])[0] + resnet_feature_ext))
         question_tokens = qar['question']
         question_str = token_delimeter.join(question_tokens)
 
@@ -192,6 +191,7 @@ def build_imdb(fold_name, with_answers = True, with_rationales = True):
         if with_answers:
             imdb_entry['valid_answers'] = qar['answer_match_iter']
             imdb_entry['valid_answer_index'] = qar['answer_label']
+        if with_rationales:
             imdb_entry['valid_rationales'] = qar['rationale_match_iter']
             imdb_entry['valid_rationale_index'] = qar['rationale_label']
 
@@ -199,6 +199,23 @@ def build_imdb(fold_name, with_answers = True, with_rationales = True):
 
     print(f'Processing completed for fold {fold_name}')
     return imdb
+
+def write_vocab_file(save_base_path, split_data):
+    # Write the answer vocabs
+    for split, data in split_data.items():
+        if (len(data) != 0):
+            answer_path = save_base_path % split
+            print(f'Saving {split} answers to {answer_path}')
+
+            with open(answer_path, 'w') as f:
+                f.writelines(f"{token_delimeter.join(token)}\n" for token in data)
+
+def export_to_tfrecords(file_path, imdb):
+    with tf.python_io.TFRecordWriter(file_path) as writer:
+        for entry in tqdm.tqdm(imdb, desc='Serializing to TFRecords'):
+            serialized_entry = tfrecords_helpers.serialize_imdb_to_example(entry)
+
+            writer.write(serialized_entry)
 
 
 print(f'Loading {len(file_sets)} file sets.')
@@ -231,22 +248,10 @@ with open(corpus_bert_file, 'w') as f:
     f.writelines(entry for entry in bert_corpus)
 
 # Write the answer vocabs
-for split, answers in split_answers.items():
-    if (len(answers) != 0):
-        answer_path = answers_file % split
-        print(f'Saving {split} answers to {answer_path}')
-
-        with open(answer_path, 'w') as f:
-            f.writelines(f"{token_delimeter.join(token)}\n" for token in answers)
+write_vocab_file(answers_file, split_answers)
 
 # Write the rationale vocabs
-for split, rationales in split_rationales.items():
-    if (len(rationales) != 0):
-        rationale_path = rationales_file % split
-        print(f'Saving {split} rationales to {rationales_file}')
-
-        with open(rationale_path, 'w') as f:
-            f.writelines(f"{token_delimeter.join(token)}\n" for token in rationales)
+write_vocab_file(rationales_file, split_rationales)
 
 print('Constructing and saving imdbs')
 for file_set, params in file_sets.items():
@@ -293,10 +298,18 @@ for file_set, params in file_sets.items():
         'rationale': (rid, r_longest_len, r_length_counter),
     }
 
-    imdb_filename = f'imdb_{os.path.splitext(file_set)[0]}.npy'
-    
+    imdb_filename = f'imdb_{os.path.splitext(file_set)[0]}'
+    imdb_filepath = os.path.join(imdb_out_dir, imdb_filename) + ('.npy' if file_type == 'npy' else '.tfrecords')
+
+    if os.path.isfile(imdb_filepath):
+        os.remove(imdb_filepath)
+
     print(f'Saving imdb {imdb_filename}')
-    np.save(os.path.join(imdb_out_dir, imdb_filename), np.array(imdb))
+
+    if file_type == 'npy':
+        np.save(os.path.join(imdb_out_dir, imdb_filename) + '.npy', np.array(imdb))
+    else:
+        export_to_tfrecords(os.path.join(imdb_out_dir, imdb_filename) + '.tfrecords', imdb)
 
 with open('imdb_stats.txt', 'w') as stats:
     for key, entry in longest_token_sequences.items():

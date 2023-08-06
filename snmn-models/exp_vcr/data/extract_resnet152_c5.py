@@ -24,7 +24,7 @@ file_type = args.file_type
 
 resnet152_model = '../tfmodel/resnet/resnet_v1_152.tfmodel'
 image_basedir = '../vcr_dataset/vcr1images/'
-save_basedir = f'./resnet152_c5_{args.res}x{args.res}/' if file_type == 'npy' else f'./tfrecord_resnet152_c5_{args.res}x{args.res}/'
+save_basedir = f'./resnet152_c5_{args.res}x{args.res}/' if file_type == 'npy' else f'./tfrecords_resnet152_c5_{args.res}x{args.res}/'
 H = 64 * args.res
 W = 64 * args.res
 
@@ -96,9 +96,6 @@ def create_tfrecord_file(save_dir, image_set: dict):
             # test = sess.run(tf.io.parse_tensor(parsed_example['data'], out_type=tf.float32))
 
             writer.write(example.SerializeToString())
-
-def _bytes_feature(value):
-    return tf.train.Feature(bytes_list=tf.train.BytesList(value=[sess.run(tf.io.serialize_tensor(value))]))
 
 image_sets = [dir for dir in os.listdir(image_basedir) if os.path.isdir(os.path.join(image_basedir, dir))]
 set_count = len(image_sets)
