@@ -217,12 +217,17 @@ def write_vocab_file(save_base_path, split_data):
                 f.writelines(f"{token_delimeter.join(token)}\n" for token in data)
 
 def export_to_tfrecords(file_path, imdb):
-    with tf.python_io.TFRecordWriter(file_path) as writer:
-        for entry in tqdm.tqdm(imdb, desc=f'Serializing to TFRecords ({os.path.basename(file_path)})'):
+    base_name = os.path.basename(file_path)
+    with tf.io.TFRecordWriter(file_path) as writer:
+        for entry in tqdm.tqdm(imdb, desc=f'Serializing to TFRecords ({base_name})'):
             serialized_entry = tfrecords_helpers.serialize_imdb_to_example(entry)
 
             writer.write(serialized_entry)
 
+def export_resnet_access(file_path, imdb):
+    # To speed up processing of resnet feature files for the model, save a list of all resnet feature files in the order the imdb dataset accesses them.
+    resnet_access_list = [ entry['feature_path'] for entry in imdb ]
+    np.save(file_path, resnet_access_list, allow_pickle=True)
 
 print(f'Loading {len(file_sets)} file sets.')
 for file_set, params in file_sets.items():
@@ -313,9 +318,10 @@ for file_set, params in file_sets.items():
     print(f'Saving imdb {imdb_filename}')
 
     if file_type == 'npy':
-        np.save(os.path.join(imdb_out_dir, imdb_filename) + '.npy', np.array(imdb))
+        np.save(os.path.join(imdb_out_dir, imdb_filename) + '.npy', np.array(imdb), allow_pickle=True)
     else:
-        export_to_tfrecords(os.path.join(imdb_out_dir, imdb_filename) + '.tfrecords', imdb)
+        export_to_tfrecords(os.path.join(imdb_out_dir, imdb_filename + '.tfrecords'), imdb)
+    export_resnet_access(os.path.join(imdb_out_dir, 'resnet_access_' + imdb_filename + '.npy'), imdb)
 
 with open('imdb_stats.txt', 'w') as stats:
     for key, entry in longest_token_sequences.items():

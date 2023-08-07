@@ -54,6 +54,14 @@ def serialize_imdb_to_example(entry):
     example = tf.train.Example(features = tf.train.Features(feature=feature))
     return example.SerializeToString()
 
+def parse_resnet_example_to_nparray(example):
+    feature_description = {
+        'data': tf.FixedLenFeature([], tf.string)
+    }
+
+    parsed_example = tf.io.parse_single_example(example, feature_description)
+    return tf.io.parse_tensor(parsed_example['data'], out_type=tf.float32)
+
 def parse_example_to_imdb(example):
     keys_to_features = {
         'image_name': tf.FixedLenFeature([], tf.string),
@@ -76,6 +84,7 @@ def parse_example_to_imdb(example):
     }
 
     parsed_features = tf.parse_single_example(example, keys_to_features)
+
     image_name = tf.cast(parsed_features['image_name'], tf.string)
     image_path = tf.cast(parsed_features['image_path'], tf.string)
     feature_path = tf.cast(parsed_features['feature_path'], tf.string)

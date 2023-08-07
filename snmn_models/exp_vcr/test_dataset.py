@@ -1,6 +1,7 @@
 import time
 import pprint
 import tensorflow as tf
+import exp_vcr.data.tfrecords_helpers as tfrecords_helpers
 from models_vcr.config import build_cfg_from_argparse
 from util.vcr_train.data_reader import DataReader
 
@@ -27,29 +28,29 @@ data_reader = DataReader(
 # Define your dataset here
 dataset = data_reader.init_dataset()
 
-# Create an iterator for the dataset
-iterator = tf.compat.v1.data.make_one_shot_iterator(dataset)
-
-# Fetch a batch from the dataset
-next_element = iterator.get_next()
+max_epochs = 1
 
 max_steps = 0 # 100
 with tf.compat.v1.Session() as sess:
-    try:
-        start_time = time.time()
+    for i in range(max_epochs):
+        print(f'Measuring epoch {i}')
+        # Create an iterator for the dataset
+        iterator = tf.compat.v1.data.make_one_shot_iterator(dataset)
 
-        print('Sample load_one:')
-        
-        sample = data_reader.load_one(0)
-        pprint.pprint(sample)
-        
-        if max_steps > 0:
-            for i in range(max_steps):  # Fetch 100 batches
-                curr_element = sess.run(next_element)
-        else:
-            while True:
-                curr_element = sess.run(next_element)
-    except tf.errors.OutOfRangeError:
-        print("End of dataset")
-    end_time = time.time()
-    print("Time taken to fetch 100 batches: %s seconds" % (end_time - start_time))
+        # Fetch a batch from the dataset
+        next_element = iterator.get_next()
+        try:
+            start_time = time.time()
+
+            if max_steps > 0:
+                for j in range(max_steps):  # Fetch 100 batches
+                    curr_element = sess.run(next_element)
+            else:
+                while True:
+                    curr_element = sess.run(next_element)
+        except tf.errors.OutOfRangeError:
+            print(f'Epoch {i} finished: End of dataset')
+        end_time = time.time()
+        print(f'Time taken to fetch {"all" if max_steps == 0 else max_steps} batches for epoch {i}: {end_time - start_time} seconds')
+
+    print(f'Last fetched sample: {curr_element}')

@@ -88,13 +88,6 @@ def create_tfrecord_file(save_dir, image_set: dict):
                 )
             )
 
-            # feature_description = {
-            #     'data': tf.FixedLenFeature([], tf.string)
-            # }
-
-            # parsed_example = tf.io.parse_single_example(example.SerializeToString(), feature_description)
-            # test = sess.run(tf.io.parse_tensor(parsed_example['data'], out_type=tf.float32))
-
             writer.write(example.SerializeToString())
 
 image_sets = [dir for dir in os.listdir(image_basedir) if os.path.isdir(os.path.join(image_basedir, dir))]

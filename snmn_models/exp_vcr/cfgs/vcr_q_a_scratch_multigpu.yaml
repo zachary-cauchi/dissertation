@@ -38,4 +38,4 @@ TEST:
 
 USE_FIXED_WORD_EMBED: True
 FIXED_WORD_EMBED_FILE: './exp_vcr/data/vocabulary_vcr_glove.npy'
-IMDB_FILE: './exp_vcr/data/imdb_r152_7x7/imdb_%s.npy'
+IMDB_FILE: './exp_vcr/data/tfrecords_imdb_r152_7x7/imdb_%s.tfrecords'

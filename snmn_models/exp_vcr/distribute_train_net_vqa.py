@@ -12,7 +12,7 @@ from util.vcr_train.data_reader import DataReader
 def create_data_reader(split: str, cfg):
     imdb_file = cfg.IMDB_FILE % split
     data_reader = DataReader(
-        imdb_file, shuffle=True, one_pass=False, batch_size=batch_size,
+        imdb_file, shuffle=True, one_pass=False, batch_size=cfg.TRAIN.BATCH_SIZE,
         vocab_question_file=cfg.VOCAB_QUESTION_FILE,
         T_q_encoder=cfg.MODEL.T_Q_ENCODER,
         T_a_encoder=cfg.MODEL.T_A_ENCODER,
@@ -38,6 +38,8 @@ def input_fn(is_training: bool = True):
     dataset: tf.compat.v1.data.Dataset = data_reader.init_dataset()
     if is_training:
         dataset = dataset.repeat(64)
+
+    # dataset.apply(self=dataset, transformation_func=tf.data.experimental.prefetch_to_device())
 
     return dataset
 
@@ -218,8 +220,6 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.INFO)
 
 # Enables support for XLA optimisation
 tf.config.optimizer.set_jit('autoclustering')
-
-batch_size=cfg.TRAIN.BATCH_SIZE
 
 # Data files
 data_reader = create_data_reader(cfg.TRAIN.SPLIT_VQA, cfg)
