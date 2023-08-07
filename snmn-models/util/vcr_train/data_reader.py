@@ -1,5 +1,5 @@
-import h5py
 import numpy as np
+from exp_vcr.data.bert_handler import BertHandler
 import tensorflow as tf
 
 from util import text_processing
@@ -26,15 +26,6 @@ class DataReader:
         self.T_a_encoder = data_params['T_a_encoder']
         self.T_r_encoder = data_params['T_r_encoder']
 
-        if data_params['load_bert_embeddings'] == True:
-            print('Loading BERT embeddings.')
-            self.load_bert = True
-            self.ans_hf = h5py.File(self.data_params['bert_answer_embeddings_path'], mode='r')
-            self.rat_hf = h5py.File(self.data_params['bert_rationale_embeddings_path'], mode='r')
-            self.bert_dim = len(self.ans_hf['0']['answer_answer0'][0])
-        else:
-            self.load_bert = False
-
         # peek one example to see whether answer and gt_layout are in the data
         self.load_correct_answer = (
             'valid_answers' in self.imdb[0])
@@ -45,6 +36,14 @@ class DataReader:
             and ('gt_layout_qa_tokens' in self.imdb[0] and
                  self.imdb[0]['gt_layout_qa_tokens'] is not None))
         self.load_rationale = data_params['vcr_task_type'] == 'QA_2_R' or data_params['vcr_task_type'] == 'Q_2_AR'
+
+        if data_params['load_bert_embeddings'] == True:
+            print('Loading BERT embeddings.')
+            self.load_bert = True
+            self.bert_handler = BertHandler(self.data_params['bert_answer_embeddings_path'], self.data_params['bert_rationale_embeddings_path'])
+            self.bert_dim = self.bert_handler.bert_dim
+        else:
+            self.load_bert = False
 
         self.num_answers = len(self.imdb[0]['all_answers'])
         self.num_rationales = len(self.imdb[0]['all_rationales'])
@@ -217,42 +216,6 @@ class DataReader:
                         record['bert_rationale_embeddings_batch'] = collection['bert_rationale_embeddings_batch'][:, i]
                 yield record
 
-    def get_embeddings_from_group(self, hgroup):
-        ans = []
-        ctx = []
-
-        for subkey, dataset in hgroup.items():
-            if subkey.startswith('answer_'):
-                if subkey.startswith('answer_answer') or subkey.startswith('answer_rationale'):
-                    ans.append(np.array(dataset, np.float16))
-                else:
-                    raise ValueError(f'Unexpected key {subkey}')
-            elif subkey.startswith('ctx_'):
-                ctx.append(np.array(dataset, np.float16))
-            else:
-                raise ValueError(f'Unexpected key {subkey}')
-        return ctx, ans
-
-    def validate_embeddings(self, ctx_answers, ctx_rationales, answers, rationales, qar):
-        if not self.load_correct_answer:
-            assert len(ctx_rationales) == len(qar['all_answers']) * len(qar['all_rationales']), 'Not all combinations of answers and rationales were found.'
-        else:
-            assert np.shape(ctx_answers)[2] == np.shape(ctx_rationales)[2] and np.shape(ctx_answers)[0] == np.shape(ctx_rationales)[0], 'Shapes of answer and rationale contexts do not match.'
-
-        assert np.shape(ctx_answers)[1] == len(qar['question_tokens']), 'Shapes of answer contexts do not match length of question.'
-
-        for a, qar_a in zip(answers, qar['all_answers']):
-            assert len(a) == len(qar_a), f'Answer pairing {str(a)} and {str(qar_a)} don\'t match.'
-
-        for j, (ctx, r),  in enumerate(zip(ctx_rationales, rationales)):
-            rat_i = j % len(qar['all_rationales'])
-            if not self.load_correct_answer:
-                ans_i = int(j // len(qar['all_rationales']))
-                assert len(ctx) == len(qar['question_tokens']) + len(qar['all_answers'][ans_i]), 'Shapes of rationale contexts do not match length of question and correct answer.'
-            else:
-                assert len(ctx) == len(qar['question_tokens']) + len(qar['all_answers'][qar['valid_answer_index']]), 'Shapes of rationale contexts do not match length of question and correct answer.'
-            assert len(r) == len(qar['all_rationales'][rat_i]), f'Rationale pairing {str(r)} and {str(qar["all_rationales"][rat_i])} don\'t match.'
-
     def load_one(self, sample_id):
 
         # Allocate the arrays and collections.
@@ -345,10 +308,10 @@ class DataReader:
             rat_embeddings = self.rat_hf[str(sample_id)]
 
             # Extract the context and answer/rationale embeddings.
-            bert_ctx_answers, bert_answers = self.get_embeddings_from_group(ans_embeddings)
-            bert_ctx_rationales, bert_rationales = self.get_embeddings_from_group(rat_embeddings)
+            bert_ctx_answers, bert_answers = self.bert_handler.get_embeddings_from_group(ans_embeddings)
+            bert_ctx_rationales, bert_rationales = self.bert_handler.get_embeddings_from_group(rat_embeddings)
 
-            self.validate_embeddings(bert_ctx_answers, bert_ctx_rationales, bert_answers, bert_rationales, iminfo)
+            self.bert_handler.validate_embeddings(bert_ctx_answers, bert_ctx_rationales, bert_answers, bert_rationales, iminfo)
 
         for n, i in enumerate(sample_range_in_batch):
             i_ans = n // i_ans_divisor
@@ -485,7 +448,5 @@ class DataReader:
         return batch
 
     def __del__(self):
-        if hasattr(self, 'ans_hf'):
-            self.ans_hf.close()
-        if hasattr(self, 'rat_hf'):
-            self.rat_hf.close()
+        if hasattr(self, 'bert_handler'):
+            del bert_handler
