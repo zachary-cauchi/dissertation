@@ -17,11 +17,11 @@
         },
         
         {
-            "name": "Python: Current File (snmn-models dir)",
+            "name": "Python: Current File (snmn_models dir)",
             "type": "python",
             "request": "launch",
             "program": "${file}",
-            "cwd": "${workspaceFolder}/snmn-models",
+            "cwd": "${workspaceFolder}/snmn_models",
             "python": "${command:python.interpreterPath}",
             "console": "integratedTerminal",
             "justMyCode": true
@@ -32,7 +32,7 @@
             "type": "python",
             "request": "launch",
             "program": "./exp_clevr_snmn/test_net_vqa.py",
-            "cwd": "${workspaceFolder}/snmn-models",
+            "cwd": "${workspaceFolder}/snmn_models",
             "python": "${command:python.interpreterPath}",
             "console": "integratedTerminal",
             "args": [
@@ -48,7 +48,7 @@
             "type": "python",
             "request": "launch",
             "program": "./exp_vqa/test_net_vqa.py",
-            "cwd": "${workspaceFolder}/snmn-models",
+            "cwd": "${workspaceFolder}/snmn_models",
             "python": "${command:python.interpreterPath}",
             "console": "integratedTerminal",
             "args": [
@@ -64,7 +64,7 @@
             "type": "python",
             "request": "launch",
             "program": "./exp_vqa/train_net_vqa.py",
-            "cwd": "${workspaceFolder}/snmn-models",
+            "cwd": "${workspaceFolder}/snmn_models",
             "python": "${command:python.interpreterPath}",
             "console": "integratedTerminal",
             "args": [
@@ -78,7 +78,7 @@
             "type": "python",
             "request": "launch",
             "program": "./exp_vcr/tfrecord_dataset_builder.py",
-            "cwd": "${workspaceFolder}/snmn-models",
+            "cwd": "${workspaceFolder}/snmn_models",
             "python": "${command:python.interpreterPath}",
             "console": "integratedTerminal",
             "args": [
@@ -92,7 +92,7 @@
             "type": "python",
             "request": "launch",
             "program": "./exp_vcr/test_dataset.py",
-            "cwd": "${workspaceFolder}/snmn-models",
+            "cwd": "${workspaceFolder}/snmn_models",
             "python": "${command:python.interpreterPath}",
             "console": "integratedTerminal",
             "args": [
@@ -106,7 +106,7 @@
             "type": "python",
             "request": "launch",
             "program": "./exp_vcr/distribute_train_net_vqa.py",
-            "cwd": "${workspaceFolder}/snmn-models",
+            "cwd": "${workspaceFolder}/snmn_models",
             "python": "${command:python.interpreterPath}",
             "console": "integratedTerminal",
             "args": [
@@ -122,7 +122,7 @@
             "type": "python",
             "request": "launch",
             "program": "./exp_vcr/train_net_vqa.py",
-            "cwd": "${workspaceFolder}/snmn-models",
+            "cwd": "${workspaceFolder}/snmn_models",
             "python": "${command:python.interpreterPath}",
             "console": "integratedTerminal",
             "args": [
@@ -138,7 +138,7 @@
             "type": "python",
             "request": "launch",
             "program": "./exp_vcr/train_net_vqa.py",
-            "cwd": "${workspaceFolder}/snmn-models",
+            "cwd": "${workspaceFolder}/snmn_models",
             "python": "${command:python.interpreterPath}",
             "console": "integratedTerminal",
             "args": [
@@ -154,7 +154,7 @@
             "type": "python",
             "request": "launch",
             "program": "./exp_vcr/train_net_vqa.py",
-            "cwd": "${workspaceFolder}/snmn-models",
+            "cwd": "${workspaceFolder}/snmn_models",
             "python": "${command:python.interpreterPath}",
             "console": "integratedTerminal",
             "args": [
@@ -170,7 +170,7 @@
             "type": "python",
             "request": "launch",
             "program": "./exp_vcr/test_net_vqa.py",
-            "cwd": "${workspaceFolder}/snmn-models",
+            "cwd": "${workspaceFolder}/snmn_models",
             "python": "${command:python.interpreterPath}",
             "console": "integratedTerminal",
             "args": [
@@ -186,7 +186,7 @@
             "type": "python",
             "request": "launch",
             "program": "./exp_vcr/test_net_vqa.py",
-            "cwd": "${workspaceFolder}/snmn-models",
+            "cwd": "${workspaceFolder}/snmn_models",
             "python": "${command:python.interpreterPath}",
             "console": "integratedTerminal",
             "args": [
@@ -202,7 +202,7 @@
             "type": "python",
             "request": "launch",
             "program": "./exp_vcr/test_net_vqa.py",
-            "cwd": "${workspaceFolder}/snmn-models",
+            "cwd": "${workspaceFolder}/snmn_models",
             "python": "${command:python.interpreterPath}",
             "console": "integratedTerminal",
             "args": [
@@ -218,7 +218,7 @@
             "type": "python",
             "request": "launch",
             "program": "./exp_vcr/train_net_vqa.py",
-            "cwd": "${workspaceFolder}/snmn-models",
+            "cwd": "${workspaceFolder}/snmn_models",
             "python": "${command:python.interpreterPath}",
             "console": "integratedTerminal",
             "args": [
@@ -238,7 +238,7 @@
             "python": "${command:python.interpreterPath}",
             "console": "integratedTerminal",
             "args": [
-                "../snmn-models/exp_vcr/data/imdb_r152_7x7/imdb_train.npy"
+                "../snmn_models/exp_vcr/data/imdb_r152_7x7/imdb_train.npy"
             ]
         },
 
@@ -266,7 +266,7 @@
             "console": "integratedTerminal",
             "args": [
                 "question_answers",
-                "../snmn-models/exp_vcr/data/imdb_r152_7x7/imdb_train.npy"
+                "../snmn_models/exp_vcr/data/imdb_r152_7x7/imdb_train.npy"
             ]
         },
 
@@ -289,7 +289,7 @@
             "type": "python",
             "request": "launch",
             "program": "./build_vcr_imdb_r152.py",
-            "cwd": "${workspaceFolder}/snmn-models/exp_vcr/data",
+            "cwd": "${workspaceFolder}/snmn_models/exp_vcr/data",
             "python": "${command:python.interpreterPath}",
             "console": "integratedTerminal",
             "args": [
@@ -303,7 +303,7 @@
             "type": "python",
             "request": "launch",
             "program": "./build_vcr_imdb_r152.py",
-            "cwd": "${workspaceFolder}/snmn-models/exp_vcr/data",
+            "cwd": "${workspaceFolder}/snmn_models/exp_vcr/data",
             "python": "${command:python.interpreterPath}",
             "console": "integratedTerminal",
             "args": [
@@ -319,7 +319,7 @@
             "type": "python",
             "request": "launch",
             "program": "./extract_resnet152_c5.py",
-            "cwd": "${workspaceFolder}/snmn-models/exp_vcr/data",
+            "cwd": "${workspaceFolder}/snmn_models/exp_vcr/data",
             "python": "${command:python.interpreterPath}",
             "console": "integratedTerminal",
             "args": [
@@ -335,7 +335,7 @@
             "type": "python",
             "request": "launch",
             "program": "./extract_resnet152_c5.py",
-            "cwd": "${workspaceFolder}/snmn-models/exp_vcr/data",
+            "cwd": "${workspaceFolder}/snmn_models/exp_vcr/data",
             "python": "${command:python.interpreterPath}",
             "console": "integratedTerminal",
             "args": [
@@ -347,7 +347,7 @@
             "type": "python",
             "request": "launch",
             "program": "./get_bert_embeddings.py",
-            "cwd": "${workspaceFolder}/snmn-models/exp_vcr/data",
+            "cwd": "${workspaceFolder}/snmn_models/exp_vcr/data",
             "python": "${command:python.interpreterPath}",
             "console": "integratedTerminal",
             "args": [

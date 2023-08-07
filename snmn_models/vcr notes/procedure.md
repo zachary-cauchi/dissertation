@@ -7,10 +7,10 @@ imdb files are composed of the following:
 [
     {
         "image_name": "COCO_train2014_000000487025",
-        "image_path": "/home/cortesza/Projects/snmn/snmn-models/exp_vcr/coco_dataset/images/train2014/COCO_train2014_000000487025.jpg",
+        "image_path": "/home/cortesza/Projects/snmn/snmn_models/exp_vcr/coco_dataset/images/train2014/COCO_train2014_000000487025.jpg",
         "image_id": 487025,
         "question_id": 4870250,
-        "feature_path": "/home/cortesza/Projects/snmn/snmn-models/exp_vcr/data/resnet152_c5_7x7/train2014/COCO_train2014_000000487025.npy",
+        "feature_path": "/home/cortesza/Projects/snmn/snmn_models/exp_vcr/data/resnet152_c5_7x7/train2014/COCO_train2014_000000487025.npy",
         "question_str": "What shape is the bench seat?",
         "question_tokens": ["what", "shape", "is", "the", "bench", "seat", "?"],
         "all_answers": ["oval", "semi circle", "curved", "curved", "double curve", "banana", "curved", "wavy", "twisting", "curved"],
@@ -27,7 +27,7 @@ imdb testing files are composed of the following:
 [
     {
         "image_name": "COCO_train2014_000000487025",
-        "image_path": "/home/cortesza/Projects/snmn/snmn-models/exp_vcr/coco_dataset/images/train2014/COCO_train2014_000000487025.jpg",
+        "image_path": "/home/cortesza/Projects/snmn/snmn_models/exp_vcr/coco_dataset/images/train2014/COCO_train2014_000000487025.jpg",
         "image_id": 487025,
         "question_id": 4870250,
         "feature_path": "/home/cortesza/Projects/snmn/snmn-models/exp_vcr/data/resnet152_c5_7x7/train2014/COCO_train2014_000000487025.npy",
