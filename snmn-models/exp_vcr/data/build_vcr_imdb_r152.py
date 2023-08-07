@@ -9,6 +9,7 @@ import tfrecords_helpers
 import sys; sys.path.append('../../')  # NOQA
 from collections import Counter
 from word2number import w2n
+from util import text_processing
 
 parser = argparse.ArgumentParser(prog='build_vcr_imdb_r152.py', description='Build the VCR imdb files.')
 parser.add_argument('--file_type', type=str, choices=['tfrecords', 'npy'], default='npy')
@@ -66,12 +67,12 @@ def open_image_metadata_file(qar):
     with open(os.path.join(images_dir, metadata_name)) as f:
         return json.load(f)
 
-def preprocess_token(token, qar, metadata) -> 'list[str]':
+def preprocess_token(token, qar) -> 'list[str]':
     # Resolve the token if the token is a reference to an object.
     # Since a token can be a list of one or more references, process all of them first.
     
     if isinstance(token, list):
-        resolved_tokens = [ metadata['names'][t].lower().strip() for t in token ]
+        resolved_tokens = [ qar['objects'][t].lower().strip() for t in token ]
     else:
         resolved_tokens = [ token.lower().strip() ]
 
@@ -90,14 +91,13 @@ def preprocess_token(token, qar, metadata) -> 'list[str]':
 
 def update_vocab(qar):
     sentences: list[list[str]] = qar['question'], *qar['answer_choices'], *qar['rationale_choices']
-    metadata = open_image_metadata_file(qar)
+    # metadata = open_image_metadata_file(qar)
 
     # Iterate through all tokens in the QAR, replacing any object references with their classname where appropriate.
-    # for token in itertools.chain(*sentences):
     for sentence in sentences:
         for i, token in enumerate(sentence):
             # Resolve the token if the token is a reference to an object.
-            resolved_tokens = preprocess_token(token, qar, metadata)
+            resolved_tokens = preprocess_token(token, qar)
 
             for j, rt in enumerate(resolved_tokens):
                 if j == 0:
@@ -160,7 +160,7 @@ def extract_folds_from_file_set(file_set, params):
         
         bert_corpus.append(corpus_entry + '\n')
 
-def build_imdb(fold_name, with_answers = True, with_rationales = True):
+def build_imdb(fold_name, vocab_dict: text_processing.VocabDict, with_answers = True, with_rationales = True):
     imdb = []
 
     print(f'Constructing imdb for fold {fold_name}.')
@@ -174,6 +174,9 @@ def build_imdb(fold_name, with_answers = True, with_rationales = True):
         feature_path = os.path.realpath(os.path.join(resnet_feature_dir, os.path.splitext(qar['img_fn'])[0] + resnet_feature_ext))
         question_tokens = qar['question']
         question_str = token_delimeter.join(question_tokens)
+        question_sequence = [vocab_dict.word2idx(w) for w in question_tokens]
+        all_answers_sequences = [[vocab_dict.word2idx(w) for w in sentence] for sentence in qar['answer_choices']]
+        all_rationales_sequences = [[vocab_dict.word2idx(w) for w in sentence] for sentence in qar['rationale_choices']]
 
         imdb_entry = {
             'image_name': image_name,
@@ -183,6 +186,9 @@ def build_imdb(fold_name, with_answers = True, with_rationales = True):
             'feature_path': feature_path,
             'question_str': question_str,
             'question_tokens': question_tokens,
+            'question_sequence': question_sequence,
+            'all_answers_sequences': all_answers_sequences,
+            'all_rationales_sequences': all_rationales_sequences
         }
 
         imdb_entry['all_answers'] = qar['answer_choices']
@@ -212,7 +218,7 @@ def write_vocab_file(save_base_path, split_data):
 
 def export_to_tfrecords(file_path, imdb):
     with tf.python_io.TFRecordWriter(file_path) as writer:
-        for entry in tqdm.tqdm(imdb, desc='Serializing to TFRecords'):
+        for entry in tqdm.tqdm(imdb, desc=f'Serializing to TFRecords ({os.path.basename(file_path)})'):
             serialized_entry = tfrecords_helpers.serialize_imdb_to_example(entry)
 
             writer.write(serialized_entry)
@@ -232,8 +238,6 @@ os.makedirs(imdb_out_dir, exist_ok=True)
 
 # Write the current vocabulary to the file.
 print(f'Saving vocabulary file to {vocabulary_file}')
-with open(vocabulary_file, 'w') as f:
-    f.writelines(f'{token[0]} {token[1]}\n' for token in sorted(vocab.items()))
 with open(vocabulary_file, 'w') as f:
     f.writelines(f'{token[0]} {token[1]}\n' for token in sorted(vocab.items()))
 
@@ -257,8 +261,10 @@ print('Constructing and saving imdbs')
 for file_set, params in file_sets.items():
     imdb = []
 
+    vocab_dict = text_processing.VocabDict(vocab_file=vocabulary_file, first_token_only=True)
+
     for fold_names in file_splits[file_set]:
-        imdb += build_imdb(fold_names, with_answers=params['load_answers'], with_rationales=params['load_rationales'])
+        imdb += build_imdb(fold_names, vocab_dict=vocab_dict, with_answers=params['load_answers'], with_rationales=params['load_rationales'])
 
     qid = -1
     q_longest_len = -1

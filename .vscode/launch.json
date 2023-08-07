@@ -74,6 +74,34 @@
         },
 
         {
+            "name": "VCR: Export Dataset to TFRecord",
+            "type": "python",
+            "request": "launch",
+            "program": "./exp_vcr/tfrecord_dataset_builder.py",
+            "cwd": "${workspaceFolder}/snmn-models",
+            "python": "${command:python.interpreterPath}",
+            "console": "integratedTerminal",
+            "args": [
+                "--cfg",
+                "exp_vcr/cfgs/vcr_q_a_scratch_multigpu.yaml"
+            ]
+        },
+
+        {
+            "name": "VCR: Test Dataset pipeline",
+            "type": "python",
+            "request": "launch",
+            "program": "./exp_vcr/test_dataset.py",
+            "cwd": "${workspaceFolder}/snmn-models",
+            "python": "${command:python.interpreterPath}",
+            "console": "integratedTerminal",
+            "args": [
+                "--cfg",
+                "exp_vcr/cfgs/vcr_q_a_scratch_multigpu.yaml"
+            ]
+        },
+
+        {
             "name": "VCR: Train QA scratch Multi-GPU",
             "type": "python",
             "request": "launch",
@@ -267,6 +295,38 @@
             "args": [
                 "--res",
                 "7"
+            ]
+        },
+
+        {
+            "name": "VCR: build imdb TFRecords files",
+            "type": "python",
+            "request": "launch",
+            "program": "./build_vcr_imdb_r152.py",
+            "cwd": "${workspaceFolder}/snmn-models/exp_vcr/data",
+            "python": "${command:python.interpreterPath}",
+            "console": "integratedTerminal",
+            "args": [
+                "--res",
+                "7",
+                "--file_type",
+                "tfrecords"
+            ]
+        },
+
+        {
+            "name": "VCR: extract TFRecord resnet files",
+            "type": "python",
+            "request": "launch",
+            "program": "./extract_resnet152_c5.py",
+            "cwd": "${workspaceFolder}/snmn-models/exp_vcr/data",
+            "python": "${command:python.interpreterPath}",
+            "console": "integratedTerminal",
+            "args": [
+                "--res",
+                "7",
+                "--file_type",
+                "tfrecord"
             ]
         },
 

@@ -24,7 +24,9 @@ def _2d_flattened_feature_list(list_2d):
 
 def serialize_imdb_to_example(entry):
     all_answers_flattened, all_answers_length = _2d_flattened_feature_list(entry['all_answers'])
+    all_answers_sequences_flattened, _ = _2d_flattened_feature_list(entry['all_answers_sequences'])
     all_rationales_flattened, all_rationales_length = _2d_flattened_feature_list(entry['all_rationales'])
+    all_rationales_sequences_flattened, _ = _2d_flattened_feature_list(entry['all_rationales_sequences'])
 
     feature = {
         'image_name': _bytes_feature(tf.compat.as_bytes(entry['image_name'])),
@@ -35,9 +37,11 @@ def serialize_imdb_to_example(entry):
         'question_str': _bytes_feature(tf.compat.as_bytes(entry['question_str'])),
         'question_tokens': _bytes_feature_list([ tf.compat.as_bytes(token) for token in entry['question_tokens']]),
         'all_answers': _bytes_feature_list([tf.compat.as_bytes(answer) for answer in all_answers_flattened]),
+        'all_answers_sequences': _int64_feature_list(all_answers_sequences_flattened),
         'all_answers_length': _int64_feature_list(all_answers_length),
         'all_rationales': _bytes_feature_list([tf.compat.as_bytes(rationale) for rationale in all_rationales_flattened]),
-        'all_rationales_length': _int64_feature_list(all_rationales_length),
+        'all_rationales_sequences': _int64_feature_list(all_rationales_sequences_flattened),
+        'all_rationales_length': _int64_feature_list(all_rationales_length)
     }
 
     if 'valid_answers' in entry:
@@ -60,8 +64,10 @@ def parse_example_to_imdb(example):
         'question_str': tf.FixedLenFeature([], tf.string),
         'question_tokens': tf.VarLenFeature(tf.string),
         'all_answers': tf.VarLenFeature(tf.string),
+        'all_answers_sequences': tf.VarLenFeature(tf.int64),
         'all_answers_length': tf.FixedLenFeature([4], tf.int64),
         'all_rationales': tf.VarLenFeature(tf.string),
+        'all_rationales_sequences': tf.VarLenFeature(tf.int64),
         'all_rationales_length': tf.FixedLenFeature([4], tf.int64),
         'valid_answers': tf.FixedLenFeature([4], tf.int64),
         'valid_answer_index': tf.FixedLenFeature([], tf.int64),
@@ -84,9 +90,13 @@ def parse_example_to_imdb(example):
     all_answers = tf.sparse_tensor_to_dense(parsed_features['all_answers'], default_value='')
     all_answers_length = tf.cast(parsed_features['all_answers_length'], tf.int64)
     all_answers = tf.split(all_answers, all_answers_length, 0)
+    all_answers_sequences = tf.sparse_tensor_to_dense(parsed_features['all_answers_sequences'], default_value=0)
+    all_answers_sequences = tf.split(all_answers_sequences, all_answers_length, 0)
     all_rationales = tf.sparse_tensor_to_dense(parsed_features['all_rationales'], default_value='')
     all_rationales_length = tf.cast(parsed_features['all_rationales_length'], tf.int64)
     all_rationales = tf.split(all_rationales, all_rationales_length, 0)
+    all_rationales_sequences = tf.sparse_tensor_to_dense(parsed_features['all_rationales_sequences'], default_value=0)
+    all_rationales_sequences = tf.split(all_rationales_sequences, all_rationales_length, 0)
 
     return {
         'image_name': image_name,
@@ -101,7 +111,9 @@ def parse_example_to_imdb(example):
         'valid_rationales': valid_rationales,
         'valid_rationale_index': valid_rationale_index,
         'all_answers': all_answers,
+        'all_answers_sequences': all_answers_sequences,
         'all_answers_length': all_answers_length,
         'all_rationales': all_rationales,
+        'all_rationales_sequences': all_rationales_sequences,
         'all_rationales_length': all_rationales_length
     }
