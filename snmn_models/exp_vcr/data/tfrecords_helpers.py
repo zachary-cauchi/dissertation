@@ -35,6 +35,8 @@ def serialize_imdb_to_example(entry):
         'feature_path': _bytes_feature(tf.compat.as_bytes(entry['feature_path'])),
         'question_id': _int64_feature(entry['question_id']),
         'question_str': _bytes_feature(tf.compat.as_bytes(entry['question_str'])),
+        'question_sequence': _int64_feature_list(entry['question_sequence']),
+        'question_length': _int64_feature(len(entry['question_tokens'])),
         'question_tokens': _bytes_feature_list([ tf.compat.as_bytes(token) for token in entry['question_tokens']]),
         'all_answers': _bytes_feature_list([tf.compat.as_bytes(answer) for answer in all_answers_flattened]),
         'all_answers_sequences': _int64_feature_list(all_answers_sequences_flattened),
@@ -71,6 +73,8 @@ def parse_example_to_imdb(example):
         'question_id': tf.FixedLenFeature([], tf.int64),
         'question_str': tf.FixedLenFeature([], tf.string),
         'question_tokens': tf.VarLenFeature(tf.string),
+        'question_sequence': tf.VarLenFeature(tf.int64),
+        'question_length': tf.FixedLenFeature([], tf.int64),
         'all_answers': tf.VarLenFeature(tf.string),
         'all_answers_sequences': tf.VarLenFeature(tf.int64),
         'all_answers_length': tf.FixedLenFeature([4], tf.int64),
@@ -89,6 +93,8 @@ def parse_example_to_imdb(example):
     image_path = tf.cast(parsed_features['image_path'], tf.string)
     feature_path = tf.cast(parsed_features['feature_path'], tf.string)
     question_str = tf.cast(parsed_features['question_str'], tf.string)
+    question_sequence = tf.sparse_tensor_to_dense(parsed_features['question_sequence'], default_value=0)
+    question_length = tf.cast(parsed_features['question_length'], tf.int64)
     image_id = tf.cast(parsed_features['image_id'], tf.int64)
     question_id = tf.cast(parsed_features['question_id'], tf.int64)
     question_tokens = tf.sparse_tensor_to_dense(parsed_features['question_tokens'], default_value='')
@@ -115,6 +121,8 @@ def parse_example_to_imdb(example):
         'question_id': question_id,
         'question_str': question_str,
         'question_tokens': question_tokens,
+        'question_sequence': question_sequence,
+        'question_length': question_length,
         'valid_answers': valid_answers,
         'valid_answer_index': valid_answer_index,
         'valid_rationales': valid_rationales,

@@ -26,7 +26,6 @@ class DataReader:
             iterator = self.imdb_dataset.make_one_shot_iterator()
             sample_elm = iterator.get_next()
             sample_record = sess.run(tfrecords_helpers.parse_example_to_imdb(sample_elm))
-            
 
         self.vocab_dict = text_processing.VocabDict(
             data_params['vocab_question_file'], first_token_only=True)
@@ -57,11 +56,11 @@ class DataReader:
         self.num_rationales = len(sample_record['all_rationales'])
 
         if self.data_params['vcr_task_type'] == 'Q_2_A':
-            self.correct_label_batch_name = 'answer_label_batch'
+            self.correct_label_batch_name = 'valid_answer_index'
         elif self.data_params['vcr_task_type'] == 'QA_2_R':
-            self.correct_label_batch_name = 'rationale_label_batch'
+            self.correct_label_batch_name = 'valid_rationale_index'
         elif self.data_params['vcr_task_type'] == 'Q_2_AR':
-            self.correct_label_batch_name = 'answer_and_rationale_label_batch'
+            self.correct_label_batch_name = 'valid_answer_and_rationale_index'
 
         if data_params['vcr_task_type'] == 'Q_2_A':
             self.num_combinations = self.num_answers
@@ -133,15 +132,67 @@ class DataReader:
     def init_dataset(self):
         final_dataset = tf.data.Dataset.zip((self.imdb_dataset, self.resnet_dataset))
         final_dataset = final_dataset.map(self.parse_raw_tensors, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-        final_dataset = final_dataset.map(self.to_final_structure, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        final_dataset = final_dataset.flat_map(self.split_vcr_tasks_answer_only)
+        final_dataset = final_dataset.map(self.to_time_major, num_parallel_calls=tf.data.experimental.AUTOTUNE)
         
         return final_dataset
+
+    def split_vcr_tasks_answer_only(self, sample):
+        if self.load_correct_answer:
+            answers_dataset = tf.data.Dataset.zip((
+                tf.data.Dataset.from_tensor_slices(sample['imdb']['all_answers']),
+                tf.data.Dataset.from_tensor_slices(sample['imdb']['all_answers_sequences']),
+                tf.data.Dataset.from_tensor_slices(sample['imdb']['all_answers_length']),
+                tf.data.Dataset.from_tensor_slices(sample['imdb']['valid_answers'])
+            ))
+            map_fn = lambda answer, answer_sequence, answer_length, valid_answer: {
+                'image_name': sample['imdb']['image_name'],
+                'image_path': sample['imdb']['image_path'],
+                'image_id': sample['imdb']['image_id'],
+                'feature_path': sample['imdb']['feature_path'],
+                'question_id': sample['imdb']['question_id'],
+                'question_str': sample['imdb']['question_str'],
+                'question_tokens': sample['imdb']['question_tokens'],
+                'question_sequence': sample['imdb']['question_sequence'],
+                'question_length': sample['imdb']['question_length'],
+                'all_answers': answer,
+                'all_answers_sequences': answer_sequence,
+                'all_answers_length': answer_length,
+                'valid_answers': valid_answer,
+                'img_feat': sample['img_feat'][0],
+            }
+        else:
+            answers_dataset = tf.data.Dataset.zip((
+                tf.data.Dataset.from_tensor_slices(sample['imdb']['all_answers']),
+                tf.data.Dataset.from_tensor_slices(sample['imdb']['all_answers_sequences']),
+                tf.data.Dataset.from_tensor_slices(sample['imdb']['all_answers_length'])
+            ))
+            map_fn = lambda answer, answer_sequence, answer_length: {
+                'image_name': sample['imdb']['image_name'],
+                'image_path': sample['imdb']['image_path'],
+                'image_id': sample['imdb']['image_id'],
+                'feature_path': sample['imdb']['feature_path'],
+                'question_id': sample['imdb']['question_id'],
+                'question_str': sample['imdb']['question_str'],
+                'question_tokens': sample['imdb']['question_tokens'],
+                'question_sequence': sample['imdb']['question_sequence'],
+                'question_length': sample['imdb']['question_length'],
+                'all_answers': answer,
+                'all_answers_sequences': answer_sequence,
+                'all_answers_length': answer_length,
+                'img_feat': sample['img_feat'][0],
+            }
+
+        vcrs_dataset = answers_dataset.map(map_fn)
+
+        return vcrs_dataset
 
     def parse_raw_tensors(self, imdb_sample, resnet_sample):
         imdb = tfrecords_helpers.parse_example_to_imdb(imdb_sample)
         feat = tfrecords_helpers.parse_resnet_example_to_nparray(resnet_sample)
 
         imdb['question_tokens'] = self.pad_or_trim(imdb['question_tokens'], self.T_q_encoder)
+        imdb['question_sequence'] = self.pad_or_trim(imdb['question_sequence'], self.T_q_encoder, padding = 0)
         imdb['all_answers'] = self.pad_or_trim_2d(imdb['all_answers'], self.T_a_encoder)
         imdb['all_answers_sequences'] = self.pad_or_trim_2d(imdb['all_answers_sequences'], self.T_a_encoder, padding=0)
         imdb['all_rationales'] = self.pad_or_trim_2d(imdb['all_rationales'], self.T_r_encoder)
@@ -154,26 +205,31 @@ class DataReader:
     
     def to_final_structure(self, sample):
         new_sample = {
-            'image_name' : sample['imdb']['image_name'],
-            'image_path' : sample['imdb']['image_path'],
-            'image_id' : sample['imdb']['image_id'],
-            'feature_path' : sample['imdb']['feature_path'],
-            'question_id' : sample['imdb']['question_id'],
-            'question_str' : sample['imdb']['question_str'],
-            'question_tokens' : sample['imdb']['question_tokens'],
-            'all_answers' : sample['imdb']['all_answers'],
-            'all_answers_sequences' : sample['imdb']['all_answers_sequences'],
-            'all_answers_length' : sample['imdb']['all_answers_length'],
+            'image_name': sample['imdb']['image_name'],
+            'image_path': sample['imdb']['image_path'],
+            'image_id': sample['imdb']['image_id'],
+            'feature_path': sample['imdb']['feature_path'],
+            'question_id': sample['imdb']['question_id'],
+            'question_str': sample['imdb']['question_str'],
+            'question_tokens': sample['imdb']['question_tokens'],
+            'question_sequence': sample['imdb']['question_sequence'],
+            'question_length': sample['imdb']['question_length'],
+            'all_answers': sample['imdb']['all_answers'],
+            'all_answers_sequences': sample['imdb']['all_answers_sequences'],
+            'all_answers_length': sample['imdb']['all_answers_length'],
             'image_feat': sample['img_feat'][0]
         }
+
+        if self.load_rationale:
+            new_sample['all_rationales_sequences'] = sample['imdb']['all_rationales_sequences']
+            new_sample['all_rationales_length'] = sample['imdb']['all_rationales_length']
+            if self.load_correct_rationale:
+                new_sample['valid_rationales'] = sample['imdb']['valid_rationales']
+                new_sample['valid_rationale_index'] = sample['imdb']['valid_rationale_index']
 
         if self.load_correct_answer:
             new_sample['valid_answers'] = sample['imdb']['valid_answers']
             new_sample['valid_answer_index'] = sample['imdb']['valid_answer_index']
-
-        if self.load_correct_rationale:
-            new_sample['valid_rationales'] = sample['imdb']['valid_rationales']
-            new_sample['valid_rationale_index'] = sample['imdb']['valid_rationale_index']
 
         return new_sample
 
@@ -196,10 +252,10 @@ class DataReader:
         return [ self.pad_or_trim(tensor, max_length, padding=padding) for tensor in tensor_list ]
 
     def to_time_major(self, element):
-        element['question_seq_batch'] = tf.transpose(element['question_seq_batch'])
-        element['all_answers_seq_batch'] = tf.transpose(element['all_answers_seq_batch'])
+        element['question_sequence'] = tf.transpose(element['question_sequence'])
+        element['all_answers_sequences'] = tf.transpose(element['all_answers_sequences'])
         if self.load_rationale:
-            element['all_rationales_seq_batch'] = tf.transpose(element['all_rationales_seq_batch'])
+            element['all_rationales_sequences'] = tf.transpose(element['all_rationales_sequences'])
         if self.load_bert:
             element['bert_question_embeddings_batch'] = tf.transpose(element['bert_question_embeddings_batch'], [1, 0, 2])
             element['bert_answer_embeddings_batch'] = tf.transpose(element['bert_answer_embeddings_batch'], [1, 0, 2])

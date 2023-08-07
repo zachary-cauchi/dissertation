@@ -69,16 +69,16 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
         labels = features[correct_label_batch_name]
 
     model = Model(
-        features['question_seq_batch'],
-        features['all_answers_seq_batch'],
-        features['all_rationales_seq_batch'] if load_rationale else None,
-        features['question_length_batch'],
-        features['all_answers_length_batch'],
-        features['all_rationales_length_batch'] if load_rationale else None,
+        features['question_sequence'],
+        features['all_answers_sequences'],
+        features['all_answers_sequences'] if load_rationale else None,
+        features['question_length'],
+        features['all_answers_length'],
+        features['all_rationales_length'] if load_rationale else None,
         features['bert_question_embeddings_batch'] if load_bert else None,
         features['bert_answer_embeddings_batch'] if load_bert else None,
         features['bert_rationale_embeddings_batch'] if load_bert and load_rationale else None,
-        features['image_feat_batch'],
+        features['image_feat'],
         num_vocab=params['num_vocab'],
         num_choices=params['num_combinations'],
         module_names=params['module_names'],
