@@ -11,4 +11,4 @@
   * `./gen_stanford_trees.sh input_sentences/rationales.txt`
 * Execute `python parse.py` to convert the stanford trees generated above into simplified trees.
 * Execute the following command to generate the final ground truth layouts and merge them into the imdbs:
-  * `python save_layouts_to_imdb.py ../snmn-models/exp_vcr/data/imdb_r152_7x7/imdb_train.npy`
+  * `python save_layouts_to_imdb.py ../snmn_models/exp_vcr/data/imdb_r152_7x7/imdb_train.npy`

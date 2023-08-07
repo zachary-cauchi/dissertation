@@ -12,7 +12,7 @@ from contextlib import ExitStack
 
 if len(sys.argv) < 3:
     print(f'Usage: python {os.path.basename(__file__)} <file_prefix> <path_to_imdb>')
-    print(f'Example: python {os.path.basename(__file__)} question_answers ../snmn-models/exp_vcr/data/imdb_r152_7x7/imdb_train.npy')
+    print(f'Example: python {os.path.basename(__file__)} question_answers ../snmn_models/exp_vcr/data/imdb_r152_7x7/imdb_train.npy')
     sys.exit(1)
 
 filename_prefix = sys.argv[1]
