@@ -8,21 +8,14 @@ from util import text_processing
 
 class DataReader:
     def __init__(self, imdb_file, **data_params):
-        if imdb_file.endswith('.npy'):
-            print(f'DataReader: Loading imdb npy dataset from {imdb_file}')
-            imdb = np.load(imdb_file, allow_pickle=True)
-            self.imdb_dataset = tf.data.Dataset.from_tensor_slices(tf.convert_to_tensor(imdb))
-        elif imdb_file.endswith('.tfrecords'):
-            print(f'DataReader: Initialising imdb TFRecords dataset from {imdb_file}')
-            self.imdb_dataset = tf.compat.v1.data.TFRecordDataset(imdb_file).cache()
-        else:
-            raise TypeError('unknown imdb format.')
+        self.imdb_file = imdb_file
+        self.init_imdb_dataset()
 
         self.data_params = data_params
         self.vcr_task_type = data_params['vcr_task_type']
 
         self.imdb_count = self.imdb_dataset
-        with tf.Session() as sess:
+        with tf.compat.v1.Session() as sess:
             iterator = self.imdb_dataset.make_one_shot_iterator()
             sample_elm = iterator.get_next()
             sample_record = sess.run(tfrecords_helpers.parse_example_to_imdb(sample_elm))
@@ -56,7 +49,7 @@ class DataReader:
         self.num_rationales = len(sample_record['all_rationales'])
 
         if self.data_params['vcr_task_type'] == 'Q_2_A':
-            self.correct_label_batch_name = 'valid_answer_index'
+            self.correct_label_batch_name = 'valid_answer_onehot'
         elif self.data_params['vcr_task_type'] == 'QA_2_R':
             self.correct_label_batch_name = 'valid_rationale_index'
         elif self.data_params['vcr_task_type'] == 'Q_2_AR':
@@ -104,7 +97,7 @@ class DataReader:
             self.feature_file_size = os.path.getsize(sample_feature_path)
             feats = np.load(sample_feature_path)
         elif self.feature_file_type == 'tfrecords':
-            with tf.Session() as sess:
+            with tf.compat.v1.Session() as sess:
                 sample_feature_reader = tf.data.TFRecordDataset(sample_feature_path)
                 iterator = sample_feature_reader.make_one_shot_iterator()
                 sample_feature_next_element = iterator.get_next()
@@ -115,14 +108,25 @@ class DataReader:
                 
         self.feat_H, self.feat_W, self.feat_D = feats.shape[1:]
 
+    def init_imdb_dataset(self):
+        if self.imdb_file.endswith('.npy'):
+            print(f'DataReader: Loading imdb npy dataset from {self.imdb_file}')
+            imdb = np.load(self.imdb_file, allow_pickle=True)
+            self.imdb_dataset = tf.data.Dataset.from_tensor_slices(tf.convert_to_tensor(imdb)).cache()
+        elif self.imdb_file.endswith('.tfrecords'):
+            print(f'DataReader: Initialising imdb TFRecords dataset from {self.imdb_file}')
+            self.imdb_dataset = tf.compat.v1.data.TFRecordDataset(self.imdb_file).cache()
+        else:
+            raise TypeError('unknown imdb format.')
+
+    def init_resnet_dataset(self):
         # Because TFRecordDataset does not have a lookup method, we need to create an ordered list of element accesses.
         # Like this, we can interleave them with the imdb dataset in the order they're needed.
         print('DataReader: Building image feature access order for imdb dataset')
-        base_name = os.path.basename(imdb_file)
-        resnet_access_file_path = imdb_file.replace(base_name, 'resnet_access_' + base_name)
+        base_name = os.path.basename(self.imdb_file)
+        resnet_access_file_path = self.imdb_file.replace(base_name, 'resnet_access_' + base_name)
         resnet_access_file_path = resnet_access_file_path.rpartition('.')[0] + '.npy'
         resnet_access_list = [str(s) for s in np.load(resnet_access_file_path, allow_pickle=True)]
-
         if self.feature_file_type == 'tfrecords':
             self.resnet_dataset = tf.data.TFRecordDataset(resnet_access_list)
         else:
@@ -130,10 +134,15 @@ class DataReader:
             self.resnet_dataset = self.resnet_dataset.map(lambda r: np.frombuffer(r, dtype=np.int64).reshape([ self.feat_H, self.feat_W, self.feat_D ]))
 
     def init_dataset(self):
+        self.init_imdb_dataset()
+        self.init_resnet_dataset()
+
         final_dataset = tf.data.Dataset.zip((self.imdb_dataset, self.resnet_dataset))
         final_dataset = final_dataset.map(self.parse_raw_tensors, num_parallel_calls=tf.data.experimental.AUTOTUNE)
         final_dataset = final_dataset.flat_map(self.split_vcr_tasks_answer_only)
+        final_dataset = final_dataset.batch(self.actual_batch_size)
         final_dataset = final_dataset.map(self.to_time_major, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        final_dataset = final_dataset.prefetch(tf.data.experimental.AUTOTUNE)
         
         return final_dataset
 
@@ -143,9 +152,10 @@ class DataReader:
                 tf.data.Dataset.from_tensor_slices(sample['imdb']['all_answers']),
                 tf.data.Dataset.from_tensor_slices(sample['imdb']['all_answers_sequences']),
                 tf.data.Dataset.from_tensor_slices(sample['imdb']['all_answers_length']),
-                tf.data.Dataset.from_tensor_slices(sample['imdb']['valid_answers'])
+                tf.data.Dataset.from_tensor_slices(sample['imdb']['valid_answers']),
+                tf.data.Dataset.from_tensor_slices(sample['imdb']['valid_answer_onehot'])
             ))
-            map_fn = lambda answer, answer_sequence, answer_length, valid_answer: {
+            map_fn = lambda answer, answer_sequence, answer_length, valid_answer, valid_answer_onehot: {
                 'image_name': sample['imdb']['image_name'],
                 'image_path': sample['imdb']['image_path'],
                 'image_id': sample['imdb']['image_id'],
@@ -159,6 +169,8 @@ class DataReader:
                 'all_answers_sequences': answer_sequence,
                 'all_answers_length': answer_length,
                 'valid_answers': valid_answer,
+                'valid_answer_index': sample['imdb']['valid_answer_index'],
+                'valid_answer_onehot': valid_answer_onehot,
                 'img_feat': sample['img_feat'][0],
             }
         else:
@@ -189,7 +201,7 @@ class DataReader:
 
     def parse_raw_tensors(self, imdb_sample, resnet_sample):
         imdb = tfrecords_helpers.parse_example_to_imdb(imdb_sample)
-        feat = tfrecords_helpers.parse_resnet_example_to_nparray(resnet_sample)
+        feat = tf.ensure_shape(tfrecords_helpers.parse_resnet_example_to_nparray(resnet_sample), (1, self.feat_H, self.feat_W, self.feat_D))
 
         imdb['question_tokens'] = self.pad_or_trim(imdb['question_tokens'], self.T_q_encoder)
         imdb['question_sequence'] = self.pad_or_trim(imdb['question_sequence'], self.T_q_encoder, padding = 0)
@@ -197,6 +209,9 @@ class DataReader:
         imdb['all_answers_sequences'] = self.pad_or_trim_2d(imdb['all_answers_sequences'], self.T_a_encoder, padding=0)
         imdb['all_rationales'] = self.pad_or_trim_2d(imdb['all_rationales'], self.T_r_encoder)
         imdb['all_rationales_sequences'] = self.pad_or_trim_2d(imdb['all_rationales_sequences'], self.T_r_encoder, padding=0)
+
+        if self.load_correct_answer:
+            imdb['valid_answer_onehot'] = tf.one_hot(imdb['valid_answer_index'], self.num_combinations, 1., 0.)
 
         return {
             'imdb': imdb,
@@ -230,6 +245,7 @@ class DataReader:
         if self.load_correct_answer:
             new_sample['valid_answers'] = sample['imdb']['valid_answers']
             new_sample['valid_answer_index'] = sample['imdb']['valid_answer_index']
+            new_sample['valid_answer_onehot'] = sample['imdb']['valid_answer_onehot']
 
         return new_sample
 
