@@ -58,7 +58,7 @@ def serialize_imdb_to_example(entry):
 
 def parse_resnet_example_to_nparray(example):
     feature_description = {
-        'data': tf.FixedLenFeature([], tf.string)
+        'data': tf.io.FixedLenFeature([], tf.string)
     }
 
     parsed_example = tf.io.parse_single_example(example, feature_description)
@@ -66,51 +66,51 @@ def parse_resnet_example_to_nparray(example):
 
 def parse_example_to_imdb(example):
     keys_to_features = {
-        'image_name': tf.FixedLenFeature([], tf.string),
-        'image_path': tf.FixedLenFeature([], tf.string),
-        'image_id': tf.FixedLenFeature([], tf.int64),
-        'feature_path': tf.FixedLenFeature([], tf.string),
-        'question_id': tf.FixedLenFeature([], tf.int64),
-        'question_str': tf.FixedLenFeature([], tf.string),
-        'question_tokens': tf.VarLenFeature(tf.string),
-        'question_sequence': tf.VarLenFeature(tf.int64),
-        'question_length': tf.FixedLenFeature([], tf.int64),
-        'all_answers': tf.VarLenFeature(tf.string),
-        'all_answers_sequences': tf.VarLenFeature(tf.int64),
-        'all_answers_length': tf.FixedLenFeature([4], tf.int64),
-        'all_rationales': tf.VarLenFeature(tf.string),
-        'all_rationales_sequences': tf.VarLenFeature(tf.int64),
-        'all_rationales_length': tf.FixedLenFeature([4], tf.int64),
-        'valid_answers': tf.FixedLenFeature([4], tf.int64),
-        'valid_answer_index': tf.FixedLenFeature([], tf.int64),
-        'valid_rationales': tf.FixedLenFeature([4], tf.int64),
-        'valid_rationale_index': tf.FixedLenFeature([], tf.int64),
+        'image_name': tf.io.FixedLenFeature([], tf.string),
+        'image_path': tf.io.FixedLenFeature([], tf.string),
+        'image_id': tf.io.FixedLenFeature([], tf.int64),
+        'feature_path': tf.io.FixedLenFeature([], tf.string),
+        'question_id': tf.io.FixedLenFeature([], tf.int64),
+        'question_str': tf.io.FixedLenFeature([], tf.string),
+        'question_tokens': tf.io.VarLenFeature(tf.string),
+        'question_sequence': tf.io.VarLenFeature(tf.int64),
+        'question_length': tf.io.FixedLenFeature([], tf.int64),
+        'all_answers': tf.io.VarLenFeature(tf.string),
+        'all_answers_sequences': tf.io.VarLenFeature(tf.int64),
+        'all_answers_length': tf.io.FixedLenFeature([4], tf.int64),
+        'all_rationales': tf.io.VarLenFeature(tf.string),
+        'all_rationales_sequences': tf.io.VarLenFeature(tf.int64),
+        'all_rationales_length': tf.io.FixedLenFeature([4], tf.int64),
+        'valid_answers': tf.io.FixedLenFeature([4], tf.int64),
+        'valid_answer_index': tf.io.FixedLenFeature([], tf.int64),
+        'valid_rationales': tf.io.FixedLenFeature([4], tf.int64),
+        'valid_rationale_index': tf.io.FixedLenFeature([], tf.int64),
     }
 
-    parsed_features = tf.parse_single_example(example, keys_to_features)
+    parsed_features = tf.io.parse_single_example(example, keys_to_features)
 
     image_name = tf.cast(parsed_features['image_name'], tf.string)
     image_path = tf.cast(parsed_features['image_path'], tf.string)
     feature_path = tf.cast(parsed_features['feature_path'], tf.string)
     question_str = tf.cast(parsed_features['question_str'], tf.string)
-    question_sequence = tf.sparse_tensor_to_dense(parsed_features['question_sequence'], default_value=0)
-    question_length = tf.cast(parsed_features['question_length'], tf.int64)
-    image_id = tf.cast(parsed_features['image_id'], tf.int64)
-    question_id = tf.cast(parsed_features['question_id'], tf.int64)
-    question_tokens = tf.sparse_tensor_to_dense(parsed_features['question_tokens'], default_value='')
-    valid_answers = tf.cast(parsed_features['valid_answers'], tf.int64)
-    valid_answer_index = tf.cast(parsed_features['valid_answer_index'], tf.int64)
-    valid_rationales = tf.cast(parsed_features['valid_rationales'], tf.int64)
-    valid_rationale_index = tf.cast(parsed_features['valid_rationale_index'], tf.int64)
-    all_answers = tf.sparse_tensor_to_dense(parsed_features['all_answers'], default_value='')
-    all_answers_length = tf.cast(parsed_features['all_answers_length'], tf.int64)
+    question_sequence = tf.sparse.to_dense(parsed_features['question_sequence'], default_value=0)
+    question_length = tf.cast(parsed_features['question_length'], tf.int32)
+    image_id = tf.cast(parsed_features['image_id'], tf.int32)
+    question_id = tf.cast(parsed_features['question_id'], tf.int32)
+    question_tokens = tf.sparse.to_dense(parsed_features['question_tokens'], default_value='')
+    valid_answers = tf.cast(parsed_features['valid_answers'], tf.int32)
+    valid_answer_index = tf.cast(parsed_features['valid_answer_index'], tf.int32)
+    valid_rationales = tf.cast(parsed_features['valid_rationales'], tf.int32)
+    valid_rationale_index = tf.cast(parsed_features['valid_rationale_index'], tf.int32)
+    all_answers = tf.sparse.to_dense(parsed_features['all_answers'], default_value='')
+    all_answers_length = tf.cast(parsed_features['all_answers_length'], tf.int32)
     all_answers = tf.split(all_answers, all_answers_length, 0)
-    all_answers_sequences = tf.sparse_tensor_to_dense(parsed_features['all_answers_sequences'], default_value=0)
+    all_answers_sequences = tf.sparse.to_dense(parsed_features['all_answers_sequences'], default_value=0)
     all_answers_sequences = tf.split(all_answers_sequences, all_answers_length, 0)
-    all_rationales = tf.sparse_tensor_to_dense(parsed_features['all_rationales'], default_value='')
-    all_rationales_length = tf.cast(parsed_features['all_rationales_length'], tf.int64)
+    all_rationales = tf.sparse.to_dense(parsed_features['all_rationales'], default_value='')
+    all_rationales_length = tf.cast(parsed_features['all_rationales_length'], tf.int32)
     all_rationales = tf.split(all_rationales, all_rationales_length, 0)
-    all_rationales_sequences = tf.sparse_tensor_to_dense(parsed_features['all_rationales_sequences'], default_value=0)
+    all_rationales_sequences = tf.sparse.to_dense(parsed_features['all_rationales_sequences'], default_value=0)
     all_rationales_sequences = tf.split(all_rationales_sequences, all_rationales_length, 0)
 
     return {

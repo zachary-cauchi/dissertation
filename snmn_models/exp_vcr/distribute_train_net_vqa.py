@@ -3,6 +3,14 @@ import os
 from regex import regex as re
 from typing import Callable
 
+# 0 = all messages are logged (default behavior)
+# 1 = INFO messages are not printed
+# 2 = INFO and WARNING messages are not printed
+# 3 = INFO, WARNING, and ERROR messages are not printed
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0'
+os.environ['TF_XLA_FLAGS'] = '--tf_xla_cpu_global_jit' # --tf_xla_auto_jit=2
+os.environ['XLA_FLAGS'] = '--xla_hlo_profile'
+
 import tensorflow as tf
 
 from models_vcr.model import Model
@@ -56,7 +64,7 @@ def get_model_fn_params(cfg, data_reader: DataReader):
     }
 
 def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
-    print_fn = get_per_device_print_fn(features['question_seq_batch'])
+    print_fn = get_per_device_print_fn(features['question_id'])
     
     print_fn('Initialising model')
     cfg = params['cfg']
@@ -78,12 +86,12 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
         features['bert_question_embeddings_batch'] if load_bert else None,
         features['bert_answer_embeddings_batch'] if load_bert else None,
         features['bert_rationale_embeddings_batch'] if load_bert and load_rationale else None,
-        features['image_feat'],
+        features['img_feat'],
         num_vocab=params['num_vocab'],
         num_choices=params['num_combinations'],
         module_names=params['module_names'],
         is_training=mode==tf.estimator.ModeKeys.TRAIN,
-        reuse=tf.AUTO_REUSE
+        reuse=None
     )
 
     if mode == tf.estimator.ModeKeys.TRAIN or mode == tf.estimator.ModeKeys.EVAL:
@@ -117,7 +125,7 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
         loss_train = (loss_vqa * cfg.TRAIN.VQA_LOSS_WEIGHT +
                     loss_layout * cfg.TRAIN.LAYOUT_LOSS_WEIGHT +
                     loss_rec * cfg.TRAIN.REC_LOSS_WEIGHT)
-        loss_total = loss_train + cfg.TRAIN.WEIGHT_DECAY * model.l2_reg
+        loss_total = loss_train + cfg.TRAIN.WEIGHT_DECAY * model.elastic_net_reg
 
         if not cfg.TRAIN.SOLVER.USE_SPARSE_SOFTMAX_LABELS:
             # Reshape the expected results into a one-hot encoded vector.
@@ -152,7 +160,7 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
         solver = tf.train.experimental.enable_mixed_precision_graph_rewrite(solver, loss_scale='dynamic')
 
         grads_and_vars = solver.compute_gradients(loss_total)
-        global_step = tf.train.get_or_create_global_step()
+        global_step = tf.compat.v1.train.get_or_create_global_step()
 
         if cfg.TRAIN.CLIP_GRADIENTS:
             print_fn(f'clipping gradients to max norm: {cfg.TRAIN.GRAD_MAX_NORM:f}')
@@ -170,11 +178,12 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
         # Create a hook to update the metrics per run
         class MetricHook(tf.train.SessionRunHook):
             def before_run(self, run_context):
-                return tf.train.SessionRunArgs([accuracy[1]])
+                return tf.estimator.SessionRunArgs([accuracy[1]])
 
         metric_hook = MetricHook()
         with tf.device('/CPU:0'):
             tf.summary.scalar('accuracy', accuracy[0])
+            tf.summary.scalar('loss/elastic_reg', model.elastic_net_reg)
             summary_hook = tf.estimator.SummarySaverHook(save_steps=cfg.TRAIN.LOG_INTERVAL, summary_op=tf.summary.merge_all())
         # Print the accuracy to stdout every LOG_INTERVAL steps.
         logging_hook = tf.train.LoggingTensorHook({ 'accuracy': accuracy[0] }, every_n_iter=cfg.TRAIN.LOG_INTERVAL)
@@ -208,18 +217,14 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
 # Load config
 cfg = build_cfg_from_argparse()
 
-# Start session
 if 'CUDA_VISIBLE_DEVICES' not in os.environ:
     os.environ["CUDA_VISIBLE_DEVICES"] = ','.join(cfg.GPU_ID)
-# 0 = all messages are logged (default behavior)
-# 1 = INFO messages are not printed
-# 2 = INFO and WARNING messages are not printed
-# 3 = INFO, WARNING, and ERROR messages are not printed
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0'
+
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.INFO)
 
 # Enables support for XLA optimisation
 tf.config.optimizer.set_jit('autoclustering')
+tf.enable_resource_variables()
 
 # Data files
 data_reader = create_data_reader(cfg.TRAIN.SPLIT_VQA, cfg)
@@ -240,7 +245,7 @@ config = tf.estimator.RunConfig(
     session_config=sess_config,
     log_step_count_steps=cfg.TRAIN.LOG_INTERVAL,
     save_summary_steps=cfg.TRAIN.LOG_INTERVAL,
-    save_checkpoints_steps=100, #cfg.TRAIN.SNAPSHOT_INTERVAL,
+    save_checkpoints_steps=cfg.TRAIN.SNAPSHOT_INTERVAL,
     keep_checkpoint_max=0
 )
 

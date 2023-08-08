@@ -62,6 +62,7 @@ class Model:
                     self.vqa_scores = tf.reshape(vqa_scores, (tf.shape(vqa_scores)[0] // num_choices, num_choices))
                 else:
                     self.vqa_scores = vqa_scores
+
             if cfg.MODEL.BUILD_LOC:
                 loc_scores, bbox_offset, bbox_offset_fcn = \
                     output_unit.build_output_unit_loc(
@@ -85,9 +86,11 @@ class Model:
 
             self.params = [
                 v for v in tf.trainable_variables() if v.op.name.startswith(scope)]
-            self.l2_reg = tf.add_n(
-                [tf.nn.l2_loss(v, name=f'l2_{v.op.name}') for v in self.params
-                 if 'weights' in v.op.name])
+            self.l2_reg = tf.add_n([tf.nn.l2_loss(v, name=f'l2_{v.op.name}') for v in self.params if 'weights' in v.op.name])
+            self.l1_reg = tf.add_n([tf.reduce_sum(tf.abs(v), name=f'l1_{v.op.name}') for v in self.params if 'weights' in v.op.name])
+            self.reg_rho = cfg.TRAIN.L1_L2_RHO
+
+            self.elastic_net_reg = self.reg_rho * self.l1_reg + (1 - self.reg_rho) * self.l2_reg
 
             # tensors for visualization
             self.vis_outputs = {
