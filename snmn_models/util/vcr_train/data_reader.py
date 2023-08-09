@@ -141,7 +141,8 @@ class DataReader:
         self.init_resnet_dataset()
 
         final_dataset = tf.data.Dataset.zip((self.imdb_dataset, self.resnet_dataset))
-        final_dataset = final_dataset.map(self.parse_raw_tensors, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        final_dataset = final_dataset.shuffle(buffer_size=self.grouped_batch_size, reshuffle_each_iteration=True)
+        final_dataset: tf.data.Dataset = final_dataset.map(self.parse_raw_tensors, num_parallel_calls=tf.data.experimental.AUTOTUNE)
         final_dataset = final_dataset.flat_map(self.split_vcr_tasks_answer_only)
         final_dataset = final_dataset.batch(self.actual_batch_size, drop_remainder=True)
         final_dataset = final_dataset.map(self.to_time_major, num_parallel_calls=tf.data.experimental.AUTOTUNE)
