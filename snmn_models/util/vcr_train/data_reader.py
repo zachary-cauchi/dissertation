@@ -19,6 +19,7 @@ class DataReader:
             iterator = self.imdb_dataset.make_one_shot_iterator()
             sample_elm = iterator.get_next()
             sample_record = sess.run(tfrecords_helpers.parse_example_to_imdb(sample_elm))
+            sess.close()
 
         self.vocab_dict = text_processing.VocabDict(
             data_params['vocab_question_file'], first_token_only=True)
@@ -62,6 +63,7 @@ class DataReader:
         else:
             self.num_combinations = self.num_answers * self.num_rationales
 
+        self.grouped_batch_size = data_params['batch_size']
         self.actual_batch_size = data_params['batch_size'] * self.num_combinations
 
         if not self.load_correct_answer:
@@ -103,9 +105,10 @@ class DataReader:
                 sample_feature_next_element = iterator.get_next()
                 feats = sess.run(tfrecords_helpers.parse_resnet_example_to_nparray(sample_feature_next_element))
                 del sample_feature_next_element, iterator, sample_feature_reader
+                sess.close()
         else:
             raise ValueError(f'Feature file type not supported ({self.feature_file_type})')
-                
+
         self.feat_H, self.feat_W, self.feat_D = feats.shape[1:]
 
     def init_imdb_dataset(self):
@@ -140,7 +143,7 @@ class DataReader:
         final_dataset = tf.data.Dataset.zip((self.imdb_dataset, self.resnet_dataset))
         final_dataset = final_dataset.map(self.parse_raw_tensors, num_parallel_calls=tf.data.experimental.AUTOTUNE)
         final_dataset = final_dataset.flat_map(self.split_vcr_tasks_answer_only)
-        final_dataset = final_dataset.batch(self.actual_batch_size)
+        final_dataset = final_dataset.batch(self.actual_batch_size, drop_remainder=True)
         final_dataset = final_dataset.map(self.to_time_major, num_parallel_calls=tf.data.experimental.AUTOTUNE)
         final_dataset = final_dataset.prefetch(tf.data.experimental.AUTOTUNE)
         
@@ -149,50 +152,50 @@ class DataReader:
     def split_vcr_tasks_answer_only(self, sample):
         if self.load_correct_answer:
             answers_dataset = tf.data.Dataset.zip((
-                tf.data.Dataset.from_tensor_slices(sample['imdb']['all_answers']),
-                tf.data.Dataset.from_tensor_slices(sample['imdb']['all_answers_sequences']),
-                tf.data.Dataset.from_tensor_slices(sample['imdb']['all_answers_length']),
-                tf.data.Dataset.from_tensor_slices(sample['imdb']['valid_answers']),
-                tf.data.Dataset.from_tensor_slices(sample['imdb']['valid_answer_onehot'])
+                tf.data.Dataset.from_tensor_slices(sample['all_answers']),
+                tf.data.Dataset.from_tensor_slices(sample['all_answers_sequences']),
+                tf.data.Dataset.from_tensor_slices(sample['all_answers_length']),
+                tf.data.Dataset.from_tensor_slices(sample['valid_answers']),
+                tf.data.Dataset.from_tensor_slices(sample['valid_answer_onehot'])
             ))
             map_fn = lambda answer, answer_sequence, answer_length, valid_answer, valid_answer_onehot: {
-                'image_name': sample['imdb']['image_name'],
-                'image_path': sample['imdb']['image_path'],
-                'image_id': sample['imdb']['image_id'],
-                'feature_path': sample['imdb']['feature_path'],
-                'question_id': sample['imdb']['question_id'],
-                'question_str': sample['imdb']['question_str'],
-                'question_tokens': sample['imdb']['question_tokens'],
-                'question_sequence': sample['imdb']['question_sequence'],
-                'question_length': sample['imdb']['question_length'],
+                'image_name': sample['image_name'],
+                'image_path': sample['image_path'],
+                'image_id': sample['image_id'],
+                'feature_path': sample['feature_path'],
+                'question_id': sample['question_id'],
+                'question_str': sample['question_str'],
+                'question_tokens': sample['question_tokens'],
+                'question_sequence': sample['question_sequence'],
+                'question_length': sample['question_length'],
                 'all_answers': answer,
                 'all_answers_sequences': answer_sequence,
                 'all_answers_length': answer_length,
                 'valid_answers': valid_answer,
-                'valid_answer_index': sample['imdb']['valid_answer_index'],
+                'valid_answer_index': sample['valid_answer_index'],
                 'valid_answer_onehot': valid_answer_onehot,
-                'img_feat': sample['img_feat'][0],
+                'image_feat': sample['image_feat'],
             }
         else:
             answers_dataset = tf.data.Dataset.zip((
-                tf.data.Dataset.from_tensor_slices(sample['imdb']['all_answers']),
-                tf.data.Dataset.from_tensor_slices(sample['imdb']['all_answers_sequences']),
-                tf.data.Dataset.from_tensor_slices(sample['imdb']['all_answers_length'])
+                tf.data.Dataset.from_tensor_slices(sample['all_answers']),
+                tf.data.Dataset.from_tensor_slices(sample['all_answers_sequences']),
+                tf.data.Dataset.from_tensor_slices(sample['all_answers_length'])
             ))
             map_fn = lambda answer, answer_sequence, answer_length: {
-                'image_name': sample['imdb']['image_name'],
-                'image_path': sample['imdb']['image_path'],
-                'image_id': sample['imdb']['image_id'],
-                'feature_path': sample['imdb']['feature_path'],
-                'question_id': sample['imdb']['question_id'],
-                'question_str': sample['imdb']['question_str'],
-                'question_tokens': sample['imdb']['question_tokens'],
-                'question_sequence': sample['imdb']['question_sequence'],
-                'question_length': sample['imdb']['question_length'],
+                'image_name': sample['image_name'],
+                'image_path': sample['image_path'],
+                'image_id': sample['image_id'],
+                'feature_path': sample['feature_path'],
+                'question_id': sample['question_id'],
+                'question_str': sample['question_str'],
+                'question_tokens': sample['question_tokens'],
+                'question_sequence': sample['question_sequence'],
+                'question_length': sample['question_length'],
                 'all_answers': answer,
                 'all_answers_sequences': answer_sequence,
                 'all_answers_length': answer_length,
-                'img_feat': sample['img_feat'][0],
+                'img_feat': sample['image_feat'],
             }
 
         vcrs_dataset = answers_dataset.map(map_fn)
@@ -209,45 +212,12 @@ class DataReader:
         imdb['all_answers_sequences'] = self.pad_or_trim_2d(imdb['all_answers_sequences'], self.T_a_encoder, padding=0)
         imdb['all_rationales'] = self.pad_or_trim_2d(imdb['all_rationales'], self.T_r_encoder)
         imdb['all_rationales_sequences'] = self.pad_or_trim_2d(imdb['all_rationales_sequences'], self.T_r_encoder, padding=0)
+        imdb['image_feat'] = feat[0]
 
         if self.load_correct_answer:
             imdb['valid_answer_onehot'] = tf.one_hot(imdb['valid_answer_index'], self.num_combinations, 1., 0.)
 
-        return {
-            'imdb': imdb,
-            'img_feat': feat
-        }
-    
-    def to_final_structure(self, sample):
-        new_sample = {
-            'image_name': sample['imdb']['image_name'],
-            'image_path': sample['imdb']['image_path'],
-            'image_id': sample['imdb']['image_id'],
-            'feature_path': sample['imdb']['feature_path'],
-            'question_id': sample['imdb']['question_id'],
-            'question_str': sample['imdb']['question_str'],
-            'question_tokens': sample['imdb']['question_tokens'],
-            'question_sequence': sample['imdb']['question_sequence'],
-            'question_length': sample['imdb']['question_length'],
-            'all_answers': sample['imdb']['all_answers'],
-            'all_answers_sequences': sample['imdb']['all_answers_sequences'],
-            'all_answers_length': sample['imdb']['all_answers_length'],
-            'image_feat': sample['img_feat'][0]
-        }
-
-        if self.load_rationale:
-            new_sample['all_rationales_sequences'] = sample['imdb']['all_rationales_sequences']
-            new_sample['all_rationales_length'] = sample['imdb']['all_rationales_length']
-            if self.load_correct_rationale:
-                new_sample['valid_rationales'] = sample['imdb']['valid_rationales']
-                new_sample['valid_rationale_index'] = sample['imdb']['valid_rationale_index']
-
-        if self.load_correct_answer:
-            new_sample['valid_answers'] = sample['imdb']['valid_answers']
-            new_sample['valid_answer_index'] = sample['imdb']['valid_answer_index']
-            new_sample['valid_answer_onehot'] = sample['imdb']['valid_answer_onehot']
-
-        return new_sample
+        return imdb
 
     def pad_or_trim(self, tensor, length, padding = ''):
         # Determine the current length of the tensor
@@ -278,19 +248,6 @@ class DataReader:
             if self.load_rationale:
                 element['bert_rationale_embeddings_batch'] = tf.transpose(element['bert_rationale_embeddings_batch'], [1, 0, 2])
         return element
-
-    # def flatten_batch_task_dims(self, element):
-    #     for key in element.keys():
-    #         # Get the shape of the current tensor
-    #         shape = tf.shape(element[key])
-        
-    #         # Since each element contains n records (1 for each combination of answer/rationale/answer-rationale), flatten that dimension into the batch_size dim.
-    #         # The new size effectively becomes self.num_combinations * self.batch_size
-    #         new_shape = tf.concat(([shape[0] * shape[1]], shape[2:]), axis=0)
-        
-    #         # Reshape the current tensor and update it in the dictionary
-    #         element[key] = tf.reshape(element[key], new_shape)
-    #     return element
 
     # def batches(self):
     #     num_samples = len(self.imdb)

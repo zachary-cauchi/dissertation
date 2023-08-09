@@ -86,12 +86,12 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
         features['bert_question_embeddings_batch'] if load_bert else None,
         features['bert_answer_embeddings_batch'] if load_bert else None,
         features['bert_rationale_embeddings_batch'] if load_bert and load_rationale else None,
-        features['img_feat'],
+        features['image_feat'],
         num_vocab=params['num_vocab'],
         num_choices=params['num_combinations'],
         module_names=params['module_names'],
         is_training=mode==tf.estimator.ModeKeys.TRAIN,
-        reuse=None
+        reuse=tf.AUTO_REUSE
     )
 
     if mode == tf.estimator.ModeKeys.TRAIN or mode == tf.estimator.ModeKeys.EVAL:
@@ -159,13 +159,14 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
         #   * Enables use of Tensor Cores on supporting Nvidia GPUs.
         solver = tf.train.experimental.enable_mixed_precision_graph_rewrite(solver, loss_scale='dynamic')
 
+        # TODO: Consider dynamic loss scale such as tf.train.experiential.DynamicLossScale?
         grads_and_vars = solver.compute_gradients(loss_total)
         global_step = tf.compat.v1.train.get_or_create_global_step()
 
         if cfg.TRAIN.CLIP_GRADIENTS:
             print_fn(f'clipping gradients to max norm: {cfg.TRAIN.GRAD_MAX_NORM:f}')
             gradients, variables = zip(*grads_and_vars)
-            gradients, _ = tf.clip_by_global_norm(gradients, cfg.TRAIN.GRAD_MAX_NORM)
+            gradients, _ = tf.clip_by_global_norm(gradients, cfg.TRAIN.GRAD_MAX_NORM, name='perform_gradient_clipping')
             grads_and_vars = zip(gradients, variables)
         solver_op = solver.apply_gradients(grads_and_vars, global_step=global_step)
 
@@ -173,7 +174,7 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
         with tf.control_dependencies([solver_op]):
             ema._num_updates = global_step
             ema_op = ema.apply(model.params)
-            train_op = tf.group(ema_op)
+            train_op = tf.group(ema_op, name='ema_train_op')
 
         # Create a hook to update the metrics per run
         class MetricHook(tf.train.SessionRunHook):
@@ -216,6 +217,7 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
 
 # Load config
 cfg = build_cfg_from_argparse()
+snapshot_dir = cfg.TRAIN.SNAPSHOT_DIR % cfg.EXP_NAME
 
 if 'CUDA_VISIBLE_DEVICES' not in os.environ:
     os.environ["CUDA_VISIBLE_DEVICES"] = ','.join(cfg.GPU_ID)
@@ -223,6 +225,7 @@ if 'CUDA_VISIBLE_DEVICES' not in os.environ:
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.INFO)
 
 # Enables support for XLA optimisation
+os.environ['TF_AUTO_MIXED_PRECISION_GRAPH_REWRITE_LOG_PATH'] = os.path.join(snapshot_dir, 'xla')
 tf.config.optimizer.set_jit('autoclustering')
 tf.enable_resource_variables()
 
@@ -236,7 +239,6 @@ ema = tf.train.ExponentialMovingAverage(decay=cfg.TRAIN.EMA_DECAY)
 # Multi-GPU configuration
 strategy = tf.contrib.distribute.MirroredStrategy()
 
-snapshot_dir = cfg.TRAIN.SNAPSHOT_DIR % cfg.EXP_NAME
 sess_config = tf.ConfigProto(gpu_options=tf.GPUOptions(allow_growth=cfg.GPU_MEM_GROWTH))
 config = tf.estimator.RunConfig(
     model_dir=snapshot_dir,
@@ -265,6 +267,7 @@ if checkpoints is None or len(checkpoints) == 0:
 
 print('Main: Creating eval data_reader.')
 del data_reader, model
+
 data_reader = create_data_reader(cfg.EVAL.SPLIT_VQA, cfg)
 print('Main: Creating new Estimator with updated eval data_reader')
 model = tf.estimator.Estimator(model_fn=model_fn, config=config, params=get_model_fn_params(cfg, data_reader))
@@ -273,7 +276,7 @@ for checkpoint in checkpoints:
     print(f'Main: Evaluating checkpoint {checkpoint}')
     eval_metrics = model.evaluate(
         input_fn=lambda: input_fn(is_training=False),
-        steps=cfg.EVAL.MAX_ITER if cfg.EVAL.MAX_ITER > 0 else None,
+        # steps=cfg.EVAL.MAX_ITER if cfg.EVAL.MAX_ITER > 0 else None,
         checkpoint_path=checkpoint
     )
     print(f'Main: Evaluation results for checkpoint {checkpoint}: {eval_metrics}')

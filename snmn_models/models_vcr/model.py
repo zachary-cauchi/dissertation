@@ -86,8 +86,17 @@ class Model:
 
             self.params = [
                 v for v in tf.trainable_variables() if v.op.name.startswith(scope)]
-            self.l2_reg = tf.add_n([tf.nn.l2_loss(v, name=f'l2_{v.op.name}') for v in self.params if 'weights' in v.op.name])
-            self.l1_reg = tf.add_n([tf.reduce_sum(tf.abs(v), name=f'l1_{v.op.name}') for v in self.params if 'weights' in v.op.name])
+            
+            l1_regs = []
+            l2_regs = []
+            
+            for v in self.params:
+                if 'weights' in v.op.name:
+                    l1_regs.append(tf.reduce_sum(tf.abs(v), name=f'l1_{v.op.name}'))
+                    l2_regs.append(tf.nn.l2_loss(v, name=f'l2_{v.op.name}'))
+
+            self.l1_reg = tf.add_n(l1_regs, name='l1_reg')
+            self.l2_reg = tf.add_n(l2_regs, name='l2_reg')
             self.reg_rho = cfg.TRAIN.L1_L2_RHO
 
             self.elastic_net_reg = self.reg_rho * self.l1_reg + (1 - self.reg_rho) * self.l2_reg
