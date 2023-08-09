@@ -79,7 +79,7 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
     model = Model(
         features['question_sequence'],
         features['all_answers_sequences'],
-        features['all_answers_sequences'] if load_rationale else None,
+        features['all_rationales_sequences'] if load_rationale else None,
         features['question_length'],
         features['all_answers_length'],
         features['all_rationales_length'] if load_rationale else None,
@@ -129,22 +129,20 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
 
         if not cfg.TRAIN.SOLVER.USE_SPARSE_SOFTMAX_LABELS:
             # Reshape the expected results into a one-hot encoded vector.
-            vqa_q_labels = tf.reshape(labels, (tf.shape(labels)[0] // num_answers, num_answers))
+            vqa_q_labels = tf.reshape(labels, [-1, num_answers])
 
             # Get the indices of the correct answer.
             vqa_q_labels = tf.where(tf.equal(vqa_q_labels, 1.))[:, 1]
 
             # Reshape the predictions into a softmax vector.
-            vqa_scores_val = tf.reshape(model.vqa_scores, (tf.shape(model.vqa_scores)[0] // num_answers, num_answers))
+            vqa_scores_val = tf.reshape(model.vqa_scores, [-1, num_answers])
         else:
             vqa_q_labels = labels
             vqa_scores_val = model.vqa_scores
 
         # Convert the logits into the predicted indices of the correct answer.
         vqa_predictions = tf.argmax(vqa_scores_val, axis=1, output_type=tf.int32)
-        
-        vqa_q_labels = tf.cast(vqa_q_labels, tf.int64)
-        vqa_predictions = tf.cast(vqa_predictions, tf.int64)
+        vqa_q_labels = tf.cast(vqa_q_labels, tf.int32)
 
         accuracy = tf.metrics.accuracy(labels=vqa_q_labels, predictions=vqa_predictions, name='accuracy_op')
 
@@ -184,7 +182,6 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
         metric_hook = MetricHook()
         with tf.device('/CPU:0'):
             tf.summary.scalar('accuracy', accuracy[0])
-            tf.summary.scalar('loss/elastic_reg', model.elastic_net_reg)
             summary_hook = tf.estimator.SummarySaverHook(save_steps=cfg.TRAIN.LOG_INTERVAL, summary_op=tf.summary.merge_all())
         # Print the accuracy to stdout every LOG_INTERVAL steps.
         logging_hook = tf.train.LoggingTensorHook({ 'accuracy': accuracy[0] }, every_n_iter=cfg.TRAIN.LOG_INTERVAL)

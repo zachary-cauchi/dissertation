@@ -146,6 +146,8 @@ class DataReader:
         final_dataset = final_dataset.flat_map(self.split_vcr_tasks_answer_only)
         final_dataset = final_dataset.batch(self.actual_batch_size, drop_remainder=True)
         final_dataset = final_dataset.map(self.to_time_major, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        if self.load_correct_answer:
+            final_dataset = final_dataset.map(lambda x: (x, x[self.correct_label_batch_name]), num_parallel_calls=tf.data.experimental.AUTOTUNE)
         final_dataset = final_dataset.prefetch(tf.data.experimental.AUTOTUNE)
         
         return final_dataset
@@ -208,11 +210,11 @@ class DataReader:
         feat = tf.ensure_shape(tfrecords_helpers.parse_resnet_example_to_nparray(resnet_sample), (1, self.feat_H, self.feat_W, self.feat_D))
 
         imdb['question_tokens'] = self.pad_or_trim(imdb['question_tokens'], self.T_q_encoder)
-        imdb['question_sequence'] = self.pad_or_trim(imdb['question_sequence'], self.T_q_encoder, padding = 0)
+        imdb['question_sequence'] = self.pad_or_trim(imdb['question_sequence'], self.T_q_encoder, padding=self.vocab_dict.UNK_idx)
         imdb['all_answers'] = self.pad_or_trim_2d(imdb['all_answers'], self.T_a_encoder)
-        imdb['all_answers_sequences'] = self.pad_or_trim_2d(imdb['all_answers_sequences'], self.T_a_encoder, padding=0)
+        imdb['all_answers_sequences'] = self.pad_or_trim_2d(imdb['all_answers_sequences'], self.T_a_encoder, padding=self.vocab_dict.UNK_idx)
         imdb['all_rationales'] = self.pad_or_trim_2d(imdb['all_rationales'], self.T_r_encoder)
-        imdb['all_rationales_sequences'] = self.pad_or_trim_2d(imdb['all_rationales_sequences'], self.T_r_encoder, padding=0)
+        imdb['all_rationales_sequences'] = self.pad_or_trim_2d(imdb['all_rationales_sequences'], self.T_r_encoder, padding=self.vocab_dict.UNK_idx)
         imdb['image_feat'] = feat[0]
 
         if self.load_correct_answer:
