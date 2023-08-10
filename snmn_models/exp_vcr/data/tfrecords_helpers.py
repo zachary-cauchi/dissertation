@@ -93,7 +93,7 @@ def parse_example_to_imdb(example):
     image_path = tf.cast(parsed_features['image_path'], tf.string)
     feature_path = tf.cast(parsed_features['feature_path'], tf.string)
     question_str = tf.cast(parsed_features['question_str'], tf.string)
-    question_sequence = tf.sparse.to_dense(parsed_features['question_sequence'], default_value=0)
+    question_sequence = tf.cast(tf.sparse.to_dense(parsed_features['question_sequence'], default_value=0), tf.int32)
     question_length = tf.cast(parsed_features['question_length'], tf.int32)
     image_id = tf.cast(parsed_features['image_id'], tf.int32)
     question_id = tf.cast(parsed_features['question_id'], tf.int32)
@@ -105,12 +105,12 @@ def parse_example_to_imdb(example):
     all_answers = tf.sparse.to_dense(parsed_features['all_answers'], default_value='')
     all_answers_length = tf.cast(parsed_features['all_answers_length'], tf.int32)
     all_answers = tf.split(all_answers, all_answers_length, 0)
-    all_answers_sequences = tf.sparse.to_dense(parsed_features['all_answers_sequences'], default_value=0)
+    all_answers_sequences = tf.cast(tf.sparse.to_dense(parsed_features['all_answers_sequences'], default_value=0), tf.int32)
     all_answers_sequences = tf.split(all_answers_sequences, all_answers_length, 0)
     all_rationales = tf.sparse.to_dense(parsed_features['all_rationales'], default_value='')
     all_rationales_length = tf.cast(parsed_features['all_rationales_length'], tf.int32)
     all_rationales = tf.split(all_rationales, all_rationales_length, 0)
-    all_rationales_sequences = tf.sparse.to_dense(parsed_features['all_rationales_sequences'], default_value=0)
+    all_rationales_sequences = tf.cast(tf.sparse.to_dense(parsed_features['all_rationales_sequences'], default_value=0), tf.int32)
     all_rationales_sequences = tf.split(all_rationales_sequences, all_rationales_length, 0)
 
     return {

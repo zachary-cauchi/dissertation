@@ -1,4 +1,5 @@
 import os
+from typing import Callable
 import numpy as np
 import tensorflow as tf
 
@@ -8,13 +9,18 @@ from util import text_processing
 
 class DataReader:
     def __init__(self, imdb_file, **data_params):
+        self.print_fn = self.get_per_device_print_fn(tf.no_op('get_device_name'))
         self.imdb_file = imdb_file
+
+        self.print_fn('Initialising imdb dataset')
         self.init_imdb_dataset()
+
+        self.print_fn('Getting imdb count')
+        self.get_imdb_count()
 
         self.data_params = data_params
         self.vcr_task_type = data_params['vcr_task_type']
 
-        self.imdb_count = self.imdb_dataset
         with tf.compat.v1.Session() as sess:
             iterator = self.imdb_dataset.make_one_shot_iterator()
             sample_elm = iterator.get_next()
@@ -39,7 +45,7 @@ class DataReader:
         self.load_rationale = data_params['vcr_task_type'] == 'QA_2_R' or data_params['vcr_task_type'] == 'Q_2_AR'
 
         if data_params['load_bert_embeddings'] == True:
-            print('DataReader: Loading BERT embeddings.')
+            self.print_fn('Loading BERT embeddings.')
             self.load_bert = True
             self.bert_handler = BertHandler(self.data_params['bert_answer_embeddings_path'], self.data_params['bert_rationale_embeddings_path'])
             self.bert_dim = self.bert_handler.bert_dim
@@ -67,12 +73,12 @@ class DataReader:
         self.actual_batch_size = data_params['batch_size'] * self.num_combinations
 
         if not self.load_correct_answer:
-            print('DataReader: imdb does not contain correct answers')
+            self.print_fn('imdb does not contain correct answers')
         if not self.load_correct_rationale:
-            print('DataReader: imdb does not contain correct rationales')
+            self.print_fn('imdb does not contain correct rationales')
 
         if not self.load_rationale:
-            print('DataReader: Model is running in neither QA_2_R nor Q_2_AR')
+            self.print_fn('Model is running in neither QA_2_R nor Q_2_AR')
 
         self.T_decoder = data_params['T_decoder']
 
@@ -84,7 +90,7 @@ class DataReader:
                 data_params['prune_filter_module']
                 if 'prune_filter_module' in data_params else True)
         else:
-            print('DataReader: imdb does not contain ground-truth layout')
+            self.print_fn('imdb does not contain ground-truth layout')
         # Whether to load soft scores (targets for sigmoid regression)
         self.load_soft_score = ('load_soft_score' in data_params and
                                 data_params['load_soft_score'])
@@ -93,7 +99,7 @@ class DataReader:
         sample_feature_path = sample_record['feature_path'].decode('utf-8')
         self.feature_parent_dir = os.path.dirname(os.path.dirname(sample_feature_path))
         
-        print('DataReader: Loading sample image features to peek size.')
+        self.print_fn('Loading sample image features to peek size.')
         self.feature_file_type = sample_feature_path.split('.')[-1]
         if self.feature_file_type == 'npy':
             self.feature_file_size = os.path.getsize(sample_feature_path)
@@ -109,48 +115,65 @@ class DataReader:
         else:
             raise ValueError(f'Feature file type not supported ({self.feature_file_type})')
 
-        self.feat_H, self.feat_W, self.feat_D = feats.shape[1:]
+        _, self.feat_H, self.feat_W, self.feat_D = feats.shape
+
+    def get_imdb_count(self):
+        if not hasattr(self, 'imdb_dataset'):
+            self.init_imdb_dataset()
+
+        with tf.variable_scope('imdb_counter'):
+            with tf.compat.v1.Session() as sess:
+                iterator = self.imdb_dataset.batch(4096).make_one_shot_iterator()
+                next_element = iterator.get_next()
+                counter = tf.Variable(0, dtype=tf.int32)
+                increment_op = tf.assign_add(counter, tf.shape(next_element)[0])
+                sess.run(tf.initialize_variables([ counter ]))
+                try:
+                    while True:
+                        sess.run([increment_op, next_element])
+                except tf.errors.OutOfRangeError:
+                    pass
+                self.imdb_count = sess.run(counter)
+                del iterator, next_element, counter, increment_op
 
     def init_imdb_dataset(self):
         if self.imdb_file.endswith('.npy'):
-            print(f'DataReader: Loading imdb npy dataset from {self.imdb_file}')
+            self.print_fn(f'Loading imdb npy dataset from {self.imdb_file}')
             imdb = np.load(self.imdb_file, allow_pickle=True)
-            self.imdb_dataset = tf.data.Dataset.from_tensor_slices(tf.convert_to_tensor(imdb)).cache()
+            self.imdb_dataset: tf.data.Dataset = tf.data.Dataset.from_tensor_slices(tf.convert_to_tensor(imdb))
         elif self.imdb_file.endswith('.tfrecords'):
-            print(f'DataReader: Initialising imdb TFRecords dataset from {self.imdb_file}')
-            self.imdb_dataset = tf.compat.v1.data.TFRecordDataset(self.imdb_file).cache()
+            self.print_fn(f'Initialising imdb TFRecords dataset from {self.imdb_file}')
+            self.imdb_dataset: tf.data.Dataset = tf.compat.v1.data.TFRecordDataset(self.imdb_file)
         else:
             raise TypeError('unknown imdb format.')
 
-    def init_resnet_dataset(self):
-        # Because TFRecordDataset does not have a lookup method, we need to create an ordered list of element accesses.
-        # Like this, we can interleave them with the imdb dataset in the order they're needed.
-        print('DataReader: Building image feature access order for imdb dataset')
-        base_name = os.path.basename(self.imdb_file)
-        resnet_access_file_path = self.imdb_file.replace(base_name, 'resnet_access_' + base_name)
-        resnet_access_file_path = resnet_access_file_path.rpartition('.')[0] + '.npy'
-        resnet_access_list = [str(s) for s in np.load(resnet_access_file_path, allow_pickle=True)]
-        if self.feature_file_type == 'tfrecords':
-            self.resnet_dataset = tf.data.TFRecordDataset(resnet_access_list)
-        else:
-            self.resnet_dataset = tf.data.FixedLengthRecordDataset(resnet_access_list, self.feature_file_size)
-            self.resnet_dataset = self.resnet_dataset.map(lambda r: np.frombuffer(r, dtype=np.int64).reshape([ self.feat_H, self.feat_W, self.feat_D ]))
-
     def init_dataset(self):
         self.init_imdb_dataset()
-        self.init_resnet_dataset()
 
-        final_dataset = tf.data.Dataset.zip((self.imdb_dataset, self.resnet_dataset))
-        final_dataset = final_dataset.shuffle(buffer_size=self.grouped_batch_size, reshuffle_each_iteration=True)
+        # Cache and shuffle the imdb dataset.
+        final_dataset = self.imdb_dataset.cache().shuffle(buffer_size=self.imdb_count, reshuffle_each_iteration=True)
         final_dataset: tf.data.Dataset = final_dataset.map(self.parse_raw_tensors, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        # Load the image features using the imdb['feature_path']
+        final_dataset = final_dataset.interleave(self.load_image_features, cycle_length=8, block_length=1, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        # Split each imdb task into individual vcr tasks.
         final_dataset = final_dataset.flat_map(self.split_vcr_tasks_answer_only)
+        # Batch those tasks.
         final_dataset = final_dataset.batch(self.actual_batch_size, drop_remainder=True)
+        # Perform final transpositions from nchw to nhwc.
         final_dataset = final_dataset.map(self.to_time_major, num_parallel_calls=tf.data.experimental.AUTOTUNE)
         if self.load_correct_answer:
             final_dataset = final_dataset.map(lambda x: (x, x[self.correct_label_batch_name]), num_parallel_calls=tf.data.experimental.AUTOTUNE)
         final_dataset = final_dataset.prefetch(tf.data.experimental.AUTOTUNE)
         
         return final_dataset
+
+    def load_image_features(self, imdb):
+        image_feature_dataset = tf.data.TFRecordDataset(imdb['feature_path'])
+
+        def add_to_imdb(feat):
+            return { **imdb, 'image_feat': tf.ensure_shape(tfrecords_helpers.parse_resnet_example_to_nparray(feat)[0], (self.feat_H, self.feat_W, self.feat_D)) }
+
+        return image_feature_dataset.map(add_to_imdb)
 
     def split_vcr_tasks_answer_only(self, sample):
         if self.load_correct_answer:
@@ -205,9 +228,8 @@ class DataReader:
 
         return vcrs_dataset
 
-    def parse_raw_tensors(self, imdb_sample, resnet_sample):
+    def parse_raw_tensors(self, imdb_sample):
         imdb = tfrecords_helpers.parse_example_to_imdb(imdb_sample)
-        feat = tf.ensure_shape(tfrecords_helpers.parse_resnet_example_to_nparray(resnet_sample), (1, self.feat_H, self.feat_W, self.feat_D))
 
         imdb['question_tokens'] = self.pad_or_trim(imdb['question_tokens'], self.T_q_encoder)
         imdb['question_sequence'] = self.pad_or_trim(imdb['question_sequence'], self.T_q_encoder, padding=0)
@@ -215,7 +237,6 @@ class DataReader:
         imdb['all_answers_sequences'] = self.pad_or_trim_2d(imdb['all_answers_sequences'], self.T_a_encoder, padding=0)
         imdb['all_rationales'] = self.pad_or_trim_2d(imdb['all_rationales'], self.T_r_encoder)
         imdb['all_rationales_sequences'] = self.pad_or_trim_2d(imdb['all_rationales_sequences'], self.T_r_encoder, padding=0)
-        imdb['image_feat'] = feat[0]
 
         if self.load_correct_answer:
             imdb['valid_answer_onehot'] = tf.one_hot(imdb['valid_answer_index'], self.num_combinations, 1., 0.)
@@ -515,3 +536,7 @@ class DataReader:
     def __del__(self):
         if hasattr(self, 'bert_handler'):
             del bert_handler
+
+    def get_per_device_print_fn(self, tensor) -> Callable[[str], None]:
+        device = tensor.device
+        return lambda msg: print(f'{device + ": " if device is not None else ""}DataReader: {msg}')
