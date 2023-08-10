@@ -12,6 +12,7 @@ os.environ['TF_XLA_FLAGS'] = '--tf_xla_cpu_global_jit' # --tf_xla_auto_jit=2
 os.environ['XLA_FLAGS'] = '--xla_hlo_profile'
 
 import tensorflow as tf
+from tensorflow.contrib.distribute import MirroredStrategy
 
 from models_vcr.model import Model
 from models_vcr.config import build_cfg_from_argparse
@@ -73,8 +74,8 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
     load_bert = params['load_bert']
     correct_label_batch_name = params['correct_label_batch_name']
 
-    if labels is None:
-        labels = features[correct_label_batch_name]
+    # if labels is None:
+    #     labels = features[correct_label_batch_name]
 
     model = Model(
         features['question_sequence'],
@@ -96,6 +97,7 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
 
     if mode == tf.estimator.ModeKeys.TRAIN or mode == tf.estimator.ModeKeys.EVAL:
         print_fn('Setting up loss and accuracy metrics')
+        global_step = tf.compat.v1.train.get_or_create_global_step()
 
         # Loss function
         if cfg.TRAIN.VQA_USE_SOFT_SCORE:
@@ -159,7 +161,6 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
 
         # TODO: Consider dynamic loss scale such as tf.train.experiential.DynamicLossScale?
         grads_and_vars = solver.compute_gradients(loss_total)
-        global_step = tf.compat.v1.train.get_or_create_global_step()
 
         if cfg.TRAIN.CLIP_GRADIENTS:
             print_fn(f'clipping gradients to max norm: {cfg.TRAIN.GRAD_MAX_NORM:f}')
@@ -168,9 +169,10 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
             grads_and_vars = zip(gradients, variables)
         solver_op = solver.apply_gradients(grads_and_vars, global_step=global_step)
 
+        ema._num_updates = global_step
+
         print_fn('Initializing exponential moving average.')
         with tf.control_dependencies([solver_op]):
-            ema._num_updates = global_step
             ema_op = ema.apply(model.params)
             train_op = tf.group(ema_op, name='ema_train_op')
 
@@ -182,6 +184,7 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
         metric_hook = MetricHook()
         with tf.device('/CPU:0'):
             tf.summary.scalar('accuracy', accuracy[0])
+            tf.summary.scalar('loss/loss-vqa', loss_vqa)
             summary_hook = tf.estimator.SummarySaverHook(save_steps=cfg.TRAIN.LOG_INTERVAL, summary_op=tf.summary.merge_all())
         # Print the accuracy to stdout every LOG_INTERVAL steps.
         logging_hook = tf.train.LoggingTensorHook({ 'accuracy': accuracy[0] }, every_n_iter=cfg.TRAIN.LOG_INTERVAL)
@@ -224,7 +227,6 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.INFO)
 # Enables support for XLA optimisation
 os.environ['TF_AUTO_MIXED_PRECISION_GRAPH_REWRITE_LOG_PATH'] = os.path.join(snapshot_dir, 'xla')
 tf.config.optimizer.set_jit('autoclustering')
-tf.enable_resource_variables()
 
 # Data files
 data_reader = create_data_reader(cfg.TRAIN.SPLIT_VQA, cfg)
@@ -234,7 +236,7 @@ data_reader = create_data_reader(cfg.TRAIN.SPLIT_VQA, cfg)
 ema = tf.train.ExponentialMovingAverage(decay=cfg.TRAIN.EMA_DECAY)
 
 # Multi-GPU configuration
-strategy = tf.contrib.distribute.MirroredStrategy()
+strategy = MirroredStrategy()
 
 sess_config = tf.ConfigProto(gpu_options=tf.GPUOptions(allow_growth=cfg.GPU_MEM_GROWTH))
 config = tf.estimator.RunConfig(
@@ -252,10 +254,10 @@ config = tf.estimator.RunConfig(
 profiler_hook = tf.train.ProfilerHook(save_steps=cfg.TRAIN.SNAPSHOT_INTERVAL, output_dir=snapshot_dir, show_dataflow=True, show_memory=True)
 
 print('Main: Initializing Estimator.')
-model = tf.estimator.Estimator(model_fn=model_fn, config=config, params=get_model_fn_params(cfg, data_reader))
+estimator = tf.estimator.Estimator(model_fn=model_fn, config=config, params=get_model_fn_params(cfg, data_reader))
 print('Main: Initialised.')
 print('Main: Beginning training.')
-model.train(input_fn=lambda: input_fn(is_training=True), steps=cfg.TRAIN.MAX_ITER, hooks=[ profiler_hook ])
+estimator.train(input_fn=lambda: input_fn(is_training=True), steps=cfg.TRAIN.MAX_ITER, hooks=[ profiler_hook ])
 print('Main: Training completed. Evaluating checkpoints.')
 checkpoints = [ os.path.join(snapshot_dir, c.group(1)) for c in [re.match(pattern = '(model.ckpt-[^0].*).data-00000.*', string=s) for s in os.listdir(snapshot_dir)] if c is not None]
 if checkpoints is None or len(checkpoints) == 0:
@@ -263,15 +265,15 @@ if checkpoints is None or len(checkpoints) == 0:
     sys.exit(0)
 
 print('Main: Creating eval data_reader.')
-del data_reader, model
+del data_reader, estimator
 
 data_reader = create_data_reader(cfg.EVAL.SPLIT_VQA, cfg)
 print('Main: Creating new Estimator with updated eval data_reader')
-model = tf.estimator.Estimator(model_fn=model_fn, config=config, params=get_model_fn_params(cfg, data_reader))
+estimator = tf.estimator.Estimator(model_fn=model_fn, config=config, params=get_model_fn_params(cfg, data_reader))
 
 for checkpoint in checkpoints:
     print(f'Main: Evaluating checkpoint {checkpoint}')
-    eval_metrics = model.evaluate(
+    eval_metrics = estimator.evaluate(
         input_fn=lambda: input_fn(is_training=False),
         # steps=cfg.EVAL.MAX_ITER if cfg.EVAL.MAX_ITER > 0 else None,
         checkpoint_path=checkpoint

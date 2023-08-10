@@ -24,13 +24,13 @@ TRAIN:
   USE_GT_LAYOUT: False
   SAVE_LAYOUT_WITH_SNAPSHOT: True
   WEIGHT_DECAY: 1e-4
-  L1_L2_RHO: 0.95 # 0. for l1 only, 1. for l2 only
+  L1_L2_RHO: 0.9 # 0. for l1 only, 1. for l2 only
   BATCH_SIZE: 64
   SOLVER:
     LR: 1e-4
     USE_SPARSE_SOFTMAX_LABELS: False
   VQA_USE_SOFT_SCORE: False
-  VQA_SCORE_INIT: -1.  # roughly sigmoid(-8) = 1/3000
+  VQA_SCORE_INIT: -8.  # roughly sigmoid(-8) = 1/3000
   SNAPSHOT_INTERVAL: 5000
 TEST:
   EVAL_FILE: './exp_vcr/eval_outputs_vcr/%s/vcr_%s_%s_%s_results.json'

@@ -38,7 +38,7 @@ class Model:
 
             # Input unit
             lstm_seq, lstm_encodings, embed_seq = input_unit.build_input_unit(
-                question_seq_batch, all_answers_seq_batch, all_rationales_seq_batch, question_length_batch, all_answers_length_batch, all_rationales_length_batch, bert_question_embeddings_batch, bert_answer_embeddings_batch, bert_rationale_embeddings_batch, num_vocab, self.seq_in_count, reuse=reuse)
+                question_seq_batch, all_answers_seq_batch, all_rationales_seq_batch, question_length_batch, all_answers_length_batch, all_rationales_length_batch, bert_question_embeddings_batch, bert_answer_embeddings_batch, bert_rationale_embeddings_batch, num_vocab, self.seq_in_count, reuse=reuse, use_cudnn_lstm=True)
             kb_batch = input_unit.build_kb_batch(image_feat_batch, reuse=reuse)
 
             # Controller and NMN
@@ -58,7 +58,7 @@ class Model:
                     lstm_encodings, self.nmn.mem_last, num_choices,
                     apply_dropout=is_training, reuse=reuse)
                 
-                if cfg.TRAIN.SOLVER.USE_SPARSE_SOFTMAX_LABELS == True:
+                if cfg.TRAIN.SOLVER.USE_SPARSE_SOFTMAX_LABELS:
                     self.vqa_scores = tf.reshape(vqa_scores, (tf.shape(vqa_scores)[0] // num_choices, num_choices))
                 else:
                     self.vqa_scores = vqa_scores
@@ -84,8 +84,7 @@ class Model:
             else:
                 self.rec_loss = tf.convert_to_tensor(0.)
 
-            self.params = [
-                v for v in tf.trainable_variables() if v.op.name.startswith(scope)]
+            self.params = [ v for v in tf.trainable_variables(scope) ]
             
             l1_regs = []
             l2_regs = []
