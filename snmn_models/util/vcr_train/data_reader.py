@@ -155,6 +155,8 @@ class DataReader:
         final_dataset: tf.data.Dataset = final_dataset.map(self.parse_raw_tensors, num_parallel_calls=tf.data.experimental.AUTOTUNE)
         # Load the image features using the imdb['feature_path']
         final_dataset = final_dataset.interleave(self.load_image_features, cycle_length=8, block_length=1, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        # First batch these elements before splitting.
+        final_dataset = final_dataset.batch(self.grouped_batch_size, drop_remainder=True).unbatch()
         # Split each imdb task into individual vcr tasks.
         final_dataset = final_dataset.flat_map(self.split_vcr_tasks_answer_only)
         # Batch those tasks.

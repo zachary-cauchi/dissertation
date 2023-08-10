@@ -51,6 +51,8 @@ with tf.compat.v1.Session() as sess:
         except tf.errors.OutOfRangeError:
             print(f'Epoch {i} finished: End of dataset')
         end_time = time.time()
-        print(f'Time taken to fetch {"all" if max_steps == 0 else max_steps} batches for epoch {i}: {end_time - start_time} seconds')
 
     print(f'Last fetched sample: {curr_element}')
+
+
+    print(f'Time taken to fetch {"all" if max_steps == 0 else max_steps} batche{"s" if max_steps != 1 else ""} for epoch {i}: {end_time - start_time} seconds')

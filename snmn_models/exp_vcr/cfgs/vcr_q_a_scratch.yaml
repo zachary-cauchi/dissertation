@@ -23,6 +23,7 @@ TRAIN:
   USE_GT_LAYOUT: False
   SAVE_LAYOUT_WITH_SNAPSHOT: True
   WEIGHT_DECAY: 1e-4
+  L1_L2_RHO: 0.8
   BATCH_SIZE: 64
   SOLVER:
     LR: 1e-4
@@ -37,4 +38,4 @@ TEST:
 
 USE_FIXED_WORD_EMBED: True
 FIXED_WORD_EMBED_FILE: './exp_vcr/data/vocabulary_vcr_glove.npy'
-IMDB_FILE: './exp_vcr/data/imdb_r152_7x7/imdb_%s.npy'
+IMDB_FILE: './exp_vcr/data/tfrecords_imdb_r152_7x7/imdb_%s.tfrecords'

@@ -1,3 +1,4 @@
+import math
 import os
 import numpy as np
 import tensorflow as tf
@@ -13,17 +14,17 @@ from util.vcr_train.data_reader import DataReader
 cfg = build_cfg_from_argparse()
 
 # Start session
-if os.environ["CUDA_VISIBLE_DEVICES"] is None:
+if not 'CUDA_VISIBLE_DEVICES' in os.environ:
     os.environ["CUDA_VISIBLE_DEVICES"] = str(cfg.GPU_ID)
 # 0 = all messages are logged (default behavior)
 # 1 = INFO messages are not printed
 # 2 = INFO and WARNING messages are not printed
 # 3 = INFO, WARNING, and ERROR messages are not printed
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0'
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.INFO)
 
 # TODO: Enable XLA graph optimisations
-tf.config.optimizer.set_jit('autoclustering')
+# tf.config.optimizer.set_jit('autoclustering')
 
 sess = tf.Session(config=tf.ConfigProto(
     gpu_options=tf.GPUOptions(allow_growth=cfg.GPU_MEM_GROWTH)))
@@ -53,34 +54,34 @@ num_answers = data_reader.num_combinations
 module_names = data_reader.layout_dict.word_list
 correct_label_batch_name = data_reader.correct_label_batch_name
 
-dataset: tf.compat.v1.data.Dataset = data_reader.dataset
-dataset = dataset.repeat(64)
+repeat_count = (math.ceil(data_reader.imdb_count / cfg.TRAIN.MAX_ITER) + 1) * data_reader.actual_batch_size
+dataset: tf.compat.v1.data.Dataset = data_reader.init_dataset().repeat(repeat_count)
 iterator = tf.compat.v1.data.make_initializable_iterator(dataset)
 next_element = iterator.get_next()
 
-question_seq_batch = next_element['question_seq_batch']
-correct_label_batch = next_element[correct_label_batch_name]
-all_answers_seq_batch = next_element['all_answers_seq_batch']
-all_answers_length_batch = next_element['all_answers_length_batch']
+question_seq_batch = next_element[0]['question_sequence']
+correct_label_batch = next_element[1]
+all_answers_seq_batch = next_element[0]['all_answers_sequences']
+all_answers_length_batch = next_element[0]['all_answers_length']
 if data_reader.load_rationale:
-    all_rationales_seq_batch = next_element['all_rationales_seq_batch']
-    all_rationales_length_batch = next_element['all_rationales_length_batch']
+    all_rationales_seq_batch = next_element[0]['all_rationales_sequences']
+    all_rationales_length_batch = next_element[0]['all_rationales_length']
 else:
     all_rationales_seq_batch = None
     all_rationales_length_batch = None
 if data_reader.load_bert:
-    bert_question_embeddings_batch = next_element['bert_question_embeddings_batch']
-    bert_answer_embeddings_batch = next_element['bert_answer_embeddings_batch']
+    bert_question_embeddings_batch = next_element[0]['bert_question_embeddings_batch']
+    bert_answer_embeddings_batch = next_element[0]['bert_answer_embeddings_batch']
     if data_reader.load_rationale:
-        bert_rationale_embeddings_batch = next_element['bert_rationale_embeddings_batch']
+        bert_rationale_embeddings_batch = next_element[0]['bert_rationale_embeddings_batch']
     else:
         bert_rationale_embeddings_batch = None
 else:
     bert_question_embeddings_batch = None
     bert_answer_embeddings_batch = None
     bert_rationale_embeddings_batch = None
-question_length_batch = next_element['question_length_batch']
-image_feat_batch = next_element['image_feat_batch']
+question_length_batch = next_element[0]['question_length']
+image_feat_batch = next_element[0]['image_feat']
 
 model = Model(
     question_seq_batch,
@@ -135,7 +136,7 @@ solver = tf.train.AdamOptimizer(learning_rate=cfg.TRAIN.SOLVER.LR)
 #   * Enable Automatic Mixed Precision (AMP) which will mix in float16 types in the graph.
 #   * Enable XLA graph optimisation which compiles the generated graph for improved performance.
 #   * Enables use of Tensor Cores on supporting Nvidia GPUs.
-solver = tf.train.experimental.enable_mixed_precision_graph_rewrite(solver, loss_scale='dynamic')
+# solver = tf.train.experimental.enable_mixed_precision_graph_rewrite(solver, loss_scale='dynamic')
 grads_and_vars = solver.compute_gradients(loss_total)
 if cfg.TRAIN.CLIP_GRADIENTS:
     print('clipping gradients to max norm: %f' % cfg.TRAIN.GRAD_MAX_NORM)
@@ -171,12 +172,13 @@ os.makedirs(log_dir, exist_ok=True)
 log_writer = tf.summary.FileWriter(log_dir, sess.graph)
 loss_vqa_ph = tf.placeholder(tf.float32, [])
 loss_layout_ph = tf.placeholder(tf.float32, [])
+loss_total_ph = tf.placeholder(tf.float32, [])
 loss_rec_ph = tf.placeholder(tf.float32, [])
 accuracy_ph = tf.placeholder(tf.float32, [])
 summary_trn = []
+summary_trn.append(tf.summary.scalar("loss/total", loss_total_ph))
 summary_trn.append(tf.summary.scalar("loss/vqa", loss_vqa_ph))
 summary_trn.append(tf.summary.scalar("loss/layout", loss_layout_ph))
-summary_trn.append(tf.summary.scalar("loss/rec", loss_rec_ph))
 summary_trn.append(tf.summary.scalar("eval/vqa/accuracy", accuracy_ph))
 log_step_trn = tf.summary.merge(summary_trn)
 
@@ -195,7 +197,7 @@ try:
         save_snapshot = True if ((n_iter+1) % cfg.TRAIN.SNAPSHOT_INTERVAL == 0 or (n_iter+1) == cfg.TRAIN.MAX_ITER) else False
         do_profile = True if save_snapshot and n_iter > 2498 else False
 
-        fetches = (model.module_logits, model.vqa_scores, loss_vqa, loss_layout, loss_rec, correct_label_batch, train_op)
+        fetches = (model.module_logits, model.vqa_scores, loss_vqa, loss_layout, loss_total, correct_label_batch, train_op)
         
         # Profile and capture metadata for this run only if we're on a specific iteration.
         run_meta = tf.compat.v1.RunMetadata() if do_profile else None
@@ -204,7 +206,7 @@ try:
             options = tf.compat.v1.RunOptions(trace_level=tf.RunOptions.FULL_TRACE) if do_profile else None,
             run_metadata=run_meta)
 
-        module_logits, vqa_scores_val, loss_vqa_val, loss_layout_val, loss_rec_val, vqa_q_labels, _ = output
+        module_logits, vqa_scores_val, loss_vqa_val, loss_layout_val, loss_total_val, vqa_q_labels, _ = output
 
         # compute accuracy
 
@@ -230,14 +232,14 @@ try:
             elapsed = time.time() - start_time
 
             print(f"exp: {cfg.EXP_NAME}, task_type = {cfg.MODEL.VCR_TASK_TYPE}, iter = {n_iter + 1}, elapsed = {int(elapsed // 3600)}h {int(elapsed // 60) % 60}m {int(elapsed % 60)}s\n\t" +
-                f"loss (vqa) = {loss_vqa_val}, loss (layout) = {loss_layout_val}, loss (rec) = {loss_rec_val}\n\t" +
+                f"loss (vqa) = {loss_vqa_val}, loss (layout) = {loss_layout_val}, loss (total) = {loss_total_val}\n\t" +
                 f"accuracy (avg) = {avg_accuracy}, accuracy (cur) = {accuracy}")
             
             summary = sess.run(log_step_trn,
                 {
+                    loss_total_ph: loss_total_val,
                     loss_vqa_ph: loss_vqa_val,
                     loss_layout_ph: loss_layout_val,
-                    loss_rec_ph: loss_rec_val,
                     accuracy_ph: avg_accuracy
                 })
 
@@ -272,7 +274,7 @@ except KeyboardInterrupt:
         {
             loss_vqa_ph: loss_vqa_val,
             loss_layout_ph: loss_layout_val,
-            loss_rec_ph: loss_rec_val,
+            loss_total_ph: loss_total_val,
             accuracy_ph: avg_accuracy
         })
 

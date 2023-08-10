@@ -8,10 +8,10 @@ COOCCURRENCE_SHUF_FILE=cooccurrence.shuf.bin
 BUILDDIR=../../../GloVe/build
 SAVE_FILE=vocabulary_vcr_glove
 VERBOSE=2
-MEMORY=8.0
+MEMORY=16.0
 VOCAB_MIN_COUNT=5
 VECTOR_SIZE=300
-MAX_ITER=25
+MAX_ITER=30
 WINDOW_SIZE=15
 BINARY=2
 NUM_THREADS=8
@@ -40,9 +40,6 @@ cut -f 2- -d ' ' $SAVE_FILE.txt > trimmed_$SAVE_FILE.txt
 
 echo "$ cp -f $SAVE_FILE.txt trimmed_$SAVE_FILE.txt"
 cp -f trimmed_$SAVE_FILE.txt $SAVE_FILE.txt
-
-echo "$ rm trimmed_$SAVE_FILE.txt"
-rm trimmed_$SAVE_FILE.txt
 
 echo "$ $PYTHON -c \"import numpy as np; np.save('$SAVE_FILE.npy', np.loadtxt('$SAVE_FILE.txt'), allow_pickle=True)\""
 $PYTHON -c "import numpy as np; np.save('$SAVE_FILE.npy', np.loadtxt('$SAVE_FILE.txt'), allow_pickle=True)"
