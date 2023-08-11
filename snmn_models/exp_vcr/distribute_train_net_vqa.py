@@ -44,9 +44,11 @@ def get_per_device_print_fn(tensor) -> Callable[[str], None]:
     return lambda msg: print(f'{device}: {msg}')
 
 def input_fn(is_training: bool = True):
-    dataset: tf.compat.v1.data.Dataset = data_reader.init_dataset()
     if is_training:
-        dataset = dataset.repeat(64)
+        repeat_count = (math.ceil(data_reader.imdb_count / cfg.TRAIN.MAX_ITER) + 1) * data_reader.actual_batch_size
+        dataset: tf.compat.v1.data.Dataset = data_reader.init_dataset().repeat(repeat_count)
+    else:
+        dataset: tf.compat.v1.data.Dataset = data_reader.init_dataset()
 
     # dataset.apply(self=dataset, transformation_func=tf.data.experimental.prefetch_to_device())
 
@@ -92,7 +94,8 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
         num_choices=params['num_combinations'],
         module_names=params['module_names'],
         is_training=mode==tf.estimator.ModeKeys.TRAIN,
-        reuse=tf.AUTO_REUSE
+        reuse=tf.AUTO_REUSE,
+        use_cudnn_lstm=cfg.MODEL.INPUT.USE_CUDNN_LSTM
     )
 
     if mode == tf.estimator.ModeKeys.TRAIN or mode == tf.estimator.ModeKeys.EVAL:
@@ -100,13 +103,7 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
         global_step = tf.compat.v1.train.get_or_create_global_step()
 
         # Loss function
-        if cfg.TRAIN.VQA_USE_SOFT_SCORE:
-            soft_score_batch = tf.placeholder(tf.float32, [None], name='soft_score_batch')
-            # Summing, instead of averaging over the choices
-            loss_vqa = tf.reduce_mean(
-                tf.nn.sigmoid_cross_entropy_with_logits(
-                    logits=model.vqa_scores, labels=soft_score_batch), name='vqa_loss_function')
-        elif cfg.TRAIN.SOLVER.USE_SPARSE_SOFTMAX_LABELS:
+        if cfg.TRAIN.SOLVER.USE_SPARSE_SOFTMAX_LABELS:
             loss_vqa = tf.reduce_mean(
                 tf.nn.sparse_softmax_cross_entropy_with_logits(
                     logits=model.vqa_scores, labels=tf.stop_gradient(labels)), name='vqa_sparse_softmax_loss_function')
@@ -169,10 +166,9 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
             grads_and_vars = zip(gradients, variables)
         solver_op = solver.apply_gradients(grads_and_vars, global_step=global_step)
 
-        ema._num_updates = global_step
-
         print_fn('Initializing exponential moving average.')
         with tf.control_dependencies([solver_op]):
+            ema._num_updates = global_step
             ema_op = ema.apply(model.params)
             train_op = tf.group(ema_op, name='ema_train_op')
 
@@ -185,9 +181,12 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
         with tf.device('/CPU:0'):
             tf.summary.scalar('accuracy', accuracy[0])
             tf.summary.scalar('loss/loss-vqa', loss_vqa)
+            tf.summary.scalar('reg/l1-reg', model.l1_reg)
+            tf.summary.scalar('reg/l2-reg', model.l2_reg)
+            tf.summary.scalar('reg/elastic-net-reg', model.elastic_net_reg)
             summary_hook = tf.estimator.SummarySaverHook(save_steps=cfg.TRAIN.LOG_INTERVAL, summary_op=tf.summary.merge_all())
         # Print the accuracy to stdout every LOG_INTERVAL steps.
-        logging_hook = tf.train.LoggingTensorHook({ 'accuracy': accuracy[0] }, every_n_iter=cfg.TRAIN.LOG_INTERVAL)
+        logging_hook = tf.train.LoggingTensorHook({ 'accuracy': accuracy[0], 'loss-vqa': loss_vqa }, every_n_iter=cfg.TRAIN.LOG_INTERVAL)
 
         print_fn('Training mode initialised')
         return tf.estimator.EstimatorSpec(mode=mode, loss=loss_total, train_op=train_op, training_hooks=[ summary_hook, metric_hook, logging_hook ])

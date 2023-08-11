@@ -97,7 +97,8 @@ model = Model(
     num_vocab=num_vocab,
     num_choices=data_reader.num_combinations,
     module_names=module_names,
-    is_training=True
+    is_training=True,
+    use_cudnn_lstm=cfg.MODEL.INPUT.USE_CUDNN_LSTM
 )
 
 # Loss function
@@ -128,7 +129,7 @@ loss_rec = model.rec_loss
 loss_train = (loss_vqa * cfg.TRAIN.VQA_LOSS_WEIGHT +
               loss_layout * cfg.TRAIN.LAYOUT_LOSS_WEIGHT +
               loss_rec * cfg.TRAIN.REC_LOSS_WEIGHT)
-loss_total = loss_train + cfg.TRAIN.WEIGHT_DECAY * model.l2_reg
+loss_total = loss_train + cfg.TRAIN.WEIGHT_DECAY * model.elastic_net_reg
 
 # Train with Adam
 solver = tf.train.AdamOptimizer(learning_rate=cfg.TRAIN.SOLVER.LR)
@@ -187,13 +188,14 @@ start_time = time.time()
 # Initialise the profiler.
 ProfileOptionBuilder = tf.profiler.ProfileOptionBuilder
 profiler = tf.profiler.Profiler(sess.graph)
+last_run_meta = None
 
 sess.run(iterator.initializer)
 
 # Run training
 avg_accuracy, accuracy_decay = 0., 0.99
 try:
-    for n_iter in range(cfg.TRAIN.START_ITER, cfg.TRAIN.MAX_ITER - 1):
+    for n_iter in range(cfg.TRAIN.START_ITER, cfg.TRAIN.MAX_ITER):
         save_snapshot = True if ((n_iter+1) % cfg.TRAIN.SNAPSHOT_INTERVAL == 0 or (n_iter+1) == cfg.TRAIN.MAX_ITER) else False
         do_profile = True if save_snapshot and n_iter > 2498 else False
 
@@ -201,6 +203,7 @@ try:
         
         # Profile and capture metadata for this run only if we're on a specific iteration.
         run_meta = tf.compat.v1.RunMetadata() if do_profile else None
+        last_run_meta = run_meta if do_profile else last_run_meta
         output = sess.run(
             fetches,
             options = tf.compat.v1.RunOptions(trace_level=tf.RunOptions.FULL_TRACE) if do_profile else None,
@@ -293,8 +296,8 @@ ALL_ADVICE = {
     'JobChecker': {},  # Only available internally.
     'OperationChecker': {}
 }
-profiler.advise(options = ALL_ADVICE)
+advice = profiler.advise(graph=sess.graph, run_meta=last_run_meta, options = ALL_ADVICE)
 print('Done. Iterations complete. TF has run out of elements to train on/finished. Final results:')
 print(f"exp: {cfg.EXP_NAME}, task_type = {cfg.MODEL.VCR_TASK_TYPE}, iter = {n_iter}, elapsed = {int(elapsed // 3600)}h {int(elapsed // 60) % 60}m {int(elapsed % 60)}s\n\t" +
-            f"loss (vqa) = {loss_vqa_val}, loss (layout) = {loss_layout_val}, loss (rec) = {loss_rec_val}\n\t" +
+            f"loss (vqa) = {loss_vqa_val}, loss (layout) = {loss_layout_val}, loss (total) = {loss_total_val}\n\t" +
             f"accuracy (avg) = {avg_accuracy}, accuracy (cur) = {accuracy}")

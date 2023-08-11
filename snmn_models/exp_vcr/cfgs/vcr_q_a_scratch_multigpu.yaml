@@ -24,7 +24,7 @@ TRAIN:
   USE_GT_LAYOUT: False
   SAVE_LAYOUT_WITH_SNAPSHOT: True
   WEIGHT_DECAY: 1e-4
-  L1_L2_RHO: 0.9 # 0. for l1 only, 1. for l2 only
+  L1_L2_RHO: 0.
   BATCH_SIZE: 64
   SOLVER:
     LR: 1e-4

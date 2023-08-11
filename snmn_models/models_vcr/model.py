@@ -18,6 +18,7 @@ class Model:
                  bert_rationale_embeddings_batch,
                  image_feat_batch,
                  num_vocab, num_choices, module_names, is_training,
+                 use_cudnn_lstm=True,
                  scope='model', reuse=None):
         """
         Neual Module Networks v4 (the whole model)
@@ -38,7 +39,7 @@ class Model:
 
             # Input unit
             lstm_seq, lstm_encodings, embed_seq = input_unit.build_input_unit(
-                question_seq_batch, all_answers_seq_batch, all_rationales_seq_batch, question_length_batch, all_answers_length_batch, all_rationales_length_batch, bert_question_embeddings_batch, bert_answer_embeddings_batch, bert_rationale_embeddings_batch, num_vocab, self.seq_in_count, reuse=reuse, use_cudnn_lstm=True)
+                question_seq_batch, all_answers_seq_batch, all_rationales_seq_batch, question_length_batch, all_answers_length_batch, all_rationales_length_batch, bert_question_embeddings_batch, bert_answer_embeddings_batch, bert_rationale_embeddings_batch, num_vocab, self.seq_in_count, reuse=reuse, use_cudnn_lstm=use_cudnn_lstm)
             kb_batch = input_unit.build_kb_batch(image_feat_batch, reuse=reuse)
 
             # Controller and NMN
@@ -98,7 +99,8 @@ class Model:
             self.l2_reg = tf.add_n(l2_regs, name='l2_reg')
             self.reg_rho = cfg.TRAIN.L1_L2_RHO
 
-            self.elastic_net_reg = self.reg_rho * self.l1_reg + (1 - self.reg_rho) * self.l2_reg
+            # Use a rho of 1. for lasso (l1) regularisation only, use a rho of 0. for ridge (l2) regularisation only.
+            self.elastic_net_reg =  tf.add(self.reg_rho * self.l1_reg, (1 - self.reg_rho) * self.l2_reg, name='elastic_net_reg')
 
             # tensors for visualization
             self.vis_outputs = {
