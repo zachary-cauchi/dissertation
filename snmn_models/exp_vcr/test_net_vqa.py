@@ -12,17 +12,17 @@ from util.vcr_train.data_reader import DataReader
 cfg = build_cfg_from_argparse()
 
 # Start session
-if os.environ["CUDA_VISIBLE_DEVICES"] is None:
+if 'CUDA_VISIBLE_DEVICES' not in os.environ:
     os.environ["CUDA_VISIBLE_DEVICES"] = str(cfg.GPU_ID)
 # 0 = all messages are logged (default behavior)
 # 1 = INFO messages are not printed
 # 2 = INFO and WARNING messages are not printed
 # 3 = INFO, WARNING, and ERROR messages are not printed
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0'
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.INFO)
 
 # TODO: Enable XLA graph optimisations
-tf.config.optimizer.set_jit('autoclustering')
+# tf.config.optimizer.set_jit('autoclustering')
 
 sess = tf.Session(config=tf.ConfigProto(
     gpu_options=tf.GPUOptions(allow_growth=cfg.GPU_MEM_GROWTH)))
@@ -60,31 +60,34 @@ if cfg.TEST.GEN_EVAL_FILE:
     os.makedirs(os.path.dirname(eval_file), exist_ok=True)
     output_qids_answers = []
 
-dataset: tf.compat.v1.data.Dataset = data_reader.dataset
+dataset: tf.compat.v1.data.Dataset = data_reader.init_dataset()
 iterator = tf.compat.v1.data.make_initializable_iterator(dataset)
 next_element = iterator.get_next()
 
 # Inputs and model
-question_seq_batch = next_element['question_seq_batch']
-correct_label_batch = next_element[correct_label_batch_name]
-all_answers_seq_batch = next_element['all_answers_seq_batch']
-all_answers_length_batch = next_element['all_answers_length_batch']
+question_seq_batch = next_element[0]['question_sequence']
+correct_label_batch = next_element[1]
+all_answers_seq_batch = next_element[0]['all_answers_sequences']
+all_answers_length_batch = next_element[0]['all_answers_length']
 if data_reader.load_rationale:
-    all_rationales_seq_batch = next_element['all_rationales_seq_batch']
-    all_rationales_length_batch = next_element['all_rationales_length_batch']
+    all_rationales_seq_batch = next_element[0]['all_rationales_sequences']
+    all_rationales_length_batch = next_element[0]['all_rationales_length']
 else:
     all_rationales_seq_batch = None
     all_rationales_length_batch = None
 if data_reader.load_bert:
-    bert_question_embeddings_batch = next_element['bert_question_embeddings_batch']
-    bert_answer_embeddings_batch = next_element['bert_answer_embeddings_batch']
-    bert_rationale_embeddings_batch = next_element['bert_rationale_embeddings_batch']
+    bert_question_embeddings_batch = next_element[0]['bert_question_embeddings_batch']
+    bert_answer_embeddings_batch = next_element[0]['bert_answer_embeddings_batch']
+    if data_reader.load_rationale:
+        bert_rationale_embeddings_batch = next_element[0]['bert_rationale_embeddings_batch']
+    else:
+        bert_rationale_embeddings_batch = None
 else:
     bert_question_embeddings_batch = None
     bert_answer_embeddings_batch = None
     bert_rationale_embeddings_batch = None
-question_length_batch = next_element['question_length_batch']
-image_feat_batch = next_element['image_feat_batch']
+question_length_batch = next_element[0]['question_length']
+image_feat_batch = next_element[0]['image_feat']
 
 model = Model(
     question_seq_batch,
@@ -170,13 +173,13 @@ try:
         vqa_predictions = np.argmax(vqa_scores_val, axis=1)
 
         if cfg.TEST.GEN_EVAL_FILE:
-            samples = data_reader.imdb[batch['qid_list']]
+            samples = batch[0]
             output_qids_answers += [
-                { 'question_id': int(batch['qid_list'][i]), 'question_str': samples[i]['question_str'], 'answer': str(p), 'answer_str': ' '.join(samples[i]['all_answers'][batch['answer_index'][i]]) } for i, p in zip(range(0, len(batch['qid_list']), num_answers), vqa_predictions)
+                { 'question_id': int(samples['question_id'][i]), 'question_str': samples['question_str'][i].decode(), 'answer': str(p), 'answer_str': ' '.join([ a.decode() for a in samples['all_answers'][i + p]]) } for i, p in zip(range(0, len(samples), num_answers), vqa_predictions)
             ]
 
         if data_reader.load_correct_answer:
-            vqa_labels = batch[data_reader.correct_label_batch_name]
+            vqa_labels = batch[1]
             if not cfg.TRAIN.SOLVER.USE_SPARSE_SOFTMAX_LABELS:
             # Reshape the expected results into a one-hot encoded vector.
                 vqa_labels = np.reshape(vqa_labels, (len(vqa_labels) // num_answers, num_answers))
