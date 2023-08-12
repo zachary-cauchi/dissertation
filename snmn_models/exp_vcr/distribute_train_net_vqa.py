@@ -1,5 +1,6 @@
 import sys
 import os
+import math
 from regex import regex as re
 from typing import Callable
 
@@ -8,8 +9,8 @@ from typing import Callable
 # 2 = INFO and WARNING messages are not printed
 # 3 = INFO, WARNING, and ERROR messages are not printed
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0'
-os.environ['TF_XLA_FLAGS'] = '--tf_xla_cpu_global_jit' # --tf_xla_auto_jit=2
-os.environ['XLA_FLAGS'] = '--xla_hlo_profile'
+# os.environ['TF_XLA_FLAGS'] = '--tf_xla_cpu_global_jit' # --tf_xla_auto_jit=2
+# os.environ['XLA_FLAGS'] = '--xla_hlo_profile'
 
 import tensorflow as tf
 from tensorflow.contrib.distribute import MirroredStrategy
@@ -154,7 +155,7 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
         #   * Enable Automatic Mixed Precision (AMP) which will mix in float16 types in the graph.
         #   * Enable XLA graph optimisation which compiles the generated graph for improved performance.
         #   * Enables use of Tensor Cores on supporting Nvidia GPUs.
-        solver = tf.train.experimental.enable_mixed_precision_graph_rewrite(solver, loss_scale='dynamic')
+        # solver = tf.train.experimental.enable_mixed_precision_graph_rewrite(solver, loss_scale='dynamic')
 
         # TODO: Consider dynamic loss scale such as tf.train.experiential.DynamicLossScale?
         grads_and_vars = solver.compute_gradients(loss_total)
@@ -224,8 +225,8 @@ if 'CUDA_VISIBLE_DEVICES' not in os.environ:
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.INFO)
 
 # Enables support for XLA optimisation
-os.environ['TF_AUTO_MIXED_PRECISION_GRAPH_REWRITE_LOG_PATH'] = os.path.join(snapshot_dir, 'xla')
-tf.config.optimizer.set_jit('autoclustering')
+# os.environ['TF_AUTO_MIXED_PRECISION_GRAPH_REWRITE_LOG_PATH'] = os.path.join(snapshot_dir, 'xla')
+# tf.config.optimizer.set_jit('autoclustering')
 
 # Data files
 data_reader = create_data_reader(cfg.TRAIN.SPLIT_VQA, cfg)
@@ -240,8 +241,8 @@ strategy = MirroredStrategy()
 sess_config = tf.ConfigProto(gpu_options=tf.GPUOptions(allow_growth=cfg.GPU_MEM_GROWTH))
 config = tf.estimator.RunConfig(
     model_dir=snapshot_dir,
-    train_distribute=strategy,
-    eval_distribute=strategy,
+    # train_distribute=strategy,
+    # eval_distribute=strategy,
     session_config=sess_config,
     log_step_count_steps=cfg.TRAIN.LOG_INTERVAL,
     save_summary_steps=cfg.TRAIN.LOG_INTERVAL,
@@ -258,7 +259,8 @@ print('Main: Initialised.')
 print('Main: Beginning training.')
 estimator.train(input_fn=lambda: input_fn(is_training=True), steps=cfg.TRAIN.MAX_ITER, hooks=[ profiler_hook ])
 print('Main: Training completed. Evaluating checkpoints.')
-checkpoints = [ os.path.join(snapshot_dir, c.group(1)) for c in [re.match(pattern = '(model.ckpt-[^0].*).data-00000.*', string=s) for s in os.listdir(snapshot_dir)] if c is not None]
+checkpoints = [ os.path.join(snapshot_dir, c.group(1)) for c in [re.match(pattern = r'(model.ckpt-[^0].*).data-00000.*', string=s) for s in os.listdir(snapshot_dir)] if c is not None]
+checkpoints = sorted(checkpoints, key = lambda c: int(re.search(r'-(\d+)$', c).group(0)), reverse=True)
 if checkpoints is None or len(checkpoints) == 0:
     print('Main: No checkpoints to evaluate. Exiting.')
     sys.exit(0)
