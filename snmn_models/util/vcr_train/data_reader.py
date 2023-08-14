@@ -342,10 +342,10 @@ class DataReader:
         if self.load_rationale:
             element['all_rationales_sequences'] = tf.transpose(element['all_rationales_sequences'])
         if self.load_bert:
-            element['bert_question_embedding'] = tf.transpose(element['bert_question_embedding'], [0, 2, 1])
-            element['bert_answer_embedding'] = tf.transpose(element['bert_answer_embedding'], [0, 2, 1])
+            element['bert_question_embedding'] = tf.ensure_shape(tf.transpose(element['bert_question_embedding'], [1, 0, 2]), (self.T_q_encoder, self.actual_batch_size, self.bert_dim))
+            element['bert_answer_embedding'] = tf.ensure_shape(tf.transpose(element['bert_answer_embedding'], [1, 0, 2]), (self.T_a_encoder, self.actual_batch_size, self.bert_dim))
             if self.load_rationale:
-                element['bert_rationale_embedding'] = tf.transpose(element['bert_rationale_embedding'], [0, 2, 1])
+                element['bert_rationale_embedding'] = tf.ensure_shape(tf.transpose(element['bert_rationale_embedding'], [1, 0, 2]), (self.T_r_encoder, self.actual_batch_size, self.bert_dim))
         return element
 
     # def batches(self):
