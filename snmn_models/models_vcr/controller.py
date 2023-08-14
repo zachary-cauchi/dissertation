@@ -45,28 +45,31 @@ class Controller:
         # The total number of textual sequences to mask equal to one question + the answer + the rationale (if enabled).
         num_seqs = tf.constant(seq_in_count, name='total_sequences')
         num_seqs_per_length = tf.divide(S, num_seqs, name='unit_seq_length')
-        atts_per_seq = []
+        att_masks_list = []
+
+        seq_lengths = [question_length_batch[:, ax], all_answers_length_batch[:, ax]]
+        if seq_in_count > 2:
+            seq_lengths.append(all_rationales_length_batch[:, ax])
 
         # Create the individual attention masks for each textual sequence.
         for i in range(seq_in_count):
             prefix = get_name_prefix(i)
-            i_constant = tf.constant(i, dtype=tf.float64, name=f'{prefix}_start_index')
-            i_plus_one_constant = tf.constant(i + 1, dtype=tf.float64, name=f'{prefix}_end_index')
-
             # Get the start and end of the textual sequence in the lstm_seq.
             # This needs to be treated as a float and then cast in the end,
             # as pre-ceiling or flooring the values will cause inaccurate lengths (too long or too short).
-            S_i_start = tf.cast(tf.multiply(num_seqs_per_length, i_constant), tf.int32, name=f'{prefix}_S_i_start')
-            S_i_end = tf.cast(tf.multiply(num_seqs_per_length, i_plus_one_constant), tf.int32, name=f'{prefix}_S_i_end')
+            S_i_start = tf.cast(i * num_seqs_per_length, tf.int32, name=f'{prefix}_S_i_start')
+            S_i_end = tf.cast((i + 1) * num_seqs_per_length, tf.int32, name=f'{prefix}_S_i_end')
 
             # If the current index is 0, get the question length. Otherwise, get the length of the answer at i.
-            seq_length = question_length_batch[:, ax] if i == 0 else all_answers_length_batch[:, ax] if i == 1 else all_rationales_length_batch[:, ax]
+            seq_length = seq_lengths[i]
 
             # Build the attention mask, Setting the first n number of ints in the range equal to 1, where n = seq_length.
-            att_i = tf.less(tf.range(tf.subtract(S_i_end, S_i_start, f'{prefix}_mask_length'), name=f'{prefix}_identity_attention')[:, ax, ax], seq_length, name=f'{prefix}_attention_mask')
-            atts_per_seq.append(att_i)
+            mask_length = tf.subtract(S_i_end, S_i_start, f'{prefix}_mask_length')
+            identity_range = tf.range(mask_length, name=f'{prefix}_identity_attention')[:, ax, ax]
+            att_i = tf.less(identity_range, seq_length, name=f'{prefix}_attention_mask')
+            att_masks_list.append(att_i)
 
-        att_mask = tf.concat(atts_per_seq, axis=0, name='concatenated_text_attention_masks')
+        att_mask = tf.concat(att_masks_list, axis=0, name='concatenated_text_attention_masks')
 
         # OLD IMPLEMENTATION; question only
         # att_mask = tf.less(tf.range(S)[:, ax, ax], question_length_batch[:, ax])
