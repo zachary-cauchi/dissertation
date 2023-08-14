@@ -14,6 +14,12 @@ class BertHandler:
         if hasattr(self, 'rat_hf'):
             self.rat_hf.close()
 
+    def get_embeddings_by_id(self, id):
+        return  {
+            'ans': self.get_embeddings_from_group(self.ans_hf[str(id)]),
+            'rat': self.get_embeddings_from_group(self.rat_hf[str(id)])
+        }
+
     def get_embeddings_from_group(self, hgroup):
         ans = []
         ctx = []
