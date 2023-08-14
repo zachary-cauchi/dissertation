@@ -23,7 +23,7 @@ __C.IMDB_FILE = './exp_vcr/data/imdb/imdb_%s.npy'
 
 __C.USE_FIXED_WORD_EMBED = False
 __C.USE_BERT_SENTENCE_EMBED = False
-__C.BERT_EMBED_FILE = './exp_vcr/data/bert_embeddings/bert_da_%s_%s.h5'
+__C.BERT_EMBED_DIR = './exp_vcr/data/tfrecords_bert_embeddings/'
 __C.FIXED_WORD_EMBED_FILE = ''
 
 # --------------------------------------------------------------------------- #

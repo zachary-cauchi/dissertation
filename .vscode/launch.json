@@ -74,16 +74,16 @@
         },
 
         {
-            "name": "VCR: Export Dataset to TFRecord",
+            "name": "VCR: Export BERT H5 to TFRecord",
             "type": "python",
             "request": "launch",
-            "program": "./exp_vcr/tfrecord_dataset_builder.py",
-            "cwd": "${workspaceFolder}/snmn_models",
+            "program": "./bert_h5_to_tfrecords.py",
+            "cwd": "${workspaceFolder}/snmn_models/exp_vcr/data",
             "python": "${command:python.interpreterPath}",
             "console": "integratedTerminal",
             "args": [
-                "--cfg",
-                "exp_vcr/cfgs/vcr_q_a_scratch_multigpu.yaml"
+                "--imdb_file_dir",
+                "tfrecords_imdb_r152_7x7",
             ]
         },
 
@@ -97,7 +97,7 @@
             "console": "integratedTerminal",
             "args": [
                 "--cfg",
-                "exp_vcr/cfgs/vcr_q_a_scratch_multigpu.yaml"
+                "exp_vcr/cfgs/vcr_q_a_bert_scratch.yaml"
             ]
         },
 

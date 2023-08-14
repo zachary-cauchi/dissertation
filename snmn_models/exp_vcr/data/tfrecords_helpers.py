@@ -210,8 +210,8 @@ def serialize_bert_embeds_to_example(ctx, ans):
     ctx_features, ctx_lengths = _2d_flattened_feature_list(ctx_flattened)
     ans_features, ans_lengths = _2d_flattened_feature_list(ans_flattened)
 
-    ctx_shapes, ctx_shapes_lengths = _2d_flattened_feature_list([ np.shape(c) for c in ctx ])
-    ans_shapes, ans_shapes_lengths = _2d_flattened_feature_list([ np.shape(a) for a in ans ])
+    ctx_shapes, _ = _2d_flattened_feature_list([ np.shape(c) for c in ctx ])
+    ans_shapes, _ = _2d_flattened_feature_list([ np.shape(a) for a in ans ])
 
     feature = {
         'ctx': _floats_feature_list(ctx_features),
@@ -219,9 +219,7 @@ def serialize_bert_embeds_to_example(ctx, ans):
         'ctx_lengths': _int64_feature_list(ctx_lengths),
         'ans_lengths': _int64_feature_list(ans_lengths),
         'ctx_shapes': _int64_feature_list(ctx_shapes),
-        'ans_shapes': _int64_feature_list(ans_shapes),
-        'ctx_shapes_lengths': _int64_feature_list(ctx_shapes_lengths),
-        'ans_shapes_lengths': _int64_feature_list(ans_shapes_lengths)
+        'ans_shapes': _int64_feature_list(ans_shapes)
     }
 
     example = tf.train.Example(features=tf.train.Features(feature=feature))
@@ -239,29 +237,26 @@ def serialize_both_bert_embeds_to_example(ctx_ans, ans, ctx_rat, rat):
     example = tf.train.Example(features=tf.train.Features(feature=feature))
     return example.SerializeToString()
 
-def parse_example_to_bert_embeds(example):
+def parse_example_to_bert_embeds(example, entry_count = 4):
     feature_description = {
         'ctx': tf.VarLenFeature(dtype=tf.float32),
         'ans': tf.VarLenFeature(dtype=tf.float32),
-        'ctx_lengths': tf.VarLenFeature(dtype=tf.int64),
-        'ans_lengths': tf.VarLenFeature(dtype=tf.int64),
-        'ctx_shapes': tf.VarLenFeature(dtype=tf.int64),
-        'ans_shapes': tf.VarLenFeature(dtype=tf.int64),
-        'ctx_shapes_lengths': tf.VarLenFeature(dtype=tf.int64),
-        'ans_shapes_lengths': tf.VarLenFeature(dtype=tf.int64)
+        'ctx_lengths': tf.FixedLenFeature([entry_count], dtype=tf.int64),
+        'ans_lengths': tf.FixedLenFeature([entry_count], dtype=tf.int64),
+        'ctx_shapes': tf.FixedLenFeature([entry_count * 2], dtype=tf.int64),
+        'ans_shapes': tf.FixedLenFeature([entry_count * 2], dtype=tf.int64)
     }
 
     parsed_example = tf.parse_single_example(example, feature_description)
 
-    ctx = tf.cast(tf.sparse_tensor_to_dense(parsed_example['ctx']), dtype=tf.float16)
-    ans = tf.cast(tf.sparse_tensor_to_dense(parsed_example['ans']), dtype=tf.float16)
-    ctx_lengths = tf.sparse_tensor_to_dense(parsed_example['ctx_lengths'])
-    ans_lengths = tf.sparse_tensor_to_dense(parsed_example['ans_lengths'])
-    ctx_shapes = tf.sparse_tensor_to_dense(parsed_example['ctx_shapes'])
-    ans_shapes = tf.sparse_tensor_to_dense(parsed_example['ans_shapes'])
+    ctx = tf.cast(tf.sparse.to_dense(parsed_example['ctx']), dtype=tf.float16)
+    ans = tf.cast(tf.sparse.to_dense(parsed_example['ans']), dtype=tf.float16)
+    ctx_lengths = parsed_example['ctx_lengths']
+    ans_lengths = parsed_example['ans_lengths']
+    ctx_shapes = parsed_example['ctx_shapes']
+    ans_shapes = parsed_example['ans_shapes']
 
     # We have to perform some reshape trickery to get back the original structure.
-    entry_count = ctx_lengths.shape[0]
     ctx_shapes = tf.reshape(ctx_shapes, [entry_count, 2])
     ans_shapes = tf.reshape(ans_shapes, [entry_count, 2])
     ctx = tf.split(ctx, ctx_lengths, 0)
@@ -275,7 +270,7 @@ def parse_example_to_bert_embeds(example):
         'ans': ans
     }
 
-def parse_example_to_both_bert_embeds(example):
+def parse_example_to_both_bert_embeds(example, load_correct_answer = True):
     feature_description = {
         'ans': tf.FixedLenFeature([], tf.string),
         'rat': tf.FixedLenFeature([], tf.string)
@@ -283,10 +278,10 @@ def parse_example_to_both_bert_embeds(example):
 
     parsed_outer_example = tf.parse_single_example(example, feature_description)
 
-    parsed_ans_example = parse_example_to_bert_embeds(parsed_outer_example['ans'])
-    parsed_rat_example = parse_example_to_bert_embeds(parsed_outer_example['rat'])
+    parsed_ans = parse_example_to_bert_embeds(parsed_outer_example['ans'])
+    parsed_rat = parse_example_to_bert_embeds(parsed_outer_example['rat'], entry_count = 4 if load_correct_answer else 16)
 
-    parsed_rat_example['rat'] = parsed_rat_example['ans']
-    del parsed_rat_example['ans']
+    parsed_rat['rat'] = parsed_rat['ans']
+    del parsed_rat['ans']
 
-    return parsed_ans_example, parsed_rat_example
+    return parsed_ans, parsed_rat

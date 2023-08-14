@@ -1,7 +1,6 @@
 import time
-import pprint
+import os
 import tensorflow as tf
-import exp_vcr.data.tfrecords_helpers as tfrecords_helpers
 from models_vcr.config import build_cfg_from_argparse
 from util.vcr_train.data_reader import DataReader
 
@@ -22,8 +21,8 @@ data_reader = DataReader(
     vcr_task_type=cfg.MODEL.VCR_TASK_TYPE,
     use_sparse_softmax_labels=cfg.TRAIN.SOLVER.USE_SPARSE_SOFTMAX_LABELS,
     load_bert_embeddings = cfg.USE_BERT_SENTENCE_EMBED,
-    bert_answer_embeddings_path = cfg.BERT_EMBED_FILE % ('answer', cfg.TRAIN.SPLIT_VQA),
-    bert_rationale_embeddings_path = cfg.BERT_EMBED_FILE % ('rationale', cfg.TRAIN.SPLIT_VQA))
+    bert_embeddings_path = os.path.join(cfg.BERT_EMBED_DIR, cfg.TRAIN.SPLIT_VQA)
+)
 
 # Define your dataset here
 dataset = data_reader.init_dataset()
@@ -53,6 +52,5 @@ with tf.compat.v1.Session() as sess:
         end_time = time.time()
 
     print(f'Last fetched sample: {curr_element}')
-
 
     print(f'Time taken to fetch {"all" if max_steps == 0 else max_steps} batche{"s" if max_steps != 1 else ""} for epoch {i}: {end_time - start_time} seconds')

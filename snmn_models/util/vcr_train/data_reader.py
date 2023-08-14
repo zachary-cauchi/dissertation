@@ -1,3 +1,4 @@
+from functools import reduce
 import os
 from typing import Callable
 import numpy as np
@@ -24,7 +25,10 @@ class DataReader:
         with tf.compat.v1.Session() as sess:
             iterator = self.imdb_dataset.make_one_shot_iterator()
             sample_elm = iterator.get_next()
-            sample_record = sess.run(tfrecords_helpers.parse_example_to_imdb(sample_elm))
+            try:
+                sample_record = sess.run(tfrecords_helpers.parse_example_to_imdb_with_correct_answer(sample_elm))
+            except:
+                sample_record = sess.run(tfrecords_helpers.parse_example_to_imdb_no_correct_answer(sample_elm))
             sess.close()
 
         self.vocab_dict = text_processing.VocabDict(
@@ -47,8 +51,16 @@ class DataReader:
         if data_params['load_bert_embeddings'] == True:
             self.print_fn('Loading BERT embeddings.')
             self.load_bert = True
-            self.bert_handler = BertHandler(self.data_params['bert_answer_embeddings_path'], self.data_params['bert_rationale_embeddings_path'])
-            self.bert_dim = self.bert_handler.bert_dim
+            self.bert_path = data_params['bert_embeddings_path']
+            self.bert_path = self.bert_path if self.bert_path.endswith('/') else self.bert_path + '/'
+
+            with tf.compat.v1.Session() as sess:
+                bert_sample_dataset = tf.data.TFRecordDataset(self.bert_path + '0.tfrecords')
+                iter = bert_sample_dataset.make_one_shot_iterator()
+                next_elem = iter.get_next()
+                bert_sample = sess.run(tfrecords_helpers.parse_example_to_both_bert_embeds(next_elem))
+                self.bert_dim = bert_sample[0]['ctx'][0].shape[1]
+                del bert_sample_dataset, iter, next_elem
         else:
             self.load_bert = False
 
@@ -68,6 +80,16 @@ class DataReader:
             self.num_combinations = self.num_rationales
         else:
             self.num_combinations = self.num_answers * self.num_rationales
+
+        # Precompute the sequence of answer and rationale access ahead of when they're needed.
+        i_ans_divisor = self.num_combinations // self.num_answers
+        i_rat_mod = self.num_combinations // self.num_rationales
+        self.i_ans_range = [0] * self.num_combinations
+        self.i_rat_range = [0] * self.num_combinations
+
+        for i in range(self.num_combinations):
+            self.i_ans_range[i] = i // i_ans_divisor
+            self.i_rat_range[i] = i % i_rat_mod
 
         self.grouped_batch_size = data_params['batch_size']
         self.actual_batch_size = data_params['batch_size'] * self.num_combinations
@@ -155,10 +177,12 @@ class DataReader:
         final_dataset: tf.data.Dataset = final_dataset.map(self.parse_raw_tensors, num_parallel_calls=tf.data.experimental.AUTOTUNE)
         # Load the image features using the imdb['feature_path']
         final_dataset = final_dataset.interleave(self.load_image_features, cycle_length=8, block_length=1, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        if self.load_bert:
+            final_dataset = final_dataset.interleave(self.load_bert_embeddings, cycle_length=8, block_length=1, num_parallel_calls=tf.data.experimental.AUTOTUNE)
         # First batch these elements before splitting.
         final_dataset = final_dataset.batch(self.grouped_batch_size, drop_remainder=True).unbatch()
         # Split each imdb task into individual vcr tasks.
-        final_dataset = final_dataset.flat_map(self.split_vcr_tasks_answer_only)
+        final_dataset = final_dataset.flat_map(self.new_split_vcr_tasks)
         # Batch those tasks.
         final_dataset = final_dataset.batch(self.actual_batch_size, drop_remainder=True)
         # Perform final transpositions from nchw to nhwc.
@@ -169,6 +193,28 @@ class DataReader:
         
         return final_dataset
 
+    def load_bert_embeddings(self, imdb):
+        bert_dataset = tf.data.TFRecordDataset(tf.strings.join([self.bert_path, tf.as_string(imdb['question_id']), '.tfrecords'], name='bert_path'))
+
+        def add_to_imdb(feat):
+            bert = tfrecords_helpers.parse_example_to_both_bert_embeds(feat)
+
+            if self.vcr_task_type == 'Q_2_A':
+                bert_question_embedding = self.pad_or_trim_2d_list(bert[0]['ctx'], max_length=self.T_q_encoder, padding=0.),
+                bert_answer_embedding = self.pad_or_trim_2d_list(bert[0]['ans'], max_length=self.T_a_encoder, padding=0.)
+                # bert_question_embedding = tf.ensure_shape(bert_question_embedding, [self.num_combinations, self.T_q_encoder, self.bert_dim])
+                # bert_answer_embedding = tf.ensure_shape(bert_answer_embedding, [self.num_combinations, self.T_a_encoder, self.bert_dim])
+            else:
+                raise ValueError(f'Unsupported task type for BERT embeddings{self.vcr_task_type}')
+
+            return {
+                **imdb,
+                'bert_question_embedding': bert_question_embedding,
+                'bert_answer_embedding': bert_answer_embedding
+            }
+        
+        return bert_dataset.map(add_to_imdb)
+
     def load_image_features(self, imdb):
         image_feature_dataset = tf.data.TFRecordDataset(imdb['feature_path'])
 
@@ -177,42 +223,12 @@ class DataReader:
 
         return image_feature_dataset.map(add_to_imdb)
 
-    def split_vcr_tasks_answer_only(self, sample):
-        if self.load_correct_answer:
-            answers_dataset = tf.data.Dataset.zip((
-                tf.data.Dataset.from_tensor_slices(sample['all_answers']),
-                tf.data.Dataset.from_tensor_slices(sample['all_answers_sequences']),
-                tf.data.Dataset.from_tensor_slices(sample['all_answers_length']),
-                tf.data.Dataset.from_tensor_slices(sample['valid_answers']),
-                tf.data.Dataset.from_tensor_slices(sample['valid_answer_onehot'])
-            ))
-            map_fn = lambda answer, answer_sequence, answer_length, valid_answer, valid_answer_onehot: {
+    def new_split_vcr_tasks(self, sample):
+        def map_fn(i_ans, i_rat):
+            new_sample = {
                 'image_name': sample['image_name'],
                 'image_path': sample['image_path'],
-                'image_id': sample['image_id'],
-                'feature_path': sample['feature_path'],
-                'question_id': sample['question_id'],
-                'question_str': sample['question_str'],
-                'question_tokens': sample['question_tokens'],
-                'question_sequence': sample['question_sequence'],
-                'question_length': sample['question_length'],
-                'all_answers': answer,
-                'all_answers_sequences': answer_sequence,
-                'all_answers_length': answer_length,
-                'valid_answers': valid_answer,
-                'valid_answer_index': sample['valid_answer_index'],
-                'valid_answer_onehot': valid_answer_onehot,
                 'image_feat': sample['image_feat'],
-            }
-        else:
-            answers_dataset = tf.data.Dataset.zip((
-                tf.data.Dataset.from_tensor_slices(sample['all_answers']),
-                tf.data.Dataset.from_tensor_slices(sample['all_answers_sequences']),
-                tf.data.Dataset.from_tensor_slices(sample['all_answers_length'])
-            ))
-            map_fn = lambda answer, answer_sequence, answer_length: {
-                'image_name': sample['image_name'],
-                'image_path': sample['image_path'],
                 'image_id': sample['image_id'],
                 'feature_path': sample['feature_path'],
                 'question_id': sample['question_id'],
@@ -220,28 +236,65 @@ class DataReader:
                 'question_tokens': sample['question_tokens'],
                 'question_sequence': sample['question_sequence'],
                 'question_length': sample['question_length'],
-                'all_answers': answer,
-                'all_answers_sequences': answer_sequence,
-                'all_answers_length': answer_length,
-                'img_feat': sample['image_feat'],
+                'all_answers': sample['all_answers'][i_ans],
+                'all_answers_sequences': sample['all_answers_sequences'][i_ans],
+                'all_answers_length': sample['all_answers_length'][i_ans],
+                'all_rationales': sample['all_rationales'][i_rat],
+                'all_rationales_sequences': sample['all_rationales_sequences'][i_rat],
+                'all_rationales_length': sample['all_rationales_length'][i_rat]
             }
 
-        vcrs_dataset = answers_dataset.map(map_fn)
+            if self.load_correct_answer:
+                new_sample.update({
+                    'valid_answers': sample['valid_answers'][i_ans],
+                    'valid_answer_index': sample['valid_answer_index'],
+                    'valid_answer_onehot': sample['valid_answer_onehot'][i_ans]
+                })
 
-        return vcrs_dataset
+            if self.load_correct_rationale:
+                new_sample.update({
+                    'valid_rationales': sample['valid_rationales'][i_rat],
+                    'valid_rationale_index': sample['valid_rationale_index'],
+                    'valid_rationale_onehot': sample['valid_rationale_onehot'][i_rat]
+                })
+
+            if self.load_bert:
+                if self.vcr_task_type == 'Q_2_A':
+                    new_sample.update({
+                        # Don't know why bert_question_embedding has the extra dimension, but it must be accounted for.
+                        'bert_question_embedding': sample['bert_question_embedding'][0][i_ans],
+                        'bert_answer_embedding': sample['bert_answer_embedding'][i_ans]
+                    })
+                else:
+                    raise ValueError(f'Unsupported task type for BERT embeddings{self.vcr_task_type}')
+
+            return new_sample
+
+        datasets = []
+        app_sample = datasets.append
+
+        for i_ans, i_rat in zip(self.i_ans_range, self.i_rat_range):
+            app_sample(tf.data.Dataset.from_tensors(sample).map(lambda s: map_fn(i_ans, i_rat)))
+
+        return reduce(lambda ds1, ds2: ds1.concatenate(ds2), datasets)
 
     def parse_raw_tensors(self, imdb_sample):
-        imdb = tfrecords_helpers.parse_example_to_imdb(imdb_sample)
+        if self.load_correct_answer:
+            imdb = tfrecords_helpers.parse_example_to_imdb_with_correct_answer(imdb_sample)
+        else:
+            imdb = tfrecords_helpers.parse_example_to_imdb_no_correct_answer(imdb_sample)
 
         imdb['question_tokens'] = self.pad_or_trim(imdb['question_tokens'], self.T_q_encoder)
         imdb['question_sequence'] = self.pad_or_trim(imdb['question_sequence'], self.T_q_encoder, padding=0)
-        imdb['all_answers'] = self.pad_or_trim_2d(imdb['all_answers'], self.T_a_encoder)
-        imdb['all_answers_sequences'] = self.pad_or_trim_2d(imdb['all_answers_sequences'], self.T_a_encoder, padding=0)
-        imdb['all_rationales'] = self.pad_or_trim_2d(imdb['all_rationales'], self.T_r_encoder)
-        imdb['all_rationales_sequences'] = self.pad_or_trim_2d(imdb['all_rationales_sequences'], self.T_r_encoder, padding=0)
+        imdb['all_answers'] = self.pad_or_trim_1d_list(imdb['all_answers'], self.T_a_encoder)
+        imdb['all_answers_sequences'] = self.pad_or_trim_1d_list(imdb['all_answers_sequences'], self.T_a_encoder, padding=0)
+        imdb['all_rationales'] = self.pad_or_trim_1d_list(imdb['all_rationales'], self.T_r_encoder)
+        imdb['all_rationales_sequences'] = self.pad_or_trim_1d_list(imdb['all_rationales_sequences'], self.T_r_encoder, padding=0)
 
         if self.load_correct_answer:
             imdb['valid_answer_onehot'] = tf.one_hot(imdb['valid_answer_index'], self.num_combinations, 1., 0.)
+        if self.load_correct_rationale:
+            imdb['valid_rationale_onehot'] = tf.one_hot(imdb['valid_rationale_index'], self.num_combinations, 1., 0.)
 
         return imdb
 
@@ -260,8 +313,28 @@ class DataReader:
 
         return tensor
 
-    def pad_or_trim_2d(self, tensor_list, max_length, padding=''):
+    def pad_or_trim_1d_list(self, tensor_list, max_length, padding=''):
         return [ self.pad_or_trim(tensor, max_length, padding=padding) for tensor in tensor_list ]
+    
+    def pad_or_trim_2d(self, tensor, max_length, padding=''):
+        current_length = tf.shape(tensor)[0]
+
+        # Condition: if current_length is less than max_length
+        def pad():
+            padding_needed = tf.subtract(max_length, current_length)  # use tf.subtract
+            paddings = tf.concat([tf.constant([0]), tf.reshape(padding_needed, [1])], axis=0)
+            paddings_matrix = tf.stack([paddings, tf.constant([0, 0])], axis=0)
+            return tf.pad(tensor, paddings_matrix, constant_values=padding)
+
+        # Condition: if current_length is greater than max_length
+        def slice_():
+            return tf.slice(tensor, [0, 0], [max_length, -1])
+
+        # Use tf.cond to decide between padding or slicing based on tensor's current length
+        return tf.cond(current_length < max_length, pad, slice_)
+
+    def pad_or_trim_2d_list(self, tensor_list, max_length, padding=''):
+        return [ self.pad_or_trim_2d(tensor, max_length, padding=padding) for tensor in tensor_list ]
 
     def to_time_major(self, element):
         element['question_sequence'] = tf.transpose(element['question_sequence'])
@@ -269,10 +342,10 @@ class DataReader:
         if self.load_rationale:
             element['all_rationales_sequences'] = tf.transpose(element['all_rationales_sequences'])
         if self.load_bert:
-            element['bert_question_embeddings_batch'] = tf.transpose(element['bert_question_embeddings_batch'], [1, 0, 2])
-            element['bert_answer_embeddings_batch'] = tf.transpose(element['bert_answer_embeddings_batch'], [1, 0, 2])
+            element['bert_question_embedding'] = tf.transpose(element['bert_question_embedding'], [0, 2, 1])
+            element['bert_answer_embedding'] = tf.transpose(element['bert_answer_embedding'], [0, 2, 1])
             if self.load_rationale:
-                element['bert_rationale_embeddings_batch'] = tf.transpose(element['bert_rationale_embeddings_batch'], [1, 0, 2])
+                element['bert_rationale_embedding'] = tf.transpose(element['bert_rationale_embedding'], [0, 2, 1])
         return element
 
     # def batches(self):
