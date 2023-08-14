@@ -27,7 +27,7 @@ def create_data_reader(split: str, cfg):
         T_q_encoder=cfg.MODEL.T_Q_ENCODER,
         T_a_encoder=cfg.MODEL.T_A_ENCODER,
         T_r_encoder=cfg.MODEL.T_R_ENCODER,
-        vocab_answer_file=cfg.VOCAB_ANSWER_FILE % cfg.TRAIN.SPLIT_VQA,
+        vocab_answer_file=cfg.VOCAB_ANSWER_FILE % split,
         load_gt_layout=cfg.TRAIN.USE_GT_LAYOUT,
         vocab_layout_file=cfg.VOCAB_LAYOUT_FILE, T_decoder=cfg.MODEL.T_CTRL,
         load_soft_score=cfg.TRAIN.VQA_USE_SOFT_SCORE,
@@ -35,8 +35,7 @@ def create_data_reader(split: str, cfg):
         vcr_task_type=cfg.MODEL.VCR_TASK_TYPE,
         use_sparse_softmax_labels=cfg.TRAIN.SOLVER.USE_SPARSE_SOFTMAX_LABELS,
         load_bert_embeddings = cfg.USE_BERT_SENTENCE_EMBED,
-        bert_answer_embeddings_path = cfg.BERT_EMBED_FILE % ('answer', cfg.TRAIN.SPLIT_VQA),
-        bert_rationale_embeddings_path = cfg.BERT_EMBED_FILE % ('rationale', cfg.TRAIN.SPLIT_VQA))
+        bert_embeddings_path = os.path.join(cfg.BERT_EMBED_DIR, cfg.TRAIN.SPLIT_VQA))
 
     return data_reader
 
@@ -87,9 +86,9 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
         features['question_length'],
         features['all_answers_length'],
         features['all_rationales_length'] if load_rationale else None,
-        features['bert_question_embeddings_batch'] if load_bert else None,
-        features['bert_answer_embeddings_batch'] if load_bert else None,
-        features['bert_rationale_embeddings_batch'] if load_bert and load_rationale else None,
+        features['bert_question_embedding'] if load_bert else None,
+        features['bert_answer_embedding'] if load_bert else None,
+        features['bert_rationale_embedding'] if load_bert and load_rationale else None,
         features['image_feat'],
         num_vocab=params['num_vocab'],
         num_choices=params['num_combinations'],

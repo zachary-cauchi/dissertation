@@ -121,7 +121,7 @@
             "name": "VCR: Train QA scratch",
             "type": "python",
             "request": "launch",
-            "program": "./exp_vcr/train_net_vqa.py",
+            "program": "./exp_vcr/distribute_train_net_vqa.py",
             "cwd": "${workspaceFolder}/snmn_models",
             "python": "${command:python.interpreterPath}",
             "console": "integratedTerminal",
@@ -129,7 +129,7 @@
                 "--cfg",
                 "exp_vcr/cfgs/vcr_q_a_scratch.yaml",
                 "TRAIN.MAX_ITER",
-                "120000"
+                "75000"
             ]
         },
 
@@ -137,7 +137,7 @@
             "name": "VCR: Train QA BERT scratch",
             "type": "python",
             "request": "launch",
-            "program": "./exp_vcr/train_net_vqa.py",
+            "program": "./exp_vcr/distribute_train_net_vqa.py",
             "cwd": "${workspaceFolder}/snmn_models",
             "python": "${command:python.interpreterPath}",
             "console": "integratedTerminal",
@@ -145,7 +145,7 @@
                 "--cfg",
                 "exp_vcr/cfgs/vcr_q_a_bert_scratch.yaml",
                 "TRAIN.MAX_ITER",
-                "120000"
+                "75000"
             ]
         },
         
