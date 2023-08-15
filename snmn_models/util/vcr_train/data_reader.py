@@ -70,9 +70,9 @@ class DataReader:
         if self.data_params['vcr_task_type'] == 'Q_2_A':
             self.correct_label_batch_name = 'valid_answer_onehot'
         elif self.data_params['vcr_task_type'] == 'QA_2_R':
-            self.correct_label_batch_name = 'valid_rationale_index'
+            self.correct_label_batch_name = 'valid_rationale_onehot'
         elif self.data_params['vcr_task_type'] == 'Q_2_AR':
-            self.correct_label_batch_name = 'valid_answer_and_rationale_index'
+            self.correct_label_batch_name = 'valid_answer_and_rationale_onehot'
 
         if data_params['vcr_task_type'] == 'Q_2_A':
             self.num_combinations = self.num_answers
@@ -205,15 +205,27 @@ class DataReader:
             if self.vcr_task_type == 'Q_2_A':
                 bert_question_embedding = self.pad_or_trim_2d_list(bert[0]['ctx'], max_length=self.T_q_encoder, padding=0.),
                 bert_answer_embedding = self.pad_or_trim_2d_list(bert[0]['ans'], max_length=self.T_a_encoder, padding=0.)
+                bert_rationale_embedding = None
                 # bert_question_embedding = tf.ensure_shape(bert_question_embedding, [self.num_combinations, self.T_q_encoder, self.bert_dim])
                 # bert_answer_embedding = tf.ensure_shape(bert_answer_embedding, [self.num_combinations, self.T_a_encoder, self.bert_dim])
+            elif self.vcr_task_type == 'Q_2_AR':
+                bert_qa_embedding = bert[1]['ctx']
+                question_length = imdb['question_length']
+
+                bert_question_embedding = [ tf.slice(embedding, [0, 0], [question_length, tf.shape(embedding)[1]]) for embedding in bert_qa_embedding]
+                bert_answer_embedding = [ tf.slice(embedding, [question_length, 0], [tf.shape(embedding)[0] - question_length, tf.shape(embedding)[1]]) for embedding in bert_qa_embedding ]
+
+                bert_question_embedding = self.pad_or_trim_2d_list(bert_question_embedding, max_length=self.T_q_encoder, padding=0.),
+                bert_answer_embedding = self.pad_or_trim_2d_list(bert_answer_embedding, max_length=self.T_a_encoder, padding=0.)
+                bert_rationale_embedding = self.pad_or_trim_2d_list(bert[1]['rat'], max_length=self.T_r_encoder, padding=0.)
             else:
-                raise ValueError(f'Unsupported task type for BERT embeddings{self.vcr_task_type}')
+                raise ValueError(f'Unsupported task type for BERT embeddings {self.vcr_task_type}')
 
             return {
                 **imdb,
                 'bert_question_embedding': bert_question_embedding,
-                'bert_answer_embedding': bert_answer_embedding
+                'bert_answer_embedding': bert_answer_embedding,
+                'bert_rationale_embedding': bert_rationale_embedding
             }
         
         return bert_dataset.map(add_to_imdb)
@@ -227,7 +239,7 @@ class DataReader:
         return image_feature_dataset.map(add_to_imdb)
 
     def split_vcr_tasks(self, sample):
-        def map_fn(i_ans, i_rat):
+        def map_fn(i, i_ans, i_rat):
             new_sample = {
                 'image_name': sample['image_name'],
                 'image_path': sample['image_path'],
@@ -261,12 +273,23 @@ class DataReader:
                     'valid_rationale_onehot': sample['valid_rationale_onehot'][i_rat]
                 })
 
+            if self.load_correct_answer and self.load_correct_rationale:
+                new_sample['valid_answer_and_rationale_onehot'] = sample['valid_answer_and_rationale_onehot'][i]
+
             if self.load_bert:
                 if self.vcr_task_type == 'Q_2_A':
                     new_sample.update({
                         # Don't know why bert_question_embedding has the extra dimension, but it must be accounted for.
                         'bert_question_embedding': sample['bert_question_embedding'][0][i_ans],
                         'bert_answer_embedding': sample['bert_answer_embedding'][i_ans]
+                    })
+                elif self.vcr_task_type == 'Q_2_AR':
+                    new_sample.update({
+                        # Don't know why bert_question_embedding has the extra dimension, but it must be accounted for.
+                        # This will need changing for the test dataset which has 16 combinations instead of 4.
+                        'bert_question_embedding': sample['bert_question_embedding'][0][i_ans],
+                        'bert_answer_embedding': sample['bert_answer_embedding'][i_ans],
+                        'bert_rationale_embedding': sample['bert_rationale_embedding'][i_ans]
                     })
                 else:
                     raise ValueError(f'Unsupported task type for BERT embeddings{self.vcr_task_type}')
@@ -276,8 +299,8 @@ class DataReader:
         datasets = []
         app_sample = datasets.append
 
-        for i_ans, i_rat in zip(self.i_ans_range, self.i_rat_range):
-            app_sample(tf.data.Dataset.from_tensors(sample).map(lambda s: map_fn(i_ans, i_rat)))
+        for i, i_ans, i_rat in zip(range(self.num_combinations), self.i_ans_range, self.i_rat_range):
+            app_sample(tf.data.Dataset.from_tensors(sample).map(lambda s: map_fn(i, i_ans, i_rat)))
 
         return reduce(lambda ds1, ds2: ds1.concatenate(ds2), datasets)
 
@@ -295,9 +318,14 @@ class DataReader:
         imdb['all_rationales_sequences'] = self.pad_or_trim_1d_list(imdb['all_rationales_sequences'], self.T_r_encoder, padding=0)
 
         if self.load_correct_answer:
-            imdb['valid_answer_onehot'] = tf.one_hot(imdb['valid_answer_index'], self.num_combinations, 1., 0.)
+            imdb['valid_answer_onehot'] = tf.one_hot(imdb['valid_answer_index'], self.num_answers, 1., 0.)
         if self.load_correct_rationale:
-            imdb['valid_rationale_onehot'] = tf.one_hot(imdb['valid_rationale_index'], self.num_combinations, 1., 0.)
+            imdb['valid_rationale_onehot'] = tf.one_hot(imdb['valid_rationale_index'], self.num_rationales, 1., 0.)
+        if self.load_correct_answer and self.load_correct_rationale and self.vcr_task_type == 'Q_2_AR':
+            imdb['valid_answer_onehot'] = tf.tile(input=imdb['valid_answer_onehot'], multiples=[ self.num_rationales ])
+            imdb['valid_rationale_onehot'] = tf.repeat(imdb['valid_rationale_onehot'], repeats=self.num_answers)
+            imdb['valid_answer_and_rationale_onehot'] = tf.math.logical_and(tf.cast(imdb['valid_answer_onehot'], tf.bool), tf.cast(imdb['valid_rationale_onehot'], tf.bool))
+            imdb['valid_answer_and_rationale_onehot'] = tf.cast(imdb['valid_answer_and_rationale_onehot'], tf.int32)
 
         return imdb
 
