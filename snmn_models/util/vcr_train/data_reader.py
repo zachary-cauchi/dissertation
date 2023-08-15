@@ -173,16 +173,19 @@ class DataReader:
         self.init_imdb_dataset()
 
         # Cache and shuffle the imdb dataset.
-        final_dataset = self.imdb_dataset.cache().shuffle(buffer_size=self.imdb_count, reshuffle_each_iteration=True)
+        final_dataset = self.imdb_dataset
         final_dataset: tf.data.Dataset = final_dataset.map(self.parse_raw_tensors, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-        # Load the image features using the imdb['feature_path']
-        final_dataset = final_dataset.interleave(self.load_image_features, cycle_length=8, block_length=1, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        # Cache the dataset and shuffle the records.
+        final_dataset = final_dataset.cache().shuffle(buffer_size=self.imdb_count, reshuffle_each_iteration=True)
+        # Load BERT embeddings if enabled.
         if self.load_bert:
             final_dataset = final_dataset.interleave(self.load_bert_embeddings, cycle_length=8, block_length=1, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        # Load the image features using the imdb['feature_path']
+        final_dataset = final_dataset.interleave(self.load_image_features, cycle_length=8, block_length=1, num_parallel_calls=tf.data.experimental.AUTOTUNE)
         # First batch these elements before splitting.
         final_dataset = final_dataset.batch(self.grouped_batch_size, drop_remainder=True).unbatch()
         # Split each imdb task into individual vcr tasks.
-        final_dataset = final_dataset.flat_map(self.new_split_vcr_tasks)
+        final_dataset = final_dataset.flat_map(self.split_vcr_tasks)
         # Batch those tasks.
         final_dataset = final_dataset.batch(self.actual_batch_size, drop_remainder=True)
         # Perform final transpositions from nchw to nhwc.
@@ -223,7 +226,7 @@ class DataReader:
 
         return image_feature_dataset.map(add_to_imdb)
 
-    def new_split_vcr_tasks(self, sample):
+    def split_vcr_tasks(self, sample):
         def map_fn(i_ans, i_rat):
             new_sample = {
                 'image_name': sample['image_name'],
