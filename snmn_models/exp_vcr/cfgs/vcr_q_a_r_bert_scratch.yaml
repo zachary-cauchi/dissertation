@@ -1,4 +1,6 @@
 EXP_NAME: vcr_q_a_r_bert_scratch
+GPU_ID: '01'
+MAX_GPUS: 2
 MODEL:
   H_FEAT: 8
   W_FEAT: 8

@@ -241,13 +241,13 @@ data_reader = create_data_reader(cfg.TRAIN.SPLIT_VQA, cfg)
 ema = tf.train.ExponentialMovingAverage(decay=cfg.TRAIN.EMA_DECAY)
 
 # Multi-GPU configuration
-strategy = MirroredStrategy()
+strategy = MirroredStrategy(num_gpus=cfg.MAX_GPUS)
 
 sess_config = tf.ConfigProto(gpu_options=tf.GPUOptions(allow_growth=cfg.GPU_MEM_GROWTH))
 config = tf.estimator.RunConfig(
     model_dir=snapshot_dir,
-    # train_distribute=strategy,
-    # eval_distribute=strategy,
+    train_distribute=strategy,
+    eval_distribute=strategy,
     session_config=sess_config,
     log_step_count_steps=cfg.TRAIN.LOG_INTERVAL,
     save_summary_steps=cfg.TRAIN.LOG_INTERVAL,
