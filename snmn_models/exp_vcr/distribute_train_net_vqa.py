@@ -35,7 +35,7 @@ def create_data_reader(split: str, cfg):
         vcr_task_type=cfg.MODEL.VCR_TASK_TYPE,
         use_sparse_softmax_labels=cfg.TRAIN.SOLVER.USE_SPARSE_SOFTMAX_LABELS,
         load_bert_embeddings = cfg.USE_BERT_SENTENCE_EMBED,
-        bert_embeddings_path = os.path.join(cfg.BERT_EMBED_DIR, cfg.TRAIN.SPLIT_VQA))
+        bert_embeddings_path = os.path.join(cfg.BERT_EMBED_DIR, split))
 
     return data_reader
 
@@ -72,6 +72,7 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
     print_fn('Initialising model')
     cfg = params['cfg']
     num_answers = params['num_answers']
+    num_combinations = params['num_combinations']
     load_rationale = params['load_rationale']
     load_bert = params['load_bert']
     correct_label_batch_name = params['correct_label_batch_name']
@@ -91,7 +92,7 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
         features['bert_rationale_embedding'] if load_bert and load_rationale else None,
         features['image_feat'],
         num_vocab=params['num_vocab'],
-        num_choices=params['num_combinations'],
+        num_choices=num_combinations,
         module_names=params['module_names'],
         is_training=mode==tf.estimator.ModeKeys.TRAIN,
         reuse=tf.AUTO_REUSE,
@@ -128,13 +129,13 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
 
         if not cfg.TRAIN.SOLVER.USE_SPARSE_SOFTMAX_LABELS:
             # Reshape the expected results into a one-hot encoded vector.
-            vqa_q_labels = tf.reshape(labels, [-1, num_answers])
+            vqa_q_labels = tf.reshape(labels, [-1, num_combinations])
 
             # Get the indices of the correct answer.
             vqa_q_labels = tf.where(tf.equal(vqa_q_labels, 1.))[:, 1]
 
             # Reshape the predictions into a softmax vector.
-            vqa_scores_val = tf.reshape(model.vqa_scores, [-1, num_answers])
+            vqa_scores_val = tf.reshape(model.vqa_scores, [-1, num_combinations])
         else:
             vqa_q_labels = labels
             vqa_scores_val = model.vqa_scores
@@ -143,6 +144,7 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
         vqa_predictions = tf.argmax(vqa_scores_val, axis=1, output_type=tf.int32)
         vqa_q_labels = tf.cast(vqa_q_labels, tf.int32)
 
+        # tf.debugging.assert_shapes([(vqa_q_labels, (None,)), (vqa_predictions, (None,))])
         accuracy = tf.metrics.accuracy(labels=vqa_q_labels, predictions=vqa_predictions, name='accuracy_op')
 
     if mode == tf.estimator.ModeKeys.TRAIN:
@@ -214,6 +216,10 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
         print_fn('Prediction mode initialised.')
         return tf.estimator.EstimatorSpec(mode=mode, predictions=model.vqa_scores)
 
+def get_checkpoints(dir: str):
+    checkpoints = [ os.path.join(dir, c.group(1)) for c in [re.match(pattern = r'(model.ckpt-[^0].*).data-00000.*', string=s) for s in os.listdir(dir)] if c is not None]
+    return sorted(checkpoints, key = lambda c: int(re.search(r'-(\d+)$', c).group(0)), reverse=True)
+
 # Load config
 cfg = build_cfg_from_argparse()
 snapshot_dir = cfg.TRAIN.SNAPSHOT_DIR % cfg.EXP_NAME
@@ -252,14 +258,18 @@ config = tf.estimator.RunConfig(
 # Initialise memory profiler for additional debugging.
 profiler_hook = tf.train.ProfilerHook(save_steps=cfg.TRAIN.SNAPSHOT_INTERVAL, output_dir=snapshot_dir, show_dataflow=True, show_memory=True)
 
+if cfg.TRAIN.START_ITER > 0:
+    start_checkpoint = os.path.join(snapshot_dir, f'model.ckpt-{str(cfg.TRAIN.START_ITER)}')
+else:
+    start_checkpoint = None
+
 print('Main: Initializing Estimator.')
-estimator = tf.estimator.Estimator(model_fn=model_fn, config=config, params=get_model_fn_params(cfg, data_reader))
+estimator = tf.estimator.Estimator(model_fn=model_fn, config=config, params=get_model_fn_params(cfg, data_reader), warm_start_from=start_checkpoint)
 print('Main: Initialised.')
 print('Main: Beginning training.')
 estimator.train(input_fn=lambda: input_fn(is_training=True), steps=cfg.TRAIN.MAX_ITER, hooks=[ profiler_hook ])
 print('Main: Training completed. Evaluating checkpoints.')
-checkpoints = [ os.path.join(snapshot_dir, c.group(1)) for c in [re.match(pattern = r'(model.ckpt-[^0].*).data-00000.*', string=s) for s in os.listdir(snapshot_dir)] if c is not None]
-checkpoints = sorted(checkpoints, key = lambda c: int(re.search(r'-(\d+)$', c).group(0)), reverse=True)
+checkpoints = get_checkpoints(snapshot_dir)
 if checkpoints is None or len(checkpoints) == 0:
     print('Main: No checkpoints to evaluate. Exiting.')
     sys.exit(0)
@@ -275,7 +285,6 @@ for checkpoint in checkpoints:
     print(f'Main: Evaluating checkpoint {checkpoint}')
     eval_metrics = estimator.evaluate(
         input_fn=lambda: input_fn(is_training=False),
-        # steps=cfg.EVAL.MAX_ITER if cfg.EVAL.MAX_ITER > 0 else None,
         checkpoint_path=checkpoint
     )
     print(f'Main: Evaluation results for checkpoint {checkpoint}: {eval_metrics}')

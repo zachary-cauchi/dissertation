@@ -230,6 +230,22 @@
         },
 
         {
+            "name": "VCR: Train QAR BERT scratch",
+            "type": "python",
+            "request": "launch",
+            "program": "./exp_vcr/distribute_train_net_vqa.py",
+            "cwd": "${workspaceFolder}/snmn_models",
+            "python": "${command:python.interpreterPath}",
+            "console": "integratedTerminal",
+            "args": [
+                "--cfg",
+                "exp_vcr/cfgs/vcr_q_a_r_bert_scratch.yaml",
+                "TRAIN.MAX_ITER",
+                "120000"
+            ]
+        },
+
+        {
             "name": "VCR: get questions for gt",
             "type": "python",
             "request": "launch",
