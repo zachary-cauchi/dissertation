@@ -197,10 +197,13 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
         # Calculate additional useful metrics for eval.
         precision = tf.metrics.precision(labels=vqa_q_labels, predictions=vqa_predictions, name='precision_op')
         recall = tf.metrics.recall(labels=vqa_q_labels, predictions=vqa_predictions, name='recall_op')
+        # conf_matrix = tf.math.confusion_matrix(labels=vqa_q_labels, predictions=vqa_predictions, dtype=tf.int32, name='confusion_matrix')
+        f1_score = tf.multiply(2, (precision[1] * recall[1]) / (precision[1] + recall[1]), name='f1_score')
         eval_metric_ops = {
             'accuracy': accuracy,
             'precision': precision,
-            'recall': recall
+            'recall': recall,
+            'f1_score': f1_score
         }
 
         # Log the metrics to tensorboard
@@ -208,6 +211,7 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
             tf.summary.scalar('accuracy', accuracy[1])
             tf.summary.scalar('precision', precision[1])
             tf.summary.scalar('recall', recall[1])
+            tf.summary.scalar('f1-score', f1_score)
 
         print_fn('Eval mode initialised.')
 
