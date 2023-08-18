@@ -9,7 +9,7 @@ from util.cnn import conv_elu_layer as conv_elu, conv_layer as conv
 
 # TODO: Fix method comment block.
 def build_input_unit(question_seq_batch, all_answers_seq_batch, all_rationales_seq_batch, question_length_batch, all_answers_length_batch, all_rationales_length_batch, bert_question_embeddings_batch, bert_answer_embeddings_batch, bert_rationale_embeddings_batch, num_vocab, seq_in_count,
-                     scope='input_unit', reuse=None, use_cudnn_lstm=True):
+                     scope='input_unit', reuse=None, use_cudnn_lstm=True, use_shared_lstm=True):
     """
     Preprocess the input sequence with a (single-layer) bidirectional LSTM.
 
@@ -66,12 +66,11 @@ def build_input_unit(question_seq_batch, all_answers_seq_batch, all_rationales_s
             embed_seq = tf.cast(embed_seq, tf.float32, name=prefix + '_cast_embeds_to_32')
 
             if use_cudnn_lstm:
-                lstm_layer = CudnnLSTM(
-                    num_layers=1,
-                    num_units=lstm_dim // 2,
-                    direction='bidirectional',
-                    name=prefix + '_cudnn_lstm_and_rnn'
-                )
+                if use_shared_lstm:
+                    if 'lstm_layer' not in locals() or lstm_layer is None:
+                        lstm_layer = get_lstm_cell(lstm_dim=lstm_dim, use_cudnn_lstm=use_cudnn_lstm, name='shared_cudnn_lstm_cell')
+                else:
+                    lstm_layer = get_lstm_cell(lstm_dim=lstm_dim, use_cudnn_lstm=use_cudnn_lstm, name=prefix + '_cudnn_lstm_cell')
 
                 outputs, (output_h, output_c) = lstm_layer(inputs=embed_seq)
 
@@ -80,8 +79,11 @@ def build_input_unit(question_seq_batch, all_answers_seq_batch, all_rationales_s
                 seq_encoding = tf.concat([output_h[0], output_h[1]], axis=1, name=prefix + '_create_encoded_representation')
                 lstm_outs.append(outputs)
             else:
-                cell_fw = tf.nn.rnn_cell.LSTMCell(lstm_dim//2, name=prefix + '_fw_lstm_cell')
-                cell_bw = tf.nn.rnn_cell.LSTMCell(lstm_dim//2, name=prefix + '_bw_lstm_cell')
+                if use_shared_lstm:
+                    if 'cell_fw' not in locals() or cell_fw is None:
+                        cell_fw, cell_bw = get_lstm_cell(lstm_dim=lstm_dim, use_cudnn_lstm=use_cudnn_lstm, name='shared_lstm_cell')
+                else:
+                    cell_fw, cell_bw = get_lstm_cell(lstm_dim=lstm_dim, use_cudnn_lstm=use_cudnn_lstm, name=prefix + '_lstm_cell')
             
                 # Create the lstm, getting the output and their states.
                 outputs, states = tf.nn.bidirectional_dynamic_rnn(
@@ -104,6 +106,21 @@ def build_input_unit(question_seq_batch, all_answers_seq_batch, all_rationales_s
 
     return lstm_seq, lstm_encs, embeds_seq_out
 
+def get_lstm_cell(lstm_dim, use_cudnn_lstm=True, name='lstm_cell'):
+    if use_cudnn_lstm:
+        lstm_layer = CudnnLSTM(
+            num_layers=1,
+            num_units=lstm_dim // 2,
+            direction='bidirectional',
+            name=name
+        )
+
+        return lstm_layer
+    else:
+        cell_fw = tf.nn.rnn_cell.LSTMCell(lstm_dim//2, name='fw_' + name)
+        cell_bw = tf.nn.rnn_cell.LSTMCell(lstm_dim//2, name='bw_' + name)
+
+        return cell_fw, cell_bw
 
 def get_positional_encoding(H, W):
     pe_dim = cfg.MODEL.PE_DIM

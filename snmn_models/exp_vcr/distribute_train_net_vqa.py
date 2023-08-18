@@ -96,7 +96,8 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
         module_names=params['module_names'],
         is_training=mode==tf.estimator.ModeKeys.TRAIN,
         reuse=tf.AUTO_REUSE,
-        use_cudnn_lstm=cfg.MODEL.INPUT.USE_CUDNN_LSTM
+        use_cudnn_lstm=cfg.MODEL.INPUT.USE_CUDNN_LSTM,
+        use_shared_lstm=cfg.MODEL.INPUT.USE_SHARED_LSTM
     )
 
     if mode == tf.estimator.ModeKeys.TRAIN or mode == tf.estimator.ModeKeys.EVAL:
@@ -198,12 +199,11 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
         precision = tf.metrics.precision(labels=vqa_q_labels, predictions=vqa_predictions, name='precision_op')
         recall = tf.metrics.recall(labels=vqa_q_labels, predictions=vqa_predictions, name='recall_op')
         # conf_matrix = tf.math.confusion_matrix(labels=vqa_q_labels, predictions=vqa_predictions, dtype=tf.int32, name='confusion_matrix')
-        f1_score = tf.multiply(2, (precision[1] * recall[1]) / (precision[1] + recall[1]), name='f1_score')
+        f1_score = tf.multiply(2., (precision[1] * recall[1]) / (precision[1] + recall[1]), name='f1_score')
         eval_metric_ops = {
             'accuracy': accuracy,
             'precision': precision,
-            'recall': recall,
-            'f1_score': f1_score
+            'recall': recall
         }
 
         # Log the metrics to tensorboard
@@ -273,13 +273,13 @@ print('Main: Initialised.')
 print('Main: Beginning training.')
 estimator.train(input_fn=lambda: input_fn(is_training=True), steps=cfg.TRAIN.MAX_ITER, hooks=[ profiler_hook ])
 print('Main: Training completed. Evaluating checkpoints.')
+del data_reader, estimator
 checkpoints = get_checkpoints(snapshot_dir)
 if checkpoints is None or len(checkpoints) == 0:
     print('Main: No checkpoints to evaluate. Exiting.')
     sys.exit(0)
 
 print('Main: Creating eval data_reader.')
-del data_reader, estimator
 
 data_reader = create_data_reader(cfg.EVAL.SPLIT_VQA, cfg)
 print('Main: Creating new Estimator with updated eval data_reader')

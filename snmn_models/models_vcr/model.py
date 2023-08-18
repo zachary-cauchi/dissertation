@@ -19,6 +19,7 @@ class Model:
                  image_feat_batch,
                  num_vocab, num_choices, module_names, is_training,
                  use_cudnn_lstm=True,
+                 use_shared_lstm=True,
                  scope='model', reuse=None):
         """
         Neual Module Networks v4 (the whole model)
@@ -39,7 +40,7 @@ class Model:
 
             # Input unit
             lstm_seq, lstm_encodings, embed_seq = input_unit.build_input_unit(
-                question_seq_batch, all_answers_seq_batch, all_rationales_seq_batch, question_length_batch, all_answers_length_batch, all_rationales_length_batch, bert_question_embeddings_batch, bert_answer_embeddings_batch, bert_rationale_embeddings_batch, num_vocab, self.seq_in_count, reuse=reuse, use_cudnn_lstm=use_cudnn_lstm)
+                question_seq_batch, all_answers_seq_batch, all_rationales_seq_batch, question_length_batch, all_answers_length_batch, all_rationales_length_batch, bert_question_embeddings_batch, bert_answer_embeddings_batch, bert_rationale_embeddings_batch, num_vocab, self.seq_in_count, reuse=reuse, use_cudnn_lstm=use_cudnn_lstm, use_shared_lstm=use_shared_lstm)
             kb_batch = input_unit.build_kb_batch(image_feat_batch, reuse=reuse)
 
             # Controller and NMN

@@ -56,6 +56,7 @@ __C.MODEL.INPUT.L2_NORMALIZATION_TYPE = ''
 __C.MODEL.INPUT.USE_POSITION_ENCODING = True
 __C.MODEL.INPUT.USE_ANSWERS = False # If True, allocate a big enough T_ENCODER to fit the largest token sequence.
 __C.MODEL.INPUT.USE_CUDNN_LSTM = True
+__C.MODEL.INPUT.USE_SHARED_LSTM = True
 
 __C.MODEL.CTRL = AttrDict()
 __C.MODEL.CTRL.NORMALIZE_ATT = True
