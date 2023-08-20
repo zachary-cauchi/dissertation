@@ -27,7 +27,7 @@ def build_input_unit(question_seq_batch, all_answers_seq_batch, all_rationales_s
         embed_dim = cfg.MODEL.EMBED_DIM
         if bert_question_embeddings_batch is None:
             if cfg.USE_FIXED_WORD_EMBED:
-                embed_mat = to_T(np.load(cfg.FIXED_WORD_EMBED_FILE), name='word_embeddings_tensor')
+                embed_mat = to_T(np.load(cfg.FIXED_WORD_EMBED_FILE), dtype_hint=tf.float32, name='word_embeddings_tensor')
             else:
                 embed_mat = tf.get_variable(
                     'embed_mat', [num_vocab, embed_dim],
@@ -62,9 +62,6 @@ def build_input_unit(question_seq_batch, all_answers_seq_batch, all_rationales_s
                 # embed_seq = tf.nn.embedding_lookup(embed_mat, seq_batch, prefix + '_word_embeddings_lookup')
                 embed_seq = bert_rationale_embeddings_batch if bert_rationale_embeddings_batch is not None else tf.nn.embedding_lookup(embed_mat, all_rationales_seq_batch, prefix + '_word_embeddings_lookup')
 
-            # Casting required when using generated weights.
-            embed_seq = tf.cast(embed_seq, tf.float32, name=prefix + '_cast_embeds_to_32')
-
             if use_cudnn_lstm:
                 if use_shared_lstm:
                     if 'lstm_layer' not in locals() or lstm_layer is None:
@@ -84,13 +81,16 @@ def build_input_unit(question_seq_batch, all_answers_seq_batch, all_rationales_s
                         cell_fw, cell_bw = get_lstm_cell(lstm_dim=lstm_dim, use_cudnn_lstm=use_cudnn_lstm, name='shared_lstm_cell')
                 else:
                     cell_fw, cell_bw = get_lstm_cell(lstm_dim=lstm_dim, use_cudnn_lstm=use_cudnn_lstm, name=prefix + '_lstm_cell')
-            
+
+                seq_length = question_length_batch if i == 0 else all_answers_length_batch if i == 1 else all_rationales_length_batch
+
                 # Create the lstm, getting the output and their states.
                 outputs, states = tf.nn.bidirectional_dynamic_rnn(
                     cell_fw, cell_bw, inputs=embed_seq, dtype=embed_seq.dtype,
-                    sequence_length=question_length_batch if i == 0 else all_answers_length_batch if i == 1 else all_rationales_length_batch,
+                    sequence_length=seq_length,
                     time_major=True,
-                    swap_memory=True)
+                    swap_memory=True,
+                    scope=prefix + '_bidirectional_dynamic_rnn')
 
                 # concatenate the final hidden state of the forward and backward LSTM
                 # for question (or answer) representation

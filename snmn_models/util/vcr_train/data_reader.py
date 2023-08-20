@@ -292,7 +292,7 @@ class DataReader:
                 if self.vcr_task_type == 'Q_2_A':
                     new_sample.update({
                         # Don't know why bert_question_embedding has the extra dimension, but it must be accounted for.
-                        'bert_question_embedding': sample['bert_question_embedding'][0][i_ans],
+                        'bert_question_embedding': sample['bert_question_embedding'][i_ans],
                         'bert_answer_embedding': sample['bert_answer_embedding'][i_ans]
                     })
                 elif self.vcr_task_type == 'QA_2_R' or self.vcr_task_type == 'Q_2_AR':
