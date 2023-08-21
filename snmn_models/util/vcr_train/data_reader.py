@@ -334,12 +334,18 @@ class DataReader:
         else:
             imdb = tfrecords_helpers.parse_example_to_imdb_no_correct_answer(imdb_sample)
 
+        # Pad or trim each sequence to the fixed encoder length.
         imdb['question_tokens'] = self.pad_or_trim(imdb['question_tokens'], self.T_q_encoder)
         imdb['question_sequence'] = self.pad_or_trim(imdb['question_sequence'], self.T_q_encoder, padding=0)
         imdb['all_answers'] = self.pad_or_trim_1d_list(imdb['all_answers'], self.T_a_encoder)
         imdb['all_answers_sequences'] = self.pad_or_trim_1d_list(imdb['all_answers_sequences'], self.T_a_encoder, padding=0)
         imdb['all_rationales'] = self.pad_or_trim_1d_list(imdb['all_rationales'], self.T_r_encoder)
         imdb['all_rationales_sequences'] = self.pad_or_trim_1d_list(imdb['all_rationales_sequences'], self.T_r_encoder, padding=0)
+
+        # Cap the sequence lengths to their target length
+        imdb['question_length'] = tf.math.minimum(imdb['question_length'], self.T_q_encoder, name='cap_question_length')
+        imdb['all_answers_length'] = tf.math.minimum(imdb['all_answers_length'], self.T_a_encoder, name='cap_answer_length')
+        imdb['all_rationales_length'] = tf.math.minimum(imdb['all_rationales_length'], self.T_r_encoder, name='cap_rationale_length')
 
         if self.load_correct_answer:
             imdb['valid_answer_onehot'] = tf.one_hot(imdb['valid_answer_index'], self.num_answers, 1., 0.)

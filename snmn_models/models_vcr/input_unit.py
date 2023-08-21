@@ -62,6 +62,10 @@ def build_input_unit(question_seq_batch, all_answers_seq_batch, all_rationales_s
                 # embed_seq = tf.nn.embedding_lookup(embed_mat, seq_batch, prefix + '_word_embeddings_lookup')
                 embed_seq = bert_rationale_embeddings_batch if bert_rationale_embeddings_batch is not None else tf.nn.embedding_lookup(embed_mat, all_rationales_seq_batch, prefix + '_word_embeddings_lookup')
 
+            embed_seq = tf.cast(embed_seq, dtype=tf.float32, name=prefix + '_cast_to_float32')
+
+            seq_length = question_length_batch if i == 0 else all_answers_length_batch if i == 1 else all_rationales_length_batch
+
             if use_cudnn_lstm:
                 if use_shared_lstm:
                     if 'lstm_layer' not in locals() or lstm_layer is None:
@@ -69,7 +73,7 @@ def build_input_unit(question_seq_batch, all_answers_seq_batch, all_rationales_s
                 else:
                     lstm_layer = get_lstm_cell(lstm_dim=lstm_dim, use_cudnn_lstm=use_cudnn_lstm, name=prefix + '_cudnn_lstm_cell')
 
-                outputs, (output_h, output_c) = lstm_layer(inputs=embed_seq)
+                outputs, (output_h, output_c) = lstm_layer(inputs=embed_seq, sequence_lengths=seq_length, time_major=True)
 
                 # concatenate the final hidden state of the forward and backward LSTM
                 # for question (or answer) representation
@@ -81,8 +85,6 @@ def build_input_unit(question_seq_batch, all_answers_seq_batch, all_rationales_s
                         cell_fw, cell_bw = get_lstm_cell(lstm_dim=lstm_dim, use_cudnn_lstm=use_cudnn_lstm, name='shared_lstm_cell')
                 else:
                     cell_fw, cell_bw = get_lstm_cell(lstm_dim=lstm_dim, use_cudnn_lstm=use_cudnn_lstm, name=prefix + '_lstm_cell')
-
-                seq_length = question_length_batch if i == 0 else all_answers_length_batch if i == 1 else all_rationales_length_batch
 
                 # Create the lstm, getting the output and their states.
                 outputs, states = tf.nn.bidirectional_dynamic_rnn(
