@@ -19,6 +19,20 @@ from models_vcr.model import Model
 from models_vcr.config import build_cfg_from_argparse
 from util.vcr_train.data_reader import DataReader
 
+def get_f1_score(labels, predictions):
+    precision_val, precision_op = tf.metrics.precision(labels=labels, predictions=predictions, name='precision_op')
+    recall_val, recall_op = tf.metrics.recall(labels=labels, predictions=predictions, name='recall_op')
+    
+    # Avoid zero division by adding a small constant
+    epsilon = 1e-7
+    
+    # Calculate F1 score
+    f1_val = 2. * (precision_val * recall_val) / (precision_val + recall_val + epsilon)
+    with tf.control_dependencies([precision_op, recall_op]):
+        f1_op = tf.identity(f1_val, name="f1_score")
+    
+    return f1_val, f1_op
+
 def create_data_reader(split: str, cfg):
     imdb_file = cfg.IMDB_FILE % split
     data_reader = DataReader(
@@ -198,12 +212,13 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
         # Calculate additional useful metrics for eval.
         precision = tf.metrics.precision(labels=vqa_q_labels, predictions=vqa_predictions, name='precision_op')
         recall = tf.metrics.recall(labels=vqa_q_labels, predictions=vqa_predictions, name='recall_op')
-        # conf_matrix = tf.math.confusion_matrix(labels=vqa_q_labels, predictions=vqa_predictions, dtype=tf.int32, name='confusion_matrix')
-        f1_score = tf.multiply(2., (precision[1] * recall[1]) / (precision[1] + recall[1]), name='f1_score')
+        f1_score = get_f1_score(labels=vqa_q_labels, predictions=vqa_predictions)
+
         eval_metric_ops = {
             'accuracy': accuracy,
             'precision': precision,
-            'recall': recall
+            'recall': recall,
+            'f1-score': f1_score
         }
 
         # Log the metrics to tensorboard
@@ -211,7 +226,7 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
             tf.summary.scalar('accuracy', accuracy[1])
             tf.summary.scalar('precision', precision[1])
             tf.summary.scalar('recall', recall[1])
-            tf.summary.scalar('f1-score', f1_score)
+            tf.summary.scalar('f1-score', f1_score[1])
 
         print_fn('Eval mode initialised.')
 
