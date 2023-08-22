@@ -8,7 +8,7 @@ from .config import cfg
 from util.cnn import conv_elu_layer as conv_elu, conv_layer as conv
 
 # TODO: Fix method comment block.
-def build_input_unit(question_seq_batch, all_answers_seq_batch, all_rationales_seq_batch, question_length_batch, all_answers_length_batch, all_rationales_length_batch, bert_question_embeddings_batch, bert_answer_embeddings_batch, bert_rationale_embeddings_batch, num_vocab, seq_in_count,
+def build_input_unit(question_seq_batch, all_answers_seq_batch, all_rationales_seq_batch, question_length_batch, all_answers_length_batch, all_rationales_length_batch, bert_question_embeddings_batch, bert_answer_embeddings_batch, bert_rationale_embeddings_batch, num_vocab, seq_in_count, is_training=True,
                      scope='input_unit', reuse=None, use_cudnn_lstm=True, use_shared_lstm=True):
     """
     Preprocess the input sequence with a (single-layer) bidirectional LSTM.
@@ -73,7 +73,7 @@ def build_input_unit(question_seq_batch, all_answers_seq_batch, all_rationales_s
                 else:
                     lstm_layer = get_lstm_cell(lstm_dim=lstm_dim, use_cudnn_lstm=use_cudnn_lstm, name=prefix + '_cudnn_lstm_cell')
 
-                outputs, (output_h, output_c) = lstm_layer(inputs=embed_seq, sequence_lengths=seq_length, time_major=True)
+                outputs, (output_h, output_c) = lstm_layer(inputs=embed_seq, sequence_lengths=seq_length, time_major=True, training=is_training)
 
                 # concatenate the final hidden state of the forward and backward LSTM
                 # for question (or answer) representation
