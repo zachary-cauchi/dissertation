@@ -171,7 +171,7 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
         #   * Enable Automatic Mixed Precision (AMP) which will mix in float16 types in the graph.
         #   * Enable XLA graph optimisation which compiles the generated graph for improved performance.
         #   * Enables use of Tensor Cores on supporting Nvidia GPUs.
-        # solver = tf.train.experimental.enable_mixed_precision_graph_rewrite(solver, loss_scale='dynamic')
+        solver = tf.train.experimental.enable_mixed_precision_graph_rewrite(solver, loss_scale='dynamic')
 
         # TODO: Consider dynamic loss scale such as tf.train.experiential.DynamicLossScale?
         grads_and_vars = solver.compute_gradients(loss_total)
@@ -250,7 +250,7 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.INFO)
 
 # Enables support for XLA optimisation
 # os.environ['TF_AUTO_MIXED_PRECISION_GRAPH_REWRITE_LOG_PATH'] = os.path.join(snapshot_dir, 'xla')
-# tf.config.optimizer.set_jit('autoclustering')
+tf.config.optimizer.set_jit('autoclustering')
 
 # Data files
 data_reader = create_data_reader(cfg.TRAIN.SPLIT_VQA, cfg)
