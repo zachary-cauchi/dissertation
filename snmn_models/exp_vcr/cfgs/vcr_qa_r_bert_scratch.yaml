@@ -1,0 +1,43 @@
+EXP_NAME: vcr_qa_r_bert_scratch
+GPU_ID: '0'
+MAX_GPUS: 1
+MODEL:
+  H_FEAT: 7
+  W_FEAT: 7
+  FEAT_DIM: 2048
+  T_CTRL: 12
+  T_Q_ENCODER: 90
+  T_A_ENCODER: 90
+  T_R_ENCODER: 90
+  VCR_TASK_TYPE: QA_2_R
+  NMN:
+    STACK:
+      LENGTH: 6
+      USE_HARD_SHARPEN: False
+      GUARD_STACK_PTR: True
+    DESCRIBE_ONE:
+      KEEP_STACK: True
+  INPUT:
+    USE_L2_NORMALIZATION: True
+    L2_NORMALIZATION_TYPE: global
+    USE_POSITION_ENCODING: False
+    USE_CUDNN_LSTM: True
+    USE_SHARED_LSTM: True
+TRAIN:
+  USE_GT_LAYOUT: False
+  SAVE_LAYOUT_WITH_SNAPSHOT: True
+  WEIGHT_DECAY: 1e-4
+  BATCH_SIZE: 24
+  SOLVER:
+    LR: 1e-3
+    USE_SPARSE_SOFTMAX_LABELS: False
+  VQA_USE_SOFT_SCORE: False
+  VQA_SCORE_INIT: -1.  # roughly sigmoid(-8) = 1/3000
+  SNAPSHOT_INTERVAL: 5000
+TEST:
+  EVAL_FILE: './exp_vcr/eval_outputs_vcr/%s/vcr_%s_%s_%s_results.json'
+  SPLIT_VQA: 'val'
+  NUM_VIS: 0
+
+USE_BERT_SENTENCE_EMBED: True
+IMDB_FILE: './exp_vcr/data/tfrecords_imdb_r152_7x7/imdb_%s.tfrecords'

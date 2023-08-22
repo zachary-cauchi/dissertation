@@ -351,7 +351,7 @@ class DataReader:
             imdb['valid_answer_onehot'] = tf.one_hot(imdb['valid_answer_index'], self.num_answers, 1., 0.)
         if self.load_correct_rationale:
             imdb['valid_rationale_onehot'] = tf.one_hot(imdb['valid_rationale_index'], self.num_rationales, 1., 0.)
-        if self.load_correct_answer and self.load_correct_rationale and (self.vcr_task_type == 'Q_2_AR' or self.vcr_task_type == 'QA_2_R'):
+        if self.load_correct_answer and self.load_correct_rationale and self.vcr_task_type == 'Q_2_AR':
             imdb['valid_answer_onehot'] = tf.tile(input=imdb['valid_answer_onehot'], multiples=[ self.num_rationales ])
             imdb['valid_rationale_onehot'] = tf.repeat(imdb['valid_rationale_onehot'], repeats=self.num_answers)
             imdb['valid_answer_and_rationale_onehot'] = tf.math.logical_and(tf.cast(imdb['valid_answer_onehot'], tf.bool), tf.cast(imdb['valid_rationale_onehot'], tf.bool))
