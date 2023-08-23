@@ -86,22 +86,23 @@ class Model:
             else:
                 self.rec_loss = tf.convert_to_tensor(0.)
 
-            self.params = [ v for v in tf.trainable_variables(scope) ]
-            
             l1_regs = []
             l2_regs = []
-            
-            for v in self.params:
-                if 'weights' in v.op.name:
-                    l1_regs.append(tf.reduce_sum(tf.abs(v), name=f'l1_{v.op.name}'))
-                    l2_regs.append(tf.nn.l2_loss(v, name=f'l2_{v.op.name}'))
 
-            self.l1_reg = tf.add_n(l1_regs, name='l1_reg')
-            self.l2_reg = tf.add_n(l2_regs, name='l2_reg')
-            self.reg_rho = cfg.TRAIN.L1_L2_RHO
+            self.params = [ v for v in tf.trainable_variables(scope) ]
 
-            # Use a rho of 1. for lasso (l1) regularisation only, use a rho of 0. for ridge (l2) regularisation only.
-            self.elastic_net_reg =  tf.add(self.reg_rho * self.l1_reg, (1 - self.reg_rho) * self.l2_reg, name='elastic_net_reg')
+            with tf.variable_scope(scope + '_regs'):
+                for v in self.params:
+                    if 'weights' in v.op.name:
+                        l1_regs.append(tf.reduce_sum(tf.abs(v, name=f'l1_abs_{v.op.name}'), name=f'l1_{v.op.name}'))
+                        l2_regs.append(tf.nn.l2_loss(v, name=f'l2_{v.op.name}'))
+
+                self.l1_reg = tf.add_n(l1_regs, name='l1_reg')
+                self.l2_reg = tf.add_n(l2_regs, name='l2_reg')
+                self.reg_rho = cfg.TRAIN.L1_L2_RHO
+
+                # Use a rho of 1. for lasso (l1) regularisation only, use a rho of 0. for ridge (l2) regularisation only.
+                self.elastic_net_reg =  tf.add(self.reg_rho * self.l1_reg, (1 - self.reg_rho) * self.l2_reg, name='elastic_net_reg')
 
             # tensors for visualization
             self.vis_outputs = {
