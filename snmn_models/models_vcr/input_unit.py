@@ -47,22 +47,12 @@ def build_input_unit(question_seq_batch, all_answers_seq_batch, all_rationales_s
         for i in range(seq_in_count):
             prefix = get_name_prefix(i)
 
-            if i == 0:
-                embed_seq = bert_question_embeddings_batch if bert_question_embeddings_batch is not None else tf.nn.embedding_lookup(embed_mat, question_seq_batch, prefix + '_word_embeddings_lookup')
-            elif i == 1:
-                # Load the i-1'th answer from the input and generate it's embedding.
-                # seq_batch = tf.gather_nd(indices=[0], params=all_answers_seq_batch, name='get_' + prefix)
-
-                # embed_seq = tf.nn.embedding_lookup(embed_mat, seq_batch, prefix + '_word_embeddings_lookup')
-                embed_seq = bert_answer_embeddings_batch if bert_answer_embeddings_batch is not None else tf.nn.embedding_lookup(embed_mat, all_answers_seq_batch, prefix + '_word_embeddings_lookup')
-            elif i == 2:
-                # Load the i-1'th answer from the input and generate it's embedding.
-                # seq_batch = tf.gather_nd(indices=[0], params=all_rationales_seq_batch, name='get_' + prefix)
-
-                # embed_seq = tf.nn.embedding_lookup(embed_mat, seq_batch, prefix + '_word_embeddings_lookup')
-                embed_seq = bert_rationale_embeddings_batch if bert_rationale_embeddings_batch is not None else tf.nn.embedding_lookup(embed_mat, all_rationales_seq_batch, prefix + '_word_embeddings_lookup')
-
-            embed_seq = tf.cast(embed_seq, dtype=tf.float32, name=prefix + '_cast_to_float32')
+            if bert_question_embeddings_batch is None:
+                seq_batch = question_seq_batch if i == 0 else all_answers_seq_batch if i == 1 else all_rationales_seq_batch
+                embed_seq = tf.nn.embedding_lookup(embed_mat, seq_batch, name = f'{prefix}_embed_lookup')
+            else:
+                embed_seq = bert_question_embeddings_batch if i == 0 else bert_answer_embeddings_batch if i == 1 else bert_rationale_embeddings_batch
+                embed_seq = tf.cast(embed_seq, dtype=tf.float32, name=prefix + '_cast_to_float32')
 
             seq_length = question_length_batch if i == 0 else all_answers_length_batch if i == 1 else all_rationales_length_batch
 
