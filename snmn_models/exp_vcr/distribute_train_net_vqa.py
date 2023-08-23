@@ -263,6 +263,10 @@ ema = tf.train.ExponentialMovingAverage(decay=cfg.TRAIN.EMA_DECAY)
 strategy = MirroredStrategy(num_gpus=cfg.MAX_GPUS)
 
 sess_config = tf.ConfigProto(gpu_options=tf.GPUOptions(allow_growth=cfg.GPU_MEM_GROWTH))
+# If using the bidirectional_dynamic_rnn, we have to enable this due to an error with how it asserts the embedding sizes.
+if not cfg.MODEL.INPUT.USE_CUDNN_LSTM:
+    sess_config.allow_soft_placement = True
+
 config = tf.estimator.RunConfig(
     model_dir=snapshot_dir,
     train_distribute=strategy,

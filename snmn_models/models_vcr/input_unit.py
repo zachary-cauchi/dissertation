@@ -77,7 +77,7 @@ def build_input_unit(question_seq_batch, all_answers_seq_batch, all_rationales_s
                     cell_fw, cell_bw = get_lstm_cell(lstm_dim=lstm_dim, use_cudnn_lstm=use_cudnn_lstm, name=prefix + '_lstm_cell')
 
                 # Create the lstm, getting the output and their states.
-                outputs, states = tf.nn.bidirectional_dynamic_rnn(
+                outputs, states = tf.compat.v1.nn.bidirectional_dynamic_rnn(
                     cell_fw, cell_bw, inputs=embed_seq, dtype=embed_seq.dtype,
                     sequence_length=seq_length,
                     time_major=True,
