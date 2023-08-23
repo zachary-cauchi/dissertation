@@ -97,7 +97,7 @@
             "console": "integratedTerminal",
             "args": [
                 "--cfg",
-                "exp_vcr/cfgs/vcr_q_a_bert_scratch.yaml"
+                "exp_vcr/cfgs/vcr_qa_r_bert_scratch.yaml"
             ]
         },
 
@@ -214,10 +214,42 @@
         },
 
         {
+            "name": "VCR: Train QA_R scratch",
+            "type": "python",
+            "request": "launch",
+            "program": "./exp_vcr/distribute_train_net_vqa.py",
+            "cwd": "${workspaceFolder}/snmn_models",
+            "python": "${command:python.interpreterPath}",
+            "console": "integratedTerminal",
+            "args": [
+                "--cfg",
+                "exp_vcr/cfgs/vcr_qa_r_scratch.yaml",
+                "TRAIN.MAX_ITER",
+                "120000"
+            ]
+        },
+
+        {
+            "name": "VCR: Train QA_R Word2Vec scratch",
+            "type": "python",
+            "request": "launch",
+            "program": "./exp_vcr/distribute_train_net_vqa.py",
+            "cwd": "${workspaceFolder}/snmn_models",
+            "python": "${command:python.interpreterPath}",
+            "console": "integratedTerminal",
+            "args": [
+                "--cfg",
+                "exp_vcr/cfgs/vcr_qa_r_word2vec_scratch.yaml",
+                "TRAIN.MAX_ITER",
+                "120000"
+            ]
+        },
+
+        {
             "name": "VCR: Train QAR scratch",
             "type": "python",
             "request": "launch",
-            "program": "./exp_vcr/train_net_vqa.py",
+            "program": "./exp_vcr/distribute_train_net_vqa.py",
             "cwd": "${workspaceFolder}/snmn_models",
             "python": "${command:python.interpreterPath}",
             "console": "integratedTerminal",
@@ -297,6 +329,18 @@
             "args": [
                 // "question_answers"
                 "test"
+            ]
+        },
+
+        {
+            "name": "VCR: generate Word2Vec embeddings",
+            "type": "python",
+            "request": "launch",
+            "program": "./generate_word2vec_embeddings.py",
+            "cwd": "${workspaceFolder}/snmn_models/exp_vcr/data",
+            "python": "${command:python.interpreterPath}",
+            "console": "integratedTerminal",
+            "args": [
             ]
         },
 
