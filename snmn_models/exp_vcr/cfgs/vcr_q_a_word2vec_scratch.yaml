@@ -1,4 +1,4 @@
-EXP_NAME: vcr_q_a_scratch
+EXP_NAME: vcr_q_a_word2vec_scratch
 GPU_ID: '0'
 MAX_GPUS: 1
 MODEL:
@@ -41,5 +41,5 @@ TEST:
   NUM_VIS: 0
 
 USE_FIXED_WORD_EMBED: True
-FIXED_WORD_EMBED_FILE: './exp_vcr/data/vocabulary_vcr_glove.npy'
+FIXED_WORD_EMBED_FILE: './exp_vcr/data/vocabulary_vcr_word2vec.npy'
 IMDB_FILE: './exp_vcr/data/tfrecords_imdb_r152_7x7/imdb_%s.tfrecords'
