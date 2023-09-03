@@ -23,10 +23,15 @@ vectors_array = np.array([ model.wv[word] for word in vocab_words ])
 
 assert np.array_equal(vectors_array[5], model.wv[vocab_words[5]]), 'numpy array and model array do not share the same order.'
 
+for i, vector in enumerate(vectors_array):
+    assert not np.isnan(vector).any(), f'Found NaN values in vector {i} for word {vocab_words[i]}'
+
 np.save(args.output_npy_file, vectors_array, allow_pickle=True)
 
-if len(args.output_file) == 0:
+if len(args.output_file) > 0:
     with open(args.output_file, 'w') as out_txt:
-        for vector in vectors_array:
+        for i, vector in enumerate(vectors_array):
+            assert np.isnan(vector).any(), f'Found NaN values in vector {i} for word {vocab_words[i]}'
+
             vector_str = ' '.join(map(str, vector))
             out_txt.write(vector_str + '\n')

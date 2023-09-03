@@ -179,6 +179,7 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
         if cfg.TRAIN.CLIP_GRADIENTS:
             print_fn(f'clipping gradients to max norm: {cfg.TRAIN.GRAD_MAX_NORM:f}')
             gradients, variables = zip(*grads_and_vars)
+            nan_check_unclipped_gradients = [ tf.debugging.assert_all_finite(gradient, message=f'NaN detected in UNCLIPPED gradient "{gradient.name}"') for gradient in gradients]
             gradients, _ = tf.clip_by_global_norm(gradients, cfg.TRAIN.GRAD_MAX_NORM, name='perform_gradient_clipping')
             grads_and_vars = zip(gradients, variables)
         solver_op = solver.apply_gradients(grads_and_vars, global_step=global_step)
@@ -189,10 +190,18 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
             ema_op = ema.apply(model.params)
             train_op = tf.group(ema_op, name='ema_train_op')
 
+        # TODO: NaN values appearing in gradients for output_unit. Investigate further.
+        nan_check_loss = tf.debugging.assert_all_finite(loss_total, message='NaN detected in loss')
+        nan_check_reg = tf.debugging.assert_all_finite(model.elastic_net_reg, message='NaN detected in regularization')
+        nan_check_clipped_gradients = [ tf.debugging.assert_all_finite(gradient, message=f'NaN detected in CLIPPED gradient "{gradient.name}"') for gradient in gradients]
+        nan_check_params = [ tf.debugging.assert_all_finite(v, message=f'NaN detected in model param "{v.name}"') for v in model.params]
+
+        nan_checks = tf.group(nan_check_loss, nan_check_reg, *nan_check_unclipped_gradients, *nan_check_clipped_gradients, *nan_check_params, name='all_assertions')
+
         # Create a hook to update the metrics per run
         class MetricHook(tf.train.SessionRunHook):
             def before_run(self, run_context):
-                return tf.estimator.SessionRunArgs([accuracy[1]])
+                return tf.estimator.SessionRunArgs([accuracy[1], nan_checks])
 
         metric_hook = MetricHook()
         with tf.device('/CPU:0'):
