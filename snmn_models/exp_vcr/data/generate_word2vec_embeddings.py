@@ -3,6 +3,13 @@ import numpy as np
 from gensim.models import word2vec
 
 parser = argparse.ArgumentParser(prog='generate_word2vec_embeddings.py', description='Generate Word2Vec embeddings for the VCR corpus.')
+parser.usage = """
+Generate a skip-gram word2vec embeddings file:
+$ python generate_word2vec_embeddings.py --model_type sg --output_npy_file vocabulary_vcr_word2vec.npy
+
+Generate a skip-gram word2vec embeddings file with 768d vectors:
+$ python generate_word2vec_embeddings.py --model_type sg --vector_size 768 --output_npy_file vocabulary_vcr_word2vec_768.npy
+"""
 parser.add_argument('--file_path', type=str, default='./corpus_vcr.txt')
 parser.add_argument('--model_type', type=str, choices=['cbow', 'sg'], default='cbow')
 parser.add_argument('--vector_size', type=int, default=300)

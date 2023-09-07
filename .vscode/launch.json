@@ -97,7 +97,7 @@
             "console": "integratedTerminal",
             "args": [
                 "--cfg",
-                "exp_vcr/cfgs/vcr_qa_r_bert_scratch.yaml"
+                "exp_vcr/cfgs/vcr_qa_r_word2vec_scratch.yaml"
             ]
         },
 
@@ -341,6 +341,10 @@
             "python": "${command:python.interpreterPath}",
             "console": "integratedTerminal",
             "args": [
+                "--model_type",
+                "sg",
+                "--output_npy_file",
+                "./vocabulary_vcr_word2vec.npy"
             ]
         },
 
