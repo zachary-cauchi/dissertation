@@ -201,7 +201,7 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
         # Create a hook to update the metrics per run
         class MetricHook(tf.train.SessionRunHook):
             def before_run(self, run_context):
-                return tf.estimator.SessionRunArgs([accuracy[1], nan_checks])
+                return tf.estimator.SessionRunArgs([accuracy[1]])
 
         metric_hook = MetricHook()
         with tf.device('/CPU:0'):
