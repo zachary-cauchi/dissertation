@@ -252,7 +252,7 @@ def get_checkpoints(dir: str):
 cfg = build_cfg_from_argparse()
 snapshot_dir = cfg.TRAIN.SNAPSHOT_DIR % cfg.EXP_NAME
 
-if 'CUDA_VISIBLE_DEVICES' not in os.environ:
+if 'CUDA_VISIBLE_DEVICES' not in os.environ and cfg.MAX_GPUS < 2:
     os.environ["CUDA_VISIBLE_DEVICES"] = ','.join(cfg.GPU_ID)
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.INFO)
@@ -269,7 +269,8 @@ data_reader = create_data_reader(cfg.TRAIN.SPLIT_VQA, cfg)
 ema = tf.train.ExponentialMovingAverage(decay=cfg.TRAIN.EMA_DECAY)
 
 # Multi-GPU configuration
-strategy = MirroredStrategy(num_gpus=cfg.MAX_GPUS)
+train_strategy = MirroredStrategy(num_gpus=cfg.MAX_GPUS)
+eval_strategy = MirroredStrategy(num_gpus=1)
 
 sess_config = tf.ConfigProto(gpu_options=tf.GPUOptions(allow_growth=cfg.GPU_MEM_GROWTH))
 # If using the bidirectional_dynamic_rnn, we have to enable this due to an error with how it asserts the embedding sizes.
@@ -278,8 +279,8 @@ if not cfg.MODEL.INPUT.USE_CUDNN_LSTM:
 
 config = tf.estimator.RunConfig(
     model_dir=snapshot_dir,
-    train_distribute=strategy,
-    eval_distribute=strategy,
+    train_distribute=train_strategy,
+    eval_distribute=eval_strategy,
     session_config=sess_config,
     log_step_count_steps=cfg.TRAIN.LOG_INTERVAL,
     save_summary_steps=cfg.TRAIN.LOG_INTERVAL,
