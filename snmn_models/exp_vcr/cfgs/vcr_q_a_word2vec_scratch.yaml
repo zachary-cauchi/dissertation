@@ -22,7 +22,7 @@ MODEL:
     L2_NORMALIZATION_TYPE: global
     USE_POSITION_ENCODING: False
     USE_CUDNN_LSTM: False
-    USE_SHARED_LSTM: True
+    USE_SHARED_LSTM: False
 TRAIN:
   USE_GT_LAYOUT: False
   SAVE_LAYOUT_WITH_SNAPSHOT: True
@@ -32,6 +32,7 @@ TRAIN:
   SOLVER:
     LR: 1e-4
     USE_SPARSE_SOFTMAX_LABELS: False
+  GRAD_MAX_NORM: 6.
   VQA_USE_SOFT_SCORE: False
   VQA_SCORE_INIT: -8.  # roughly sigmoid(-8) = 1/3000
   SNAPSHOT_INTERVAL: 5000
@@ -41,5 +42,5 @@ TEST:
   NUM_VIS: 0
 
 USE_FIXED_WORD_EMBED: True
-FIXED_WORD_EMBED_FILE: './exp_vcr/data/vocabulary_vcr_word2vec.npy'
+FIXED_WORD_EMBED_FILE: './exp_vcr/data/vocabulary_vcr_word2vec_768.npy'
 IMDB_FILE: './exp_vcr/data/tfrecords_imdb_r152_7x7/imdb_%s.tfrecords'
