@@ -26,9 +26,13 @@ with open(args.vocab_file, 'r') as vocab_file:
 
 assert len(vocab_words) == len(model.wv), f'The vocabulary and model vocabulary do not match. The vocabulary file is {len(vocab_words)} tokens long but the models vocabulary is {len(model.vw)} long.'
 
+# Get the vectors for each word into an array.
 vectors_array = np.array([ model.wv[word] for word in vocab_words ])
 
 assert np.array_equal(vectors_array[5], model.wv[vocab_words[5]]), 'numpy array and model array do not share the same order.'
+
+# Normalise each generated vector.
+vectors_array /= np.linalg.norm(vectors_array, axis=1, keepdims=True)
 
 for i, vector in enumerate(vectors_array):
     assert not np.isnan(vector).any(), f'Found NaN values in vector {i} for word {vocab_words[i]}'
@@ -38,7 +42,5 @@ np.save(args.output_npy_file, vectors_array, allow_pickle=True)
 if len(args.output_file) > 0:
     with open(args.output_file, 'w') as out_txt:
         for i, vector in enumerate(vectors_array):
-            assert np.isnan(vector).any(), f'Found NaN values in vector {i} for word {vocab_words[i]}'
-
             vector_str = ' '.join(map(str, vector))
             out_txt.write(vector_str + '\n')
