@@ -24,11 +24,11 @@ def build_input_unit(question_seq_batch, all_answers_seq_batch, all_rationales_s
 
     with tf.variable_scope(scope, reuse=reuse):
         # word embedding
-        embed_dim = cfg.MODEL.EMBED_DIM
         if bert_question_embeddings_batch is None:
             if cfg.USE_FIXED_WORD_EMBED:
                 embed_mat = to_T(np.load(cfg.FIXED_WORD_EMBED_FILE), dtype_hint=tf.float32, name='word_embeddings_tensor')
             else:
+                embed_dim = cfg.MODEL.EMBED_DIM
                 embed_mat = tf.get_variable(
                     'embed_mat', [num_vocab, embed_dim],
                     initializer=tf.initializers.random_normal(
