@@ -298,7 +298,7 @@ class DataReader:
                 elif self.vcr_task_type == 'QA_2_R' or self.vcr_task_type == 'Q_2_AR':
                     if self.load_correct_answer:
                         new_sample.update({
-                            'bert_question_embedding': sample['bert_question_embedding'][i_ans],
+                            'bert_question_embedding': sample['bert_question_embedding'][i_rat],
                             'bert_answer_embedding': sample['bert_answer_embedding'][i_ans],
                             'bert_rationale_embedding': sample['bert_rationale_embedding'][i_rat]
                         })
