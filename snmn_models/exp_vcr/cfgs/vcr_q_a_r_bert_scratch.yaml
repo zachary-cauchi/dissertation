@@ -36,8 +36,13 @@ TRAIN:
   SNAPSHOT_INTERVAL: 5000
 TEST:
   EVAL_FILE: './exp_vcr/eval_outputs_vcr/%s/vcr_%s_%s_%s_results.json'
-  SPLIT_VQA: 'val'
+  SPLIT_VQA: 'test'
   NUM_VIS: 0
 
 USE_BERT_SENTENCE_EMBED: True
 IMDB_FILE: './exp_vcr/data/tfrecords_imdb_r152_7x7/imdb_%s.tfrecords'
+
+RUN:
+  TRAIN: True
+  EVAL: True
+  TEST: True

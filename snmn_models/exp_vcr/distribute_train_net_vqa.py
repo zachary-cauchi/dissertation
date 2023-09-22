@@ -1,6 +1,8 @@
 import sys
 import os
+import csv
 import math
+import numpy as np
 from regex import regex as re
 from typing import Callable
 
@@ -240,6 +242,36 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
         print_fn('Eval mode initialised.')
 
         return tf.estimator.EstimatorSpec(mode=mode, loss=loss_total, eval_metric_ops=eval_metric_ops)
+
+    elif mode == tf.estimator.ModeKeys.PREDICT:
+
+        if not cfg.TRAIN.SOLVER.USE_SPARSE_SOFTMAX_LABELS:
+            # Reshape the predictions into a softmax vector.
+            vqa_scores_val = tf.reshape(model.vqa_scores, [-1, num_combinations])
+        else:
+            vqa_scores_val = model.vqa_scores
+
+        # Convert the logits into the predicted indices of the correct answer.
+        vqa_predictions = tf.argmax(vqa_scores_val, axis=1, output_type=tf.int32)
+
+        answer_tokens = tf.transpose(features['all_answers_sequences'])
+        if data_reader.vcr_task_type == 'Q_2_A':
+            answer = vqa_predictions
+        elif data_reader.vcr_task_type == 'QA_2_R' and data_reader.load_correct_answer:
+            answer = features['valid_answers_index']
+        else:
+            answer = data_reader.i_ans_range[vqa_predictions]
+
+        predictions = {
+            'logits': tf.expand_dims(model.vqa_scores, axis=0),
+            'question_id': tf.expand_dims(features['question_id'], axis=0),
+            'question_tokens': tf.expand_dims(features['question_tokens'], axis=0),
+            'answer': tf.expand_dims(answer, axis=0),
+            'answer_tokens': tf.expand_dims(answer_tokens, axis=0),
+        }
+
+        return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
+
     else:
         print_fn('Prediction mode initialised.')
         return tf.estimator.EstimatorSpec(mode=mode, predictions=model.vqa_scores)
@@ -296,29 +328,84 @@ if cfg.TRAIN.START_ITER > 0:
 else:
     start_checkpoint = None
 
-print('Main: Initializing Estimator.')
-estimator = tf.estimator.Estimator(model_fn=model_fn, config=config, params=get_model_fn_params(cfg, data_reader), warm_start_from=start_checkpoint)
-print('Main: Initialised.')
-print('Main: Beginning training.')
-estimator.train(input_fn=lambda: input_fn(is_training=True), steps=cfg.TRAIN.MAX_ITER, hooks=[ profiler_hook ])
-print('Main: Training completed. Evaluating checkpoints.')
-del data_reader, estimator
+# Perform training
+
+if cfg.RUN.TRAIN:
+    print('Main: Initializing training Estimator.')
+    estimator = tf.estimator.Estimator(model_fn=model_fn, config=config, params=get_model_fn_params(cfg, data_reader), warm_start_from=start_checkpoint)
+    print('Main: Initialised.')
+    print('Main: Beginning training.')
+    estimator.train(input_fn=lambda: input_fn(is_training=True), steps=cfg.TRAIN.MAX_ITER, hooks=[ profiler_hook ])
+    print('Main: Training completed.')
+    del data_reader, estimator
+
+# Perform eval
 checkpoints = get_checkpoints(snapshot_dir)
-if checkpoints is None or len(checkpoints) == 0:
-    print('Main: No checkpoints to evaluate. Exiting.')
-    sys.exit(0)
+best_checkpoint = None
 
-print('Main: Creating eval data_reader.')
+if cfg.RUN.EVAL:
+    if checkpoints is None or len(checkpoints) == 0:
+        print('Main: No checkpoints to evaluate.')
+        sys.exit(0)
+    print('Main: Creating eval data_reader.')
+    data_reader = create_data_reader(cfg.EVAL.SPLIT_VQA, cfg)
+    print('Main: Creating new Estimator with eval data_reader')
+    estimator = tf.estimator.Estimator(model_fn=model_fn, config=config, params=get_model_fn_params(cfg, data_reader))
 
-data_reader = create_data_reader(cfg.EVAL.SPLIT_VQA, cfg)
-print('Main: Creating new Estimator with updated eval data_reader')
-estimator = tf.estimator.Estimator(model_fn=model_fn, config=config, params=get_model_fn_params(cfg, data_reader))
+    # Eval each checkpoint and find best checkpoint by accuracy.
 
-for checkpoint in checkpoints:
-    print(f'Main: Evaluating checkpoint {checkpoint}')
-    eval_metrics = estimator.evaluate(
-        input_fn=lambda: input_fn(is_training=False),
-        checkpoint_path=checkpoint
-    )
-    print(f'Main: Evaluation results for checkpoint {checkpoint}: {eval_metrics}')
-print('Main: Completed evaluation. Exiting.')
+    highest_acc = 0.
+    for checkpoint in checkpoints:
+        print(f'Main: Evaluating checkpoint {checkpoint}')
+        eval_metrics = estimator.evaluate(
+            input_fn=lambda: input_fn(is_training=False),
+            checkpoint_path=checkpoint
+        )
+        print(f'Main: Evaluation results for checkpoint {checkpoint}: {eval_metrics}')
+
+        if eval_metrics['accuracy'] > highest_acc:
+            highest_acc = eval_metrics['accuracy']
+            best_checkpoint = checkpoint
+
+    print('Main: Completed evaluation.')
+    print(f'Main: Best checkpoint - with an accuracy of {highest_acc}% is {checkpoint}')
+
+test_checkpoint = best_checkpoint if best_checkpoint is not None else os.path.join(snapshot_dir, cfg.TEST.CHECKPOINT)
+
+if cfg.RUN.TEST:
+    data_reader = create_data_reader(cfg.TEST.SPLIT_VQA, cfg)
+    print('Main: Creating new Estimator with test data_reader')
+    estimator = tf.estimator.Estimator(model_fn=model_fn, config=config, params=get_model_fn_params(cfg, data_reader))
+
+    print(f'Main: Testing checkpoint {test_checkpoint}')
+
+    if cfg.TEST.GEN_EVAL_FILE:
+        eval_file = cfg.TEST.EVAL_FILE % (
+            cfg.EXP_NAME, cfg.TEST.SPLIT_VQA, cfg.EXP_NAME, os.path.basename(test_checkpoint))
+        
+        print(f'Main: Prediction outputs will be saved to {eval_file}')
+
+        os.makedirs(os.path.dirname(eval_file), exist_ok=True)
+        output_qids_answers = []
+
+    preds = {
+        'logits': [],
+        'question_id': [],
+        'question_tokens': [],
+        'answer': [],
+        'answer_tokens': [],
+    }
+    for pred in estimator.predict(input_fn=lambda: input_fn(is_training=False), checkpoint_path=test_checkpoint):
+        preds['logits'].extend(pred['logits'])
+        preds['question_id'].extend(pred['question_id'])
+        preds['question_tokens'].extend(pred['question_tokens'])
+        preds['answer'].extend(pred['answer'])
+        preds['answer_tokens'].extend(pred['answer_tokens'])
+
+    with open(eval_file, 'w') as f:
+        writer = csv.writer(f)
+        writer.writerow('Question ID', 'Question String', 'Answer Index', 'Answer String')
+        # logits, question_ids, question_tokens, answers, answer_tokens = preds
+
+
+print('Main: Exiting')

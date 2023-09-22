@@ -97,7 +97,7 @@
             "console": "integratedTerminal",
             "args": [
                 "--cfg",
-                "exp_vcr/cfgs/vcr_qa_r_word2vec_scratch.yaml"
+                "exp_vcr/cfgs/vcr_qa_r_bert_scratch.yaml"
             ]
         },
 
@@ -144,6 +144,22 @@
             "args": [
                 "--cfg",
                 "exp_vcr/cfgs/vcr_q_a_bert_scratch.yaml",
+                "TRAIN.MAX_ITER",
+                "75000"
+            ]
+        },
+
+        {
+            "name": "VCR: Train QA Word2Vec scratch",
+            "type": "python",
+            "request": "launch",
+            "program": "./exp_vcr/distribute_train_net_vqa.py",
+            "cwd": "${workspaceFolder}/snmn_models",
+            "python": "${command:python.interpreterPath}",
+            "console": "integratedTerminal",
+            "args": [
+                "--cfg",
+                "exp_vcr/cfgs/vcr_q_a_word2vec_scratch.yaml",
                 "TRAIN.MAX_ITER",
                 "75000"
             ]

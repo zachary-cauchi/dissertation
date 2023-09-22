@@ -145,6 +145,7 @@ __C.TEST.SPLIT_VQA = 'test'
 __C.TEST.SPLIT_LOC = 'REPLACE_THIS_WITH_GOOGLE_REF_TEST'
 __C.TEST.SNAPSHOT_FILE = './exp_vcr/tfmodel/%s/%08d'
 __C.TEST.ITER = -1  # Needs to be supplied
+__C.TEST.CHECKPOINT = '' # Eg. 'model.ckpt-5000'
 
 __C.TEST.RESULT_DIR = './exp_vcr/results/%s/%08d'
 __C.TEST.GEN_EVAL_FILE = True
@@ -160,6 +161,14 @@ __C.TEST.VIS_SHOW_STACK = True
 __C.TEST.VIS_SHOW_IMG = True
 
 __C.TEST.BBOX_IOU_THRESH = .5
+
+# --------------------------------------------------------------------------- #
+# What run modes to perform
+# --------------------------------------------------------------------------- #
+__C.RUN = AttrDict()
+__C.RUN.TRAIN = True
+__C.RUN.EVAL = True
+__C.RUN.TEST = False
 
 # --------------------------------------------------------------------------- #
 # post-processing configs after loading
