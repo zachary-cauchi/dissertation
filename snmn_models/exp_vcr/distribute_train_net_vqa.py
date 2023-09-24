@@ -2,6 +2,7 @@ import sys
 import os
 import csv
 import math
+import json
 import numpy as np
 from regex import regex as re
 from typing import Callable
@@ -263,11 +264,11 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
             answer = data_reader.i_ans_range[vqa_predictions]
 
         predictions = {
-            'logits': tf.expand_dims(model.vqa_scores, axis=0),
-            'question_id': tf.expand_dims(features['question_id'], axis=0),
-            'question_tokens': tf.expand_dims(features['question_tokens'], axis=0),
+            'logits': tf.expand_dims(vqa_scores_val, axis=0),
+            'question_id': tf.expand_dims(features['question_id'][::4], axis=0),
+            'question_tokens': tf.expand_dims(features['question_tokens'][::4], axis=0),
             'answer': tf.expand_dims(answer, axis=0),
-            'answer_tokens': tf.expand_dims(answer_tokens, axis=0),
+            'answer_tokens': tf.expand_dims(tf.reshape(answer_tokens, [data_reader.grouped_batch_size, num_combinations, data_reader.T_a_encoder]), axis=0),
         }
 
         return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
@@ -380,12 +381,13 @@ if cfg.RUN.TEST:
     print(f'Main: Testing checkpoint {test_checkpoint}')
 
     if cfg.TEST.GEN_EVAL_FILE:
-        eval_file = cfg.TEST.EVAL_FILE % (
-            cfg.EXP_NAME, cfg.TEST.SPLIT_VQA, cfg.EXP_NAME, os.path.basename(test_checkpoint))
+        logits_eval_file = f'./exp_vcr/eval_outputs/{cfg.EXP_NAME}/vcr_{os.path.basename(test_checkpoint)}_leaderboard.csv'
+        results_eval_file = f'./exp_vcr/eval_outputs/{cfg.EXP_NAME}/vcr_{os.path.basename(test_checkpoint)}_results.json'
         
-        print(f'Main: Prediction outputs will be saved to {eval_file}')
+        print(f'Main: Prediction outputs will be saved to {results_eval_file}')
+        print(f'Main: Prediction logits will be saved in {logits_eval_file}')
 
-        os.makedirs(os.path.dirname(eval_file), exist_ok=True)
+        os.makedirs(os.path.dirname(logits_eval_file), exist_ok=True)
         output_qids_answers = []
 
     preds = {
@@ -395,17 +397,46 @@ if cfg.RUN.TEST:
         'answer': [],
         'answer_tokens': [],
     }
+
     for pred in estimator.predict(input_fn=lambda: input_fn(is_training=False), checkpoint_path=test_checkpoint):
-        preds['logits'].extend(pred['logits'])
-        preds['question_id'].extend(pred['question_id'])
-        preds['question_tokens'].extend(pred['question_tokens'])
-        preds['answer'].extend(pred['answer'])
-        preds['answer_tokens'].extend(pred['answer_tokens'])
+        preds['logits'].extend([ list([ float(logit) for logit in logits ]) for logits in pred['logits'] ])
+        preds['question_id'].extend([ f'{cfg.TEST.SPLIT_VQA}-{id}' for id in pred['question_id'] ])
+        preds['question_tokens'].extend([ [ b.decode() for b in tokens if b != b'' ] for tokens in pred['question_tokens'] ])
+        preds['answer'].extend([ int(a) for a in pred['answer'] ])
+        preds['answer_tokens'].extend([ list([ list([ int(token) for token in tokens if token != 0 ]) for tokens in answers ]) for answers in pred['answer_tokens'] ])
+        break
 
-    with open(eval_file, 'w') as f:
+    with open(logits_eval_file, 'w') as f:
+        a0 = []
+        a1 = []
+        a2 = []
+        a3 = []
+        for l in preds['logits']:
+            a0.append(l[0])
+            a1.append(l[1])
+            a2.append(l[2])
+            a3.append(l[3])
+
         writer = csv.writer(f)
-        writer.writerow('Question ID', 'Question String', 'Answer Index', 'Answer String')
-        # logits, question_ids, question_tokens, answers, answer_tokens = preds
+        writer.writerow(['annot_id', 'answer_0', 'answer_1', 'answer_2', 'answer_3'])
+        for i in range(len(preds)):
+            writer.writerow([preds['question_id'][i], a0[i], a1[i], a2[i], a3[i]])
 
+    print('Main: Logits file saved')
+
+    with open(results_eval_file, 'w') as f:
+        json_data = []
+        for i in range(len(preds)):
+            json_data.append({
+                'question_id': preds['question_id'][i],
+                'question_tokens': preds['question_tokens'][i],
+                'answer': preds['answer'][i],
+                'answer_tokens': preds['answer_tokens'][i],
+                'logits': preds['logits'][i],
+            })
+
+        json.dump(json_data, f, indent=2)
+
+    print('Main: Results file saved')
 
 print('Main: Exiting')
