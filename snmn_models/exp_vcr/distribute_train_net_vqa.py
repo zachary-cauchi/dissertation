@@ -21,6 +21,7 @@ from tensorflow.contrib.distribute import MirroredStrategy
 from models_vcr.model import Model
 from models_vcr.config import build_cfg_from_argparse
 from util.vcr_train.data_reader import DataReader
+from util.text_processing import VocabDict
 
 def get_f1_score(labels, predictions):
     precision_val, precision_op = tf.metrics.precision(labels=labels, predictions=predictions, name='precision_op')
@@ -393,17 +394,21 @@ if cfg.RUN.TEST:
     preds = {
         'logits': [],
         'question_id': [],
+        'annot_id': [],
         'question_tokens': [],
         'answer': [],
         'answer_tokens': [],
     }
 
+    vocab_dict = VocabDict(cfg.VOCAB_QUESTION_FILE, first_token_only=True)
+
     for pred in estimator.predict(input_fn=lambda: input_fn(is_training=False), checkpoint_path=test_checkpoint):
         preds['logits'].extend([ list([ float(logit) for logit in logits ]) for logits in pred['logits'] ])
-        preds['question_id'].extend([ f'{cfg.TEST.SPLIT_VQA}-{id}' for id in pred['question_id'] ])
+        preds['question_id'].extend([ int(id) for id in pred['question_id'] ])
+        preds['annot_id'].extend([ f'{cfg.TEST.SPLIT_VQA}-{id}' for id in pred['question_id'] ])
         preds['question_tokens'].extend([ [ b.decode() for b in tokens if b != b'' ] for tokens in pred['question_tokens'] ])
         preds['answer'].extend([ int(a) for a in pred['answer'] ])
-        preds['answer_tokens'].extend([ list([ list([ int(token) for token in tokens if token != 0 ]) for tokens in answers ]) for answers in pred['answer_tokens'] ])
+        preds['answer_tokens'].extend([ list([ list([ vocab_dict.idx2word(token) for token in tokens if token != 0 ]) for tokens in answers ]) for answers in pred['answer_tokens'] ])
 
     with open(logits_eval_file, 'w') as f:
         a0 = []
@@ -418,8 +423,8 @@ if cfg.RUN.TEST:
 
         writer = csv.writer(f)
         writer.writerow(['annot_id', 'answer_0', 'answer_1', 'answer_2', 'answer_3'])
-        for i in range(len(preds)):
-            writer.writerow([preds['question_id'][i], a0[i], a1[i], a2[i], a3[i]])
+        for i in range(len(preds['logits'])):
+            writer.writerow([preds['annot_id'][i], a0[i], a1[i], a2[i], a3[i]])
 
     print('Main: Logits file saved')
 
@@ -428,11 +433,14 @@ if cfg.RUN.TEST:
         for i in range(len(preds['logits'])):
             json_data.append({
                 'question_id': preds['question_id'][i],
+                'annot_id': preds['annot_id'][i],
                 'question_tokens': preds['question_tokens'][i],
                 'answer': preds['answer'][i],
                 'answer_tokens': preds['answer_tokens'][i],
                 'logits': preds['logits'][i],
             })
+
+        json_data = sorted(json_data, key = lambda x: x['question_id'])
 
         json.dump(json_data, f, indent=2)
 
