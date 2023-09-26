@@ -404,7 +404,6 @@ if cfg.RUN.TEST:
         preds['question_tokens'].extend([ [ b.decode() for b in tokens if b != b'' ] for tokens in pred['question_tokens'] ])
         preds['answer'].extend([ int(a) for a in pred['answer'] ])
         preds['answer_tokens'].extend([ list([ list([ int(token) for token in tokens if token != 0 ]) for tokens in answers ]) for answers in pred['answer_tokens'] ])
-        break
 
     with open(logits_eval_file, 'w') as f:
         a0 = []
@@ -426,7 +425,7 @@ if cfg.RUN.TEST:
 
     with open(results_eval_file, 'w') as f:
         json_data = []
-        for i in range(len(preds)):
+        for i in range(len(preds['logits'])):
             json_data.append({
                 'question_id': preds['question_id'][i],
                 'question_tokens': preds['question_tokens'][i],
