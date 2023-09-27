@@ -177,9 +177,10 @@ class DataReader:
     def init_dataset(self):
         self.init_imdb_dataset()
 
-        # Cache and shuffle the imdb dataset.
+        # Deserialise the tensor data.
         final_dataset = self.imdb_dataset
         final_dataset: tf.data.Dataset = final_dataset.map(self.parse_raw_tensors, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+
         # Cache the dataset and shuffle the records.
         final_dataset = final_dataset.cache().shuffle(buffer_size=self.imdb_count, reshuffle_each_iteration=True)
         # Load BERT embeddings if enabled.
@@ -188,11 +189,11 @@ class DataReader:
         # Load the image features using the imdb['feature_path']
         final_dataset = final_dataset.interleave(self.load_image_features, cycle_length=8, block_length=1, num_parallel_calls=tf.data.experimental.AUTOTUNE)
         # First batch these elements before splitting.
-        final_dataset = final_dataset.batch(self.grouped_batch_size, drop_remainder=True).unbatch()
+        # final_dataset = final_dataset.batch(self.grouped_batch_size, drop_remainder=True).unbatch()
         # Split each imdb task into individual vcr tasks.
         final_dataset = final_dataset.flat_map(self.split_vcr_tasks)
         # Batch those tasks.
-        final_dataset = final_dataset.batch(self.actual_batch_size, drop_remainder=True)
+        final_dataset = final_dataset.batch(self.actual_batch_size, drop_remainder=False)
         # Perform final transpositions from nchw to nhwc.
         final_dataset = final_dataset.map(self.to_time_major, num_parallel_calls=tf.data.experimental.AUTOTUNE)
         if self.load_correct_answer:
@@ -403,10 +404,10 @@ class DataReader:
         if self.load_rationale:
             element['all_rationales_sequences'] = tf.transpose(element['all_rationales_sequences'])
         if self.load_bert:
-            element['bert_question_embedding'] = tf.ensure_shape(tf.transpose(element['bert_question_embedding'], [1, 0, 2]), (self.T_q_encoder, self.actual_batch_size, self.bert_dim))
-            element['bert_answer_embedding'] = tf.ensure_shape(tf.transpose(element['bert_answer_embedding'], [1, 0, 2]), (self.T_a_encoder, self.actual_batch_size, self.bert_dim))
+            element['bert_question_embedding'] = tf.ensure_shape(tf.transpose(element['bert_question_embedding'], [1, 0, 2]), (self.T_q_encoder, element['bert_question_embedding'].shape[0], self.bert_dim))
+            element['bert_answer_embedding'] = tf.ensure_shape(tf.transpose(element['bert_answer_embedding'], [1, 0, 2]), (self.T_a_encoder, element['bert_answer_embedding'].shape[0], self.bert_dim))
             if self.load_rationale:
-                element['bert_rationale_embedding'] = tf.ensure_shape(tf.transpose(element['bert_rationale_embedding'], [1, 0, 2]), (self.T_r_encoder, self.actual_batch_size, self.bert_dim))
+                element['bert_rationale_embedding'] = tf.ensure_shape(tf.transpose(element['bert_rationale_embedding'], [1, 0, 2]), (self.T_r_encoder, element['bert_rationale_embedding'].shape[0], self.bert_dim))
         return element
 
     # def batches(self):

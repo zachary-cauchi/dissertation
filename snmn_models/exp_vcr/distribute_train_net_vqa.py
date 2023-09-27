@@ -269,7 +269,7 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
             'question_id': tf.expand_dims(features['question_id'][::4], axis=0),
             'question_tokens': tf.expand_dims(features['question_tokens'][::4], axis=0),
             'answer': tf.expand_dims(answer, axis=0),
-            'answer_tokens': tf.expand_dims(tf.reshape(answer_tokens, [data_reader.grouped_batch_size, num_combinations, data_reader.T_a_encoder]), axis=0),
+            'answer_tokens': tf.expand_dims(answer_tokens, axis=0),
         }
 
         return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
@@ -408,7 +408,10 @@ if cfg.RUN.TEST:
         preds['annot_id'].extend([ f'{cfg.TEST.SPLIT_VQA}-{id}' for id in pred['question_id'] ])
         preds['question_tokens'].extend([ [ b.decode() for b in tokens if b != b'' ] for tokens in pred['question_tokens'] ])
         preds['answer'].extend([ int(a) for a in pred['answer'] ])
-        preds['answer_tokens'].extend([ list([ list([ vocab_dict.idx2word(token) for token in tokens if token != 0 ]) for tokens in answers ]) for answers in pred['answer_tokens'] ])
+        answer_tokens_reshaped = np.reshape(pred['answer_tokens'], [pred['answer'].shape[0], data_reader.num_combinations, data_reader.T_a_encoder])
+        preds['answer_tokens'].extend([ list([ list([ vocab_dict.idx2word(token) for token in tokens if token != 0 ]) for tokens in answers ]) for answers in answer_tokens_reshaped ])
+
+    del answer_tokens_reshaped
 
     with open(logits_eval_file, 'w') as f:
         a0 = []
