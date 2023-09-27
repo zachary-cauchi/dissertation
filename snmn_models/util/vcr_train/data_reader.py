@@ -3,6 +3,7 @@ import os
 from typing import Callable
 import numpy as np
 import tensorflow as tf
+import json
 
 from exp_vcr.data.bert_handler import BertHandler
 import exp_vcr.data.tfrecords_helpers as tfrecords_helpers
@@ -31,6 +32,20 @@ class DataReader:
                 sample_record = sess.run(tfrecords_helpers.parse_example_to_imdb_no_correct_answer(sample_elm))
             sess.close()
 
+        if 'external_true_answers_file' in data_params and len(data_params['external_true_answers_file']) > 0:
+            self.print_fn(f'Loading external truth answers from {data_params["external_true_answers_file"]}')
+            with open(data_params['external_true_answers_file']) as f:
+                self.use_external_true_answers = True
+                raw_true_answers_data = f.read()
+                true_answers_data = json.loads(raw_true_answers_data)
+                true_answers_data = sorted(true_answers_data, key = lambda x: x['question_id'])
+                self.true_answers_map = [ entry['answer'] for entry in true_answers_data ]
+
+                assert len(self.true_answers_map) == len(true_answers_data), 'The true answer data does not match properly. Problem loading.'
+                del true_answers_data
+        else:
+            self.use_external_true_answers = False
+
         self.vocab_dict = text_processing.VocabDict(
             data_params['vocab_question_file'], first_token_only=True)
         self.T_q_encoder = data_params['T_q_encoder']
@@ -39,7 +54,7 @@ class DataReader:
 
         # peek one example to see whether answer and gt_layout are in the data
         self.load_correct_answer = (
-            'valid_answers' in sample_record)
+            'valid_answers' in sample_record or self.use_external_true_answers)
         self.load_correct_rationale = (
             'valid_rationales' in sample_record)
         self.load_gt_layout = (
@@ -347,6 +362,10 @@ class DataReader:
         imdb['question_length'] = tf.math.minimum(imdb['question_length'], self.T_q_encoder, name='cap_question_length')
         imdb['all_answers_length'] = tf.math.minimum(imdb['all_answers_length'], self.T_a_encoder, name='cap_answer_length')
         imdb['all_rationales_length'] = tf.math.minimum(imdb['all_rationales_length'], self.T_r_encoder, name='cap_rationale_length')
+
+        # If we are using externally sourced true answers, load them in now.
+        if self.use_external_true_answers:
+            imdb['valid_answer_index'] = tf.gather(self.true_answers_map, imdb['question_id'])
 
         if self.load_correct_answer:
             imdb['valid_answer_onehot'] = tf.one_hot(imdb['valid_answer_index'], self.num_answers, 1., 0.)

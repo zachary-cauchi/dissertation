@@ -21,7 +21,8 @@ data_reader = DataReader(
     vcr_task_type=cfg.MODEL.VCR_TASK_TYPE,
     use_sparse_softmax_labels=cfg.TRAIN.SOLVER.USE_SPARSE_SOFTMAX_LABELS,
     load_bert_embeddings = cfg.USE_BERT_SENTENCE_EMBED,
-    bert_embeddings_path = os.path.join(cfg.BERT_EMBED_DIR, cfg.TRAIN.SPLIT_VQA)
+    bert_embeddings_path = os.path.join(cfg.BERT_EMBED_DIR, cfg.TRAIN.SPLIT_VQA),
+    external_true_answers_file = cfg.TRAIN.EXTERNAL_TRUE_ANSWERS_FILE if cfg.TRAIN.USE_EXTERNAL_TRUE_ANSWERS_FILE else ''
 )
 
 # Define your dataset here

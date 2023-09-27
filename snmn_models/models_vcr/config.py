@@ -127,6 +127,10 @@ __C.TRAIN.BBOX_IOU_THRESH = .5
 __C.TRAIN.VQA_SCORE_INIT = 0.
 __C.TRAIN.VQA_USE_SOFT_SCORE = False
 
+# Override the true positive answers from the imdb with answers from a separate file.
+__C.TRAIN.USE_EXTERNAL_TRUE_ANSWERS_FILE = False
+__C.TRAIN.EXTERNAL_TRUE_ANSWERS_FILE = './exp_vcr/eval_outputs/vcr_q_a_bert_scratch/vcr_model.ckpt-20000_results.json'
+
 # --------------------------------------------------------------------------- #
 # eval options
 # --------------------------------------------------------------------------- #
