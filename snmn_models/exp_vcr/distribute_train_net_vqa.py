@@ -371,7 +371,7 @@ if cfg.RUN.EVAL:
             best_checkpoint = checkpoint
 
     print('Main: Completed evaluation.')
-    print(f'Main: Best checkpoint - with an accuracy of {highest_acc}% is {checkpoint}')
+    print(f'Main: Best checkpoint - with an accuracy of {highest_acc}% is {best_checkpoint}')
 
 test_checkpoint = best_checkpoint if best_checkpoint is not None else os.path.join(snapshot_dir, cfg.TEST.CHECKPOINT)
 
