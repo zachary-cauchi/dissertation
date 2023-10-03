@@ -31,7 +31,7 @@ TRAIN:
     LR: 1e-3
     USE_SPARSE_SOFTMAX_LABELS: False
   L1_L2_RHO: 0.
-  GRAD_MAX_NORM: 8.
+  GRAD_MAX_NORM: 16.
   VQA_USE_SOFT_SCORE: False
   VQA_SCORE_INIT: -1.  # roughly sigmoid(-8) = 1/3000
   SNAPSHOT_INTERVAL: 5000
@@ -46,3 +46,8 @@ TEST:
 USE_FIXED_WORD_EMBED: True
 FIXED_WORD_EMBED_FILE: './exp_vcr/data/vocabulary_vcr_glove.npy'
 IMDB_FILE: './exp_vcr/data/tfrecords_imdb_r152_7x7/imdb_%s.tfrecords'
+
+RUN:
+  TRAIN: True
+  EVAL: False
+  TEST: False
