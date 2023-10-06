@@ -1,0 +1,26 @@
+\chapter{Motivation}
+\label{chp:motivation}
+
+The \acrlong{vqa} \gls{ml} problem --- which is a computer vision task whereby a system, given a question about an image, can produce an accurate answer \cite{agrawal_vqa_2016} --- has been leading up to a new problem: \acrfull{vcr}.
+The \acrshort{vcr} problem extends the \acrshort{vqa} problem by having computers be able to answer questions which involve more knowledge than is otherwise immediately apparent in a given image \cite{zellers_recognition_2019}.
+Datasets are available for both \gls{ml} tasks, and there are numerous \gls{ml} models which have been trained on both. 
+% Reread and improve readability.
+
+A class of \gls{ml} models targetting \gls{vqa} tasks known as 'compositional models' have proven to perform well on \gls{vqa} datasets.
+Such performance is attributed to the nature of their design whereby multiple smaller \gls{ml} modules are used to divide and conquer the steps for solving a \gls{vqa} task.
+To further explore the use of compositional models in such tasks, we will be looking towards taking an existing model and adapting it to solve tasks that require \gls{vcr}.
+
+While any compositional model could have been chosen for this work, the below reasons were established which favoured the chosen model:
+
+\begin{itemize}\label{list:reasons_for_nmn}
+    \item The source code for the model and its distribution are available by the original authors along with steps for reproducing their results.
+    \item The architecture of the model is such that each step it takes to solving a \gls{vqa} task is performed in a sequential manner which can be viewed and understood at each individual step. This same behaviour can be ported to \gls{vcr} tasks for better evaluation and exploration.
+    \item The modular nature of its architecture means future work can expand on its ability to solve \gls{vcr} tasks without necessitating a complete redesign.
+    \item The chosen model is fully differentiable, meaning it can be trained without reinforcement learning or supervision of any kind and produce comparable performance.
+\end{itemize}
+
+The chosen model will first be trained and then evaluated on its original intended datasets to reproduce the results reported in its publication.
+This will establish that the model is indeed operating as intended.
+It will then be modified to train and be evaluated on the \gls{vcr} dataset where its performance will be measured.
+Its performance will be compared to established \gls{vcr} models to compare the models performance.
+After following with an analysis of its performance, future work can be outlined.

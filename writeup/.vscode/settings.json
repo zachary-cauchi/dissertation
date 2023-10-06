@@ -1,0 +1,71 @@
+{
+    "latex-workshop.latex.tools": [
+        {
+            "name": "latexmk",
+            "command": "latexmk",
+            "args": [
+                "-halt-on-error",
+                "-synctex=1",
+                "-interaction=nonstopmode",
+                "-file-line-error",
+                "-pdf",
+                "-outdir=build",
+                "-lualatex",
+                "main.tex"
+            ],
+            "env": {
+                "Path": "$PATH"
+            }
+        },
+
+        {
+            "name": "cp root",
+            "command": "cp",
+            "args": [
+                "build/main.pdf",
+                "main.pdf"
+            ],
+            "env": {}
+        },
+
+        {
+            "name": "font_embed",
+            "command": "gs",
+            "args": [
+                "-q",
+                "-dNOPAUSE",
+                "-dBATCH",
+                "-dPrinted=false",
+                "-dPDFSETTINGS=/prepress",
+                "-sDEVICE=pdfwrite",
+                "-sOutputFile=main_dist.pdf",
+                "build/main.pdf"
+            ],
+            "env": {}
+        },
+    ],
+
+    "latex-workshop.latex.recipes": [
+        {
+            "name": "Build main.pdf",
+            "tools": [
+                "latexmk",
+                "cp root"
+                // "font_embed"
+            ]
+        },
+
+        {
+            "name": "Build main.pdf with fonts",
+            "tools": [
+                "latexmk",
+                // "cp root"
+                "font_embed"
+            ]
+        },
+    ],
+    
+    "latex-workshop.latex.external.build.command": "",
+    "latex-workshop.latex.rootFile.doNotPrompt": false,
+    "latex-workshop.latex.outDir": "build"
+}

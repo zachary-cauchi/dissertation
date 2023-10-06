@@ -1,0 +1,9 @@
+\chapter{Generating the input files used by the model.}
+\label{chp:appendix_a}
+
+A script to generate the final word embeddings for the \gls{imdb} files is then used to perform the below steps:
+\begin{itemize}
+    \item Generate a co-occurrence matrix on the \gls{corpus} and vocabulary files that were previously compiled.
+    \item Convert the co-occurrence matrix to a final 300-dimensional embeddings file.
+    \item Convert the embeddings into a binary file for loading and parsing by the model at startup.
+\end{itemize}

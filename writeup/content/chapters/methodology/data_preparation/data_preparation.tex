@@ -1,0 +1,44 @@
+\section{Data preparation}
+\label{sec:data_preparation}
+
+Before the model can begin to perform \gls{vqa} tasks, the required data must first be prepared into a format that will be understood by the model. The procedure below is followed across all datasets trained and tested on, with variations being made depending on the structure of the data.
+
+The images are first pre-processed into a feature-set using a \acrshort{resnet}-152 model \cite{he_deep_2015} — pre-trained on the ImageNet\footnote{\url{https://www.image-net.org/}} dataset \cite{deng_imagenet_2009} — which outputs a 7x7x2048-dimension feature map of each image.
+
+The question-answer pairs found in the dataset are processed after the images. For each question and answer sentence, the sentence is first collected into a single \gls{corpus} for later processing. The sentence is tokenised into a series of words, number, and/or symbols representing the sentence. Each occurrence of a token in the sequence is recorded into a vocabulary file which keeps track of every token encountered in the dataset. Each entry in the vocabulary file contains both the token and the number of occurrences of the token in the \gls{corpus}.
+
+The image features, questions, and answers, are then converted into an \gls{imdb} file. This file contains a record for every \acrshort{vqa} task, for each split of the dataset (training set, validation set if present, and test set). Each record identifies the image by its feature file. A question and all relevant answers are saved as both strings and tokenised variants in the record, along with the correct answer for that question. If the split does not mark the correct answers (such as with the test set), then the correct answer fields are simply omitted.
+
+With the \gls{imdb} files prepared, next would be to prepare the text embeddings for the model.
+This is done by converting each token in the vocabulary file into a 300-dimensional word vector following the same procedure as was used by \citeauthor{hu_learning_2017} in their \gls{n2nmn} model \cite{hu_learning_2017}.
+For this, we train a GloVe model \cite{pennington_glove_2014} on the prepared dataset \gls{corpus} and vocabulary obtained when preparing the \gls{imdb} files to produce a word embeddings file, where each entry belongs to the token on the same line number in the vocabulary file.
+
+\subsection{Preparing for VCR data}
+\label{subsec:preparing_the_vcr_data}
+
+There are a number of properties about the dataset that need to be handled when preparing the dataset for processing.
+To begin with, each \gls{vcr} task in the dataset is referred to as an 'annotation' which links one unique question and several answers and rationales to an image.
+Each question, answer, rationale, and image, have a unique annotation index based on the fold and split they're found.
+These indices are important as each annotation entry inside the dataset uses these indices to reference which answer/rationale are correct and which image to use.
+There is only one correct answer/rationale per-annotation, which is the one unique to that annotation alone - all other wrong answers/rationales in that annotation are copies from other annotations and referenced as such by their indices.
+Aside from these, an 'interestingness score' is provided by the annotation authors (not the dataset authors themselves, but the ones to whom the annotation task was outsourced) for each annotation, as a subjective ranking of how interesting the annotation would be.
+There's also a 'likelihood score' provided by the annotation authors whereby they assess how likely it is that the question, answer, and rationale given by them actually fit the context of the source movie the annotated image was taken from.
+Finally, there's a ranking of each answer and rationale by correctness in descending order, where the correct choice is rank 0, rank 1 would be the first wrong choice, and so on.
+For the purpose of this work, both the interestingness score and the likelihood score are ignored and the only correctness considered per-annotation are whether the choice is correct or not.
+
+%  Add a diagram explaining the changes made (such as a before and after).
+
+Aside from the annotations entries, each image in the dataset contains a metadata file, describing the image.
+Each file contains the names of object classes found in the image (such as person, car, food, etc).
+Aside from the above classes, each object is also identified by a which can be used to locate the object in the image, and a segmented polygon which highlights of the image.
+The model will not use these components of the metadata file because it would fall outside the scope of this work.
+
+Like in the previous datasets, the \gls{vcr} datasets are compiled into \gls{imdb} files. These files contain the same image name and feature path, the question, all answers, and all rationales, for each annotation.
+Besides the above, additional preprocessing is done to make the data compatible with the model and also obtain the word embeddings.
+The sentences also make reference to the objects described in the image metadata file by pointing to an index.
+This is replaced by the object class described in the metadata file to avoid troubles encountered in inferring what object is being referenced by the image (in other words, a sentence like 'What is [1] pointing to?' becomes 'What is \textit{person} pointing to?').
+Each token encountered is extracted into a vocabulary file which contains each found token and the total number of occurrences.
+Each sentence (question, answer, or rationale) is added to a \gls{corpus} file, which will be used to by GloVe to prepare the word embeddings.
+Currently, there is no filtering made when preparing the corpus, so duplicate sentences, whether correct or wrong, are also added.
+
+% Add section discussing preparation of expert policy.

@@ -1,0 +1,253 @@
+@inproceedings{andreas_deep_2016,
+	title = {Deep Compositional Question Answering with Neural Module Networks},
+	volume = {2016-Decem},
+	isbn = {978-1-4673-8850-4},
+	doi = {10.1109/CVPR.2016.12},
+	abstract = {Visual question answering is fundamentally compositional in nature - a question like where is the dog? shares substructure with questions like what color is the dog? and where is the cat? This paper seeks to simultaneously exploit the representational capacity of deep networks and the compositional linguistic structure of questions. We describe a procedure for constructing and learning neural module networks, which compose collections of jointly-trained neural 'modules' into deep networks for question answering. Our approach decomposes questions into their linguistic substructures, and uses these structures to dynamically instantiate modular networks (with reusable components for recognizing dogs, classifying colors, etc.). The resulting compound networks are jointly trained. We evaluate our approach on two challenging datasets for visual question answering, achieving state-of-the-art results on both the {VQA} natural image dataset and a new dataset of complex questions about abstract shapes.},
+	pages = {39--48},
+	booktitle = {Proceedings of the {IEEE} Computer Society Conference on Computer Vision and Pattern Recognition},
+	author = {Andreas, Jacob and Rohrbach, Marcus and Darrell, Trevor and Klein, Dan},
+	urldate = {2021-04-29},
+	date = {2016},
+	note = {{ISSN}: 10636919}
+}
+
+@article{hu_explainable_2019,
+	title = {Explainable Neural Computation via Stack Neural Module Networks},
+	url = {http://arxiv.org/abs/1807.08556},
+	abstract = {In complex inferential tasks like question answering, machine learning models must confront two challenges: the need to implement a compositional reasoning process, and, in many applications, the need for this reasoning process to be interpretable to assist users in both development and prediction. Existing models designed to produce interpretable traces of their decision-making process typically require these traces to be supervised at training time. In this paper, we present a novel neural modular approach that performs compositional reasoning by automatically inducing a desired sub-task decomposition without relying on strong supervision. Our model allows linking different reasoning tasks though shared modules that handle common routines across tasks. Experiments show that the model is more interpretable to human evaluators compared to other state-of-the-art models: users can better understand the model's underlying reasoning procedure and predict when it will succeed or fail based on observing its intermediate outputs.},
+	journaltitle = {{arXiv}:1807.08556 [cs]},
+	author = {Hu, Ronghang and Andreas, Jacob and Darrell, Trevor and Saenko, Kate},
+	urldate = {2021-09-26},
+	date = {2019-03-06},
+	eprinttype = {arxiv},
+	eprint = {1807.08556},
+	keywords = {Computer Science - Computer Vision and Pattern Recognition}
+}
+
+@misc{he_deep_2015,
+	title = {Deep Residual Learning for Image Recognition},
+	url = {http://arxiv.org/abs/1512.03385},
+	abstract = {Deeper neural networks are more difﬁcult to train. We present a residual learning framework to ease the training of networks that are substantially deeper than those used previously. We explicitly reformulate the layers as learning residual functions with reference to the layer inputs, instead of learning unreferenced functions. We provide comprehensive empirical evidence showing that these residual networks are easier to optimize, and can gain accuracy from considerably increased depth. On the {ImageNet} dataset we evaluate residual nets with a depth of up to 152 layers—8× deeper than {VGG} nets [41] but still having lower complexity. An ensemble of these residual nets achieves 3.57\% error on the {ImageNet} test set. This result won the 1st place on the {ILSVRC} 2015 classiﬁcation task. We also present analysis on {CIFAR}-10 with 100 and 1000 layers.},
+	number = {{arXiv}:1512.03385},
+	publisher = {{arXiv}},
+	author = {He, Kaiming and Zhang, Xiangyu and Ren, Shaoqing and Sun, Jian},
+	urldate = {2023-03-08},
+	date = {2015-12-10},
+	langid = {english},
+	eprinttype = {arxiv},
+	eprint = {1512.03385 [cs]},
+	keywords = {Computer Science - Computer Vision and Pattern Recognition}
+}
+
+@inproceedings{deng_imagenet_2009,
+	title = {{ImageNet}: A large-scale hierarchical image database},
+	doi = {10.1109/CVPR.2009.5206848},
+	shorttitle = {{ImageNet}},
+	abstract = {The explosion of image data on the Internet has the potential to foster more sophisticated and robust models and algorithms to index, retrieve, organize and interact with images and multimedia data. But exactly how such data can be harnessed and organized remains a critical problem. We introduce here a new database called “{ImageNet}”, a large-scale ontology of images built upon the backbone of the {WordNet} structure. {ImageNet} aims to populate the majority of the 80,000 synsets of {WordNet} with an average of 500–1000 clean and full resolution images. This will result in tens of millions of annotated images organized by the semantic hierarchy of {WordNet}. This paper offers a detailed analysis of {ImageNet} in its current state: 12 subtrees with 5247 synsets and 3.2 million images in total. We show that {ImageNet} is much larger in scale and diversity and much more accurate than the current image datasets. Constructing such a large-scale database is a challenging task. We describe the data collection scheme with Amazon Mechanical Turk. Lastly, we illustrate the usefulness of {ImageNet} through three simple applications in object recognition, image classification and automatic object clustering. We hope that the scale, accuracy, diversity and hierarchical structure of {ImageNet} can offer unparalleled opportunities to researchers in the computer vision community and beyond.},
+	eventtitle = {2009 {IEEE} Conference on Computer Vision and Pattern Recognition},
+	pages = {248--255},
+	booktitle = {2009 {IEEE} Conference on Computer Vision and Pattern Recognition},
+	author = {Deng, Jia and Dong, Wei and Socher, Richard and Li, Li-Jia and Li, Kai and Fei-Fei, Li},
+	date = {2009-06},
+	note = {{ISSN}: 1063-6919},
+	keywords = {Explosions, Image databases, Image retrieval, Information retrieval, Internet, Large-scale systems, Multimedia databases, Ontologies, Robustness, Spine}
+}
+
+@inproceedings{pennington_glove_2014,
+	location = {Doha, Qatar},
+	title = {Glove: Global Vectors for Word Representation},
+	url = {http://aclweb.org/anthology/D14-1162},
+	doi = {10.3115/v1/D14-1162},
+	shorttitle = {Glove},
+	abstract = {Recent methods for learning vector space representations of words have succeeded in capturing ﬁne-grained semantic and syntactic regularities using vector arithmetic, but the origin of these regularities has remained opaque. We analyze and make explicit the model properties needed for such regularities to emerge in word vectors. The result is a new global logbilinear regression model that combines the advantages of the two major model families in the literature: global matrix factorization and local context window methods. Our model efﬁciently leverages statistical information by training only on the nonzero elements in a word-word cooccurrence matrix, rather than on the entire sparse matrix or on individual context windows in a large corpus. The model produces a vector space with meaningful substructure, as evidenced by its performance of 75\% on a recent word analogy task. It also outperforms related models on similarity tasks and named entity recognition.},
+	eventtitle = {Proceedings of the 2014 Conference on Empirical Methods in Natural Language Processing ({EMNLP})},
+	pages = {1532--1543},
+	booktitle = {Proceedings of the 2014 Conference on Empirical Methods in Natural Language Processing ({EMNLP})},
+	publisher = {Association for Computational Linguistics},
+	author = {Pennington, Jeffrey and Socher, Richard and Manning, Christopher},
+	urldate = {2022-10-29},
+	date = {2014},
+	langid = {english}
+}
+
+@misc{hu_learning_2017,
+	title = {Learning to Reason: End-to-End Module Networks for Visual Question Answering},
+	url = {http://arxiv.org/abs/1704.05526},
+	shorttitle = {Learning to Reason},
+	abstract = {Natural language questions are inherently compositional, and many are most easily answered by reasoning about their decomposition into modular sub-problems. For example, to answer “is there an equal number of balls and boxes?” we can look for balls, look for boxes, count them, and compare the results. The recently proposed Neural Module Network ({NMN}) architecture [3, 2] implements this approach to question answering by parsing questions into linguistic substructures and assembling question-speciﬁc deep networks from smaller modules that each solve one subtask. However, existing {NMN} implementations rely on brittle off-the-shelf parsers, and are restricted to the module conﬁgurations proposed by these parsers rather than learning them from data. In this paper, we propose End-to-End Module Networks (N2NMNs), which learn to reason by directly predicting instance-speciﬁc network layouts without the aid of a parser. Our model learns to generate network structures (by imitating expert demonstrations) while simultaneously learning network parameters (using the downstream task loss). Experimental results on the new {CLEVR} dataset targeted at compositional question answering show that N2NMNs achieve an error reduction of nearly 50\% relative to state-of-theart attentional approaches, while discovering interpretable network architectures specialized for each question.},
+	number = {{arXiv}:1704.05526},
+	publisher = {{arXiv}},
+	author = {Hu, Ronghang and Andreas, Jacob and Rohrbach, Marcus and Darrell, Trevor and Saenko, Kate},
+	urldate = {2022-10-29},
+	date = {2017-09-11},
+	langid = {english},
+	eprinttype = {arxiv},
+	eprint = {1704.05526 [cs]},
+	keywords = {Computer Science - Computer Vision and Pattern Recognition}
+}
+
+@inproceedings{klein_accurate_2003,
+	location = {Sapporo, Japan},
+	title = {Accurate unlexicalized parsing},
+	volume = {1},
+	url = {http://portal.acm.org/citation.cfm?doid=1075096.1075150},
+	doi = {10.3115/1075096.1075150},
+	abstract = {We demonstrate that an unlexicalized {PCFG} can parse much more accurately than previously shown, by making use of simple, linguistically motivated state splits, which break down false independence assumptions latent in a vanilla treebank grammar. Indeed, its performance of 86.36\% ({LP}/{LR} F1) is better than that of early lexicalized {PCFG} models, and surprisingly close to the current state-of-theart. This result has potential uses beyond establishing a strong lower bound on the maximum possible accuracy of unlexicalized models: an unlexicalized {PCFG} is much more compact, easier to replicate, and easier to interpret than more complex lexical models, and the parsing algorithms are simpler, more widely understood, of lower asymptotic complexity, and easier to optimize.},
+	eventtitle = {the 41st Annual Meeting},
+	pages = {423--430},
+	booktitle = {Proceedings of the 41st Annual Meeting on Association for Computational Linguistics  - {ACL} '03},
+	publisher = {Association for Computational Linguistics},
+	author = {Klein, Dan and Manning, Christopher D.},
+	urldate = {2023-03-11},
+	date = {2003},
+	langid = {english}
+}
+
+@inproceedings{nivre_universal_2016,
+	location = {Portorož, Slovenia},
+	title = {Universal Dependencies v1: A Multilingual Treebank Collection},
+	url = {https://aclanthology.org/L16-1262},
+	shorttitle = {Universal Dependencies v1},
+	abstract = {Cross-linguistically consistent annotation is necessary for sound comparative evaluation and cross-lingual learning experiments. It is also useful for multilingual system development and comparative linguistic studies. Universal Dependencies is an open community effort to create cross-linguistically consistent treebank annotation for many languages within a dependency-based lexicalist framework. In this paper, we describe v1 of the universal guidelines, the underlying design principles, and the currently available treebanks for 33 languages.},
+	eventtitle = {{LREC} 2016},
+	pages = {1659--1666},
+	booktitle = {Proceedings of the Tenth International Conference on Language Resources and Evaluation ({LREC}'16)},
+	publisher = {European Language Resources Association ({ELRA})},
+	author = {Nivre, Joakim and de Marneffe, Marie-Catherine and Ginter, Filip and Goldberg, Yoav and Hajič, Jan and Manning, Christopher D. and {McDonald}, Ryan and Petrov, Slav and Pyysalo, Sampo and Silveira, Natalia and Tsarfaty, Reut and Zeman, Daniel},
+	urldate = {2023-03-11},
+	date = {2016-05}
+}
+
+@misc{bahdanau_neural_2016,
+	title = {Neural Machine Translation by Jointly Learning to Align and Translate},
+	url = {http://arxiv.org/abs/1409.0473},
+	doi = {10.48550/arXiv.1409.0473},
+	abstract = {Neural machine translation is a recently proposed approach to machine translation. Unlike the traditional statistical machine translation, the neural machine translation aims at building a single neural network that can be jointly tuned to maximize the translation performance. The models proposed recently for neural machine translation often belong to a family of encoder-decoders and consists of an encoder that encodes a source sentence into a fixed-length vector from which a decoder generates a translation. In this paper, we conjecture that the use of a fixed-length vector is a bottleneck in improving the performance of this basic encoder-decoder architecture, and propose to extend this by allowing a model to automatically (soft-)search for parts of a source sentence that are relevant to predicting a target word, without having to form these parts as a hard segment explicitly. With this new approach, we achieve a translation performance comparable to the existing state-of-the-art phrase-based system on the task of English-to-French translation. Furthermore, qualitative analysis reveals that the (soft-)alignments found by the model agree well with our intuition.},
+	number = {{arXiv}:1409.0473},
+	publisher = {{arXiv}},
+	author = {Bahdanau, Dzmitry and Cho, Kyunghyun and Bengio, Yoshua},
+	urldate = {2023-03-12},
+	date = {2016-05-19},
+	eprinttype = {arxiv},
+	eprint = {1409.0473 [cs, stat]},
+	keywords = {Computer Science - Computation and Language, Computer Science - Machine Learning, Computer Science - Neural and Evolutionary Computing, Statistics - Machine Learning},
+}
+
+@misc{kingma_adam_2017,
+	title = {Adam: A Method for Stochastic Optimization},
+	url = {http://arxiv.org/abs/1412.6980},
+	doi = {10.48550/arXiv.1412.6980},
+	shorttitle = {Adam},
+	abstract = {We introduce Adam, an algorithm for first-order gradient-based optimization of stochastic objective functions, based on adaptive estimates of lower-order moments. The method is straightforward to implement, is computationally efficient, has little memory requirements, is invariant to diagonal rescaling of the gradients, and is well suited for problems that are large in terms of data and/or parameters. The method is also appropriate for non-stationary objectives and problems with very noisy and/or sparse gradients. The hyper-parameters have intuitive interpretations and typically require little tuning. Some connections to related algorithms, on which Adam was inspired, are discussed. We also analyze the theoretical convergence properties of the algorithm and provide a regret bound on the convergence rate that is comparable to the best known results under the online convex optimization framework. Empirical results demonstrate that Adam works well in practice and compares favorably to other stochastic optimization methods. Finally, we discuss {AdaMax}, a variant of Adam based on the infinity norm.},
+	number = {{arXiv}:1412.6980},
+	publisher = {{arXiv}},
+	author = {Kingma, Diederik P. and Ba, Jimmy},
+	urldate = {2023-03-19},
+	date = {2017-01-29},
+	eprinttype = {arxiv},
+	eprint = {1412.6980 [cs]},
+	keywords = {Computer Science - Machine Learning}
+}
+
+@misc{agrawal_vqa_2016,
+	title = {{VQA}: Visual Question Answering},
+	url = {http://arxiv.org/abs/1505.00468},
+	shorttitle = {{VQA}},
+	abstract = {We propose the task of free-form and open-ended Visual Question Answering ({VQA}). Given an image and a natural language question about the image, the task is to provide an accurate natural language answer. Mirroring real-world scenarios, such as helping the visually impaired, both the questions and answers are open-ended. Visual questions selectively target different areas of an image, including background details and underlying context. As a result, a system that succeeds at {VQA} typically needs a more detailed understanding of the image and complex reasoning than a system producing generic image captions. Moreover, {VQA} is amenable to automatic evaluation, since many open-ended answers contain only a few words or a closed set of answers that can be provided in a multiple-choice format. We provide a dataset containing ∼0.25M images, ∼0.76M questions, and ∼10M answers (www.visualqa.org), and discuss the information it provides. Numerous baselines and methods for {VQA} are provided and compared with human performance. Our {VQA} demo is available on {CloudCV} (http://cloudcv.org/vqa).},
+	number = {{arXiv}:1505.00468},
+	publisher = {{arXiv}},
+	author = {Agrawal, Aishwarya and Lu, Jiasen and Antol, Stanislaw and Mitchell, Margaret and Zitnick, C. Lawrence and Batra, Dhruv and Parikh, Devi},
+	urldate = {2023-03-25},
+	date = {2016-10-26},
+	langid = {english},
+	eprinttype = {arxiv},
+	eprint = {1505.00468 [cs]},
+	keywords = {Computer Science - Computation and Language, Computer Science - Computer Vision and Pattern Recognition}
+}
+
+@misc{lin_microsoft_2015,
+	title = {Microsoft {COCO}: Common Objects in Context},
+	url = {http://arxiv.org/abs/1405.0312},
+	shorttitle = {Microsoft {COCO}},
+	abstract = {We present a new dataset with the goal of advancing the state-of-the-art in object recognition by placing the question of object recognition in the context of the broader question of scene understanding. This is achieved by gathering images of complex everyday scenes containing common objects in their natural context. Objects are labeled using per-instance segmentations to aid in precise object localization. Our dataset contains photos of 91 objects types that would be easily recognizable by a 4 year old. With a total of 2.5 million labeled instances in 328k images, the creation of our dataset drew upon extensive crowd worker involvement via novel user interfaces for category detection, instance spotting and instance segmentation. We present a detailed statistical analysis of the dataset in comparison to {PASCAL}, {ImageNet}, and {SUN}. Finally, we provide baseline performance analysis for bounding box and segmentation detection results using a Deformable Parts Model.},
+	number = {{arXiv}:1405.0312},
+	publisher = {{arXiv}},
+	author = {Lin, Tsung-Yi and Maire, Michael and Belongie, Serge and Bourdev, Lubomir and Girshick, Ross and Hays, James and Perona, Pietro and Ramanan, Deva and Zitnick, C. Lawrence and Dollár, Piotr},
+	urldate = {2023-03-25},
+	date = {2015-02-20},
+	eprinttype = {arxiv},
+	eprint = {1405.0312 [cs]},
+	keywords = {Computer Science - Computer Vision and Pattern Recognition}
+}
+
+@misc{johnson_clevr_2016,
+	title = {{CLEVR}: A Diagnostic Dataset for Compositional Language and Elementary Visual Reasoning},
+	url = {http://arxiv.org/abs/1612.06890},
+	doi = {10.48550/arXiv.1612.06890},
+	shorttitle = {{CLEVR}},
+	abstract = {When building artificial intelligence systems that can reason and answer questions about visual data, we need diagnostic tests to analyze our progress and discover shortcomings. Existing benchmarks for visual question answering can help, but have strong biases that models can exploit to correctly answer questions without reasoning. They also conflate multiple sources of error, making it hard to pinpoint model weaknesses. We present a diagnostic dataset that tests a range of visual reasoning abilities. It contains minimal biases and has detailed annotations describing the kind of reasoning each question requires. We use this dataset to analyze a variety of modern visual reasoning systems, providing novel insights into their abilities and limitations.},
+	number = {{arXiv}:1612.06890},
+	publisher = {{arXiv}},
+	author = {Johnson, Justin and Hariharan, Bharath and van der Maaten, Laurens and Fei-Fei, Li and Zitnick, C. Lawrence and Girshick, Ross},
+	urldate = {2023-03-25},
+	date = {2016-12-20},
+	eprinttype = {arxiv},
+	eprint = {1612.06890 [cs]},
+	keywords = {Computer Science - Computer Vision and Pattern Recognition, Computer Science - Computation and Language, Computer Science - Machine Learning}
+}
+
+@misc{zellers_recognition_2019,
+	title = {From Recognition to Cognition: Visual Commonsense Reasoning},
+	url = {http://arxiv.org/abs/1811.10830},
+	doi = {10.48550/arXiv.1811.10830},
+	shorttitle = {From Recognition to Cognition},
+	abstract = {Visual understanding goes well beyond object recognition. With one glance at an image, we can effortlessly imagine the world beyond the pixels: for instance, we can infer people's actions, goals, and mental states. While this task is easy for humans, it is tremendously difficult for today's vision systems, requiring higher-order cognition and commonsense reasoning about the world. We formalize this task as Visual Commonsense Reasoning. Given a challenging question about an image, a machine must answer correctly and then provide a rationale justifying its answer. Next, we introduce a new dataset, {VCR}, consisting of 290k multiple choice {QA} problems derived from 110k movie scenes. The key recipe for generating non-trivial and high-quality problems at scale is Adversarial Matching, a new approach to transform rich annotations into multiple choice questions with minimal bias. Experimental results show that while humans find {VCR} easy (over 90\% accuracy), state-of-the-art vision models struggle ({\textasciitilde}45\%). To move towards cognition-level understanding, we present a new reasoning engine, Recognition to Cognition Networks (R2C), that models the necessary layered inferences for grounding, contextualization, and reasoning. R2C helps narrow the gap between humans and machines ({\textasciitilde}65\%); still, the challenge is far from solved, and we provide analysis that suggests avenues for future work.},
+	number = {{arXiv}:1811.10830},
+	publisher = {{arXiv}},
+	author = {Zellers, Rowan and Bisk, Yonatan and Farhadi, Ali and Choi, Yejin},
+	urldate = {2023-03-25},
+	date = {2019-03-26},
+	eprinttype = {arxiv},
+	eprint = {1811.10830 [cs]},
+	keywords = {Computer Science - Computation and Language, Computer Science - Computer Vision and Pattern Recognition}
+}
+
+@misc{hudson_compositional_2018,
+	title = {Compositional Attention Networks for Machine Reasoning},
+	url = {http://arxiv.org/abs/1803.03067},
+	doi = {10.48550/arXiv.1803.03067},
+	abstract = {We present the {MAC} network, a novel fully differentiable neural network architecture, designed to facilitate explicit and expressive reasoning. {MAC} moves away from monolithic black-box neural architectures towards a design that encourages both transparency and versatility. The model approaches problems by decomposing them into a series of attention-based reasoning steps, each performed by a novel recurrent Memory, Attention, and Composition ({MAC}) cell that maintains a separation between control and memory. By stringing the cells together and imposing structural constraints that regulate their interaction, {MAC} effectively learns to perform iterative reasoning processes that are directly inferred from the data in an end-to-end approach. We demonstrate the model's strength, robustness and interpretability on the challenging {CLEVR} dataset for visual reasoning, achieving a new state-of-the-art 98.9\% accuracy, halving the error rate of the previous best model. More importantly, we show that the model is computationally-efficient and data-efficient, in particular requiring 5x less data than existing models to achieve strong results.},
+	number = {{arXiv}:1803.03067},
+	publisher = {{arXiv}},
+	author = {Hudson, Drew A. and Manning, Christopher D.},
+	urldate = {2023-03-27},
+	date = {2018-04-24},
+	eprinttype = {arxiv},
+	eprint = {1803.03067 [cs]},
+	keywords = {Computer Science - Artificial Intelligence}
+}
+
+@misc{Detectron2018,
+  author =       {Ross Girshick and Ilija Radosavovic and Georgia Gkioxari and
+                  Piotr Doll\'{a}r and Kaiming He},
+  title =        {Detectron},
+  howpublished = {\url{https://github.com/facebookresearch/detectron}},
+  year =         {2018}
+}
+
+@misc{devlin_bert_2019,
+	title = {{BERT}: Pre-training of Deep Bidirectional Transformers for Language Understanding},
+	url = {http://arxiv.org/abs/1810.04805},
+	doi = {10.48550/arXiv.1810.04805},
+	shorttitle = {{BERT}},
+	abstract = {We introduce a new language representation model called {BERT}, which stands for Bidirectional Encoder Representations from Transformers. Unlike recent language representation models, {BERT} is designed to pre-train deep bidirectional representations from unlabeled text by jointly conditioning on both left and right context in all layers. As a result, the pre-trained {BERT} model can be fine-tuned with just one additional output layer to create state-of-the-art models for a wide range of tasks, such as question answering and language inference, without substantial task-specific architecture modifications. {BERT} is conceptually simple and empirically powerful. It obtains new state-of-the-art results on eleven natural language processing tasks, including pushing the {GLUE} score to 80.5\% (7.7\% point absolute improvement), {MultiNLI} accuracy to 86.7\% (4.6\% absolute improvement), {SQuAD} v1.1 question answering Test F1 to 93.2 (1.5 point absolute improvement) and {SQuAD} v2.0 Test F1 to 83.1 (5.1 point absolute improvement).},
+	number = {{arXiv}:1810.04805},
+	publisher = {{arXiv}},
+	author = {Devlin, Jacob and Chang, Ming-Wei and Lee, Kenton and Toutanova, Kristina},
+	urldate = {2023-04-26},
+	date = {2019-05-24},
+	eprinttype = {arxiv},
+	eprint = {1810.04805 [cs]},
+	keywords = {Computer Science - Computation and Language}
+}
