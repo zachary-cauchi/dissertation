@@ -80,7 +80,7 @@ This effectively gives the final output of the model, the predicted answer to th
             \State PushReAttentionNode($q_l$, $w$) \Comment{Either 'reattend' or 'combine' node}
         \EndIf
     \EndFor
-    \State Comment{$q_l$ is now "classify[colour](attend[tie])"}
+    \State \Comment{$q_l$ is now "classify[colour](attend[tie])"}
     \State $a_{qe}$ = QEncoderPredictAnswer($q_o$) \Comment{Predict answer using \gls{lstm}}
     \State $a_l$ = LayoutPredictAnswer($q_l$) \Comment{Predict answer using layout and modules}
     \State \Comment{Get geometric mean of both predictions (layout-generated and \gls{lstm}-generated)}

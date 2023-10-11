@@ -3,16 +3,10 @@
 \section{Datasets}
 \label{sec:datasets}
 
-There are 3 \gls{vqa} datasets that will be explored and discussed in this section. As the strengths and scopes of each one are discussed, a final dataset will be discussed which goes a step beyond \gls{vqa}.
+There are 4 \gls{vqa} datasets that will be explored and discussed in this section. As the strengths and scopes of each one are discussed, a final dataset will be discussed which goes a step beyond \gls{vqa}.
 
 \subsection{SHAPES}
 \label{subsec:shapes_dataset}
-
-The SHAPES dataset is a \gls{vqa} dataset introduced by \citeauthor{andreas_deep_2016} \cite{andreas_deep_2016} consisting of synthetic images designed to test the layout construction of compositional neural models.
-Each image-question pair consists of a simple image with 9 possible locations for objects and a number of visible shapes in each image.
-These shapes are simple uniform shapes (triangles, squares, or circles) with only a difference in color  (red, green, or blue) to distinguish them (see Figure~\ref{fig:shapes_example_images}).
-The questions on the other hand are complex with each question containing up to 4 different object attributes, types, or relationships.
-The questions found in the dataset can be deliberately false (such as \texttt{Is a red shape blue?} or \texttt{Is the red square a triangle?}) or valid questions (such as \texttt{Is the red object left of a blue triangle a square?}).
 
 \begin{figure}[htbp]
     \centering
@@ -20,12 +14,14 @@ The questions found in the dataset can be deliberately false (such as \texttt{Is
     \captionsource(Example SHAPES entries){Example images from the SHAPES dataset. \label{fig:shapes_example_images}}{\url{https://paperswithcode.com/dataset/shapes-1}}
 \end{figure}
 
+The SHAPES dataset is a \gls{vqa} dataset introduced by \citeauthor{andreas_deep_2016} \cite{andreas_deep_2016} consisting of synthetic images designed to test the layout construction of compositional neural models.
+Each image-question pair consists of a simple image with 9 possible locations for objects and a number of visible shapes in each image.
+These shapes are simple uniform shapes (triangles, squares, or circles) with only a difference in color  (red, green, or blue) to distinguish them (see Figure~\ref{fig:shapes_example_images}).
+The questions on the other hand are complex with each question containing up to 4 different object attributes, types, or relationships.
+The questions found in the dataset can be deliberately false (such as \texttt{Is a red shape blue?} or \texttt{Is the red square a triangle?}) or valid questions (such as \texttt{Is the red object left of a blue triangle a square?}).
+
 \subsection{VQA}
 \label{subsec:vqa_dataset}
-
-The VQA dataset \cite{agrawal_vqa_2016} is a natural image dataset composed of 204,721 images, 1,105,904 questions, and 10 acceptable ground truth answers per question.
-The images are taken from the COCO image dataset \cite{lin_microsoft_2015} real-life objects, scenarios, and entities, while the questions and answers are supplied by human annotators.
-All questions are open-ended, with an array of possble answers to select from and a subset of answers which are possible/correct (See Figure~\ref{fig:vqa_questions_answers} for example image-question pairs with answers).
 
 \begin{figure}[htbp]
     \centering
@@ -33,11 +29,12 @@ All questions are open-ended, with an array of possble answers to select from an
     \captionsource(Example \acrshort{vqa} entries){Example images from the \acrshort{vqa} dataset with a question per image and answers. Green answers are valid answers for the given image while blue answers would be valid without the image. Only the green answers are used throughout. \label{fig:vqa_questions_answers}}{\citeauthor{agrawal_vqa_2016}\cite{agrawal_vqa_2016}}
 \end{figure}
 
+The VQA dataset \cite{agrawal_vqa_2016} is a natural image dataset composed of 204,721 images, 1,105,904 questions, and 10 acceptable ground truth answers per question.
+The images are taken from the COCO image dataset \cite{lin_microsoft_2015} real-life objects, scenarios, and entities, while the questions and answers are supplied by human annotators.
+All questions are open-ended, with an array of possble answers to select from and a subset of answers which are possible/correct (See Figure~\ref{fig:vqa_questions_answers} for example image-question pairs with answers).
+
 \subsection{CLEVR}
 \label{subsec:clevr_dataset}
-
-The CLEVR dataset \cite{johnson_clevr_2016} is a \gls{vqa} dataset designed to test and benchmark compositional \gls{vqa} models.
-Similar to the \hyperref[subsec:shapes_dataset]{SHAPES} dataset, each image is a blank scene with any number of 3d shapes which can differ in shape, colour, size, and material (being either shiny metal, or matte rubber).
 
 \begin{figure}[htbp]
     \centering
@@ -45,8 +42,28 @@ Similar to the \hyperref[subsec:shapes_dataset]{SHAPES} dataset, each image is a
     \captionsource(Example CLEVR entries){Example images from the CLEVR dataset with a question per image and the correct answer. Additionally, there's also the type of question included (such as classifying the size or colour) and the size of the datasets included expert layout/program. \label{fig:clevr_questions_answers}}{\citeauthor{johnson_clevr_2016}\cite{johnson_clevr_2016}}
 \end{figure}
 
+The CLEVR dataset \cite{johnson_clevr_2016} is a \gls{vqa} dataset designed to test and benchmark compositional \gls{vqa} models.
+Similar to the \hyperref[subsec:shapes_dataset]{SHAPES} dataset, each image is a blank scene with any number of 3d shapes which can differ in shape, colour, size, and material (being either shiny metal, or matte rubber).
+
 Questions vary in the type of answer expected (such as counting, yes/no, object attributes), and are diverse in structure, length, query types used through and relationship queries (see Figure~\ref{fig:clevr_questions_answers}).
 In total, CLEVR contains 100,000 images and 864,968 questions, with a single correct answer being given per question.
+
+\subsection{GQA}
+\label{subsec:gqa_dataset}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth,keepaspectratio]{gqa_vqa_questions_comparison}
+    \captionsource(Example GQA questions){Comparison of questions from both GQA (left) and \gls{vqa} (right) datasets for the same image. The GQA questions feature greater emphasis on object relations and compositionality than the \gls{vqa} questions are which are comparatively vague or ambiguous. \label{fig:gqa_and_vqa_questions_compared}}{\citeauthor{hudson_gqa_2019}\cite{hudson_gqa_2019}}
+\end{figure}
+
+The \gls{gqa} dataset was introduced by \citeauthor{hudson_gqa_2019}\cite{hudson_gqa_2019} as a collection of highly compositional questions to better train compositional \gls{vqa} models.
+The dataset contains over 110,000 images --- sourced from various image datasets --- and over 22,000,000 questions.
+\todo[inline]{Elaborate further?}
+
+Alongside each image is a scene-graph which describes the objects in the image, object relations, and image location details.
+Each question in the training set describes a program in the form of semantic steps which --- if executed by a training model --- would lead to a greater probability of predicting the correct answer.
+These steps mimic how a person would apply reasoning to a question to provide an answer to it and should therefore train a model how to perform such reasoning.
 
 \subsection{VCR}
 \label{subsec:vcr_dataset}

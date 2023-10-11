@@ -25,6 +25,9 @@
 % Generate hyperlinks.
 \RequirePackage[hidelinks,pdfusetitle]{hyperref}
 
+% Add TODOs
+\RequirePackage{todonotes}
+
 % Math symbols and access to the '\eqref' command.
 \RequirePackage{amsmath}
 
