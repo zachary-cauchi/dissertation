@@ -213,19 +213,24 @@
 	keywords = {Computer Science - Computation and Language, Computer Science - Computer Vision and Pattern Recognition}
 }
 
-@misc{hudson_compositional_2018,
+@article{hudson_compositional_2018,
+	issn = {2331-8422},
+	journal = {arXiv.org},
 	title = {Compositional Attention Networks for Machine Reasoning},
 	url = {http://arxiv.org/abs/1803.03067},
 	doi = {10.48550/arXiv.1803.03067},
 	abstract = {We present the {MAC} network, a novel fully differentiable neural network architecture, designed to facilitate explicit and expressive reasoning. {MAC} moves away from monolithic black-box neural architectures towards a design that encourages both transparency and versatility. The model approaches problems by decomposing them into a series of attention-based reasoning steps, each performed by a novel recurrent Memory, Attention, and Composition ({MAC}) cell that maintains a separation between control and memory. By stringing the cells together and imposing structural constraints that regulate their interaction, {MAC} effectively learns to perform iterative reasoning processes that are directly inferred from the data in an end-to-end approach. We demonstrate the model's strength, robustness and interpretability on the challenging {CLEVR} dataset for visual reasoning, achieving a new state-of-the-art 98.9\% accuracy, halving the error rate of the previous best model. More importantly, we show that the model is computationally-efficient and data-efficient, in particular requiring 5x less data than existing models to achieve strong results.},
 	number = {{arXiv}:1803.03067},
-	publisher = {{arXiv}},
+	publisher = {{Cornell University Library}, {arXiv}},
 	author = {Hudson, Drew A. and Manning, Christopher D.},
 	urldate = {2023-03-27},
 	date = {2018-04-24},
+	copyright = {2018. This work is published under http://arxiv.org/licenses/nonexclusive-distrib/1.0/ (the “License”). Notwithstanding the ProQuest Terms and Conditions, you may use this content in accordance with the terms of the License.},
 	eprinttype = {arxiv},
+	language = {eng},
+	address = {Ithaca},
 	eprint = {1803.03067 [cs]},
-	keywords = {Computer Science - Artificial Intelligence}
+	keywords = {Iterative methods ; Neural networks ; Reasoning},
 }
 
 @misc{Detectron2018,
@@ -324,4 +329,20 @@
 	eprinttype = {arxiv},
 	eprint = {1806.09055 [cs, stat]},
 	keywords = {Computer Science - Computation and Language, Computer Science - Computer Vision and Pattern Recognition, Computer Science - Machine Learning, Statistics - Machine Learning},
+}
+
+@article{su_toward_2020,
+	issn = {2296-9144},
+	abstract = {Visual reasoning is a critical stage in visual question answering (Antol et al., 2015), but most of the state-of-the-art methods categorized the VQA tasks as a classification problem without taking the reasoning process into account. Various approaches are proposed to solve this multi-modal task that requires both abilities of comprehension and reasoning. The recently proposed neural module network (Andreas et al., 2016b), which assembles the model with a few primitive modules, is capable of performing a spatial or arithmetical reasoning over the input image to answer the questions. Nevertheless, its performance is not satisfying especially in the real-world datasets (e.g., VQA 1.0& 2.0) due to its limited primitive modules and suboptimal layout. To address these issues, we propose a novel method of Dual-Path Neural Module Network which can implement complex visual reasoning by forming a more flexible layout regularized by the pairwise loss. Specifically, we first use the region proposal network to generate both visual and spatial information, which helps it perform spatial reasoning. Then, we advocate to process a pair of different images along with the same question simultaneously, named as a "complementary pair," which encourages the model to learn a more reasonable layout by suppressing the overfitting to the language priors. The model can jointly learn the parameters in the primitive module and the layout generation policy, which is further boosted by introducing a novel pairwise reward. Extensive experiments show that our approach significantly improves the performance of neural module networks especially on the real-world datasets.},
+	journal = {Frontiers in robotics and AI},
+	pages = {109--109},
+	volume = {7},
+	publisher = {Frontiers Media S.A},
+	year = {2020},
+	title = {Toward Accurate Visual Reasoning With Dual-Path Neural Module Networks},
+	copyright = {Copyright © 2020 Su, Su, Li and Zhu.},
+	language = {eng},
+	address = {Switzerland},
+	author = {Su, Ke and Su, Hang and Li, Jianguo and Zhu, Jun},
+	keywords = {complementary pairs ; machine learning ; neural module networks ; Robotics and AI ; visual question answering ; visual reasoning},
 }

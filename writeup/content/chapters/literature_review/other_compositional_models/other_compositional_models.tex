@@ -5,23 +5,7 @@
 
 This section will explore \gls{nmn} models that come after the previously explored models but are still noteworthy due to improvements they make upon the original models.
 Such models may either expand upon the neural module inventory with new module types or introduce structural changes to the model architecture.
-
-\subsection{Meta Module Network}
-\label{subsec:meta_module_network}
-
-\gls{nmn} relies on its neural modules to understand and predict answers to \gls{vqa} questions.
-However, as the complexity of the questions scales up, so would the module set need to be augmented accordingly which would lead to greater complexity.
-This also means the model cannot be applied to new questions which use newly-seen tasks is introduced (such as training primarily for object relationships but then being tasked with counting and object-based arithmetic).
-To address this, \citeauthor{chen_meta_2020} introduced \gls{mmn} \cite{chen_meta_2020} which uses general-purpose network modules instantiated on-the-fly according to the key-value pairs provided by the model.
-Given a function recipe --- denoting what task types and parameters are required for an instance of a module --- a new module is instantiated according to this spec.
-Using this approach, when an unseen recipe is encountered, a new module can still be instanced using pretrained parameters and similar trained recipes.
-\todo[inline]{Expand on the structure and flow of the model, maybe mention Meta Learning which partly inspired the structure of the model \ldots}
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=.75\textwidth,keepaspectratio]{meta_module_network_overview}
-    \captionsource(\acrshort{mmn} Overview){Architecture overview of the \acrshort{mmn} model, starting with the question-parsing (bottom) until it predicts the final answer (top) \label{fig:mmn_overview}}{\citeauthor{chen_meta_2020}\cite{chen_meta_2020}}
-\end{figure}
+In all cases, they will demonstrate unique advancements over those models discussed previously which propose new research interests within the \gls{nmn} domain.
 
 \subsection{NMNs\pm}
 \label{subsec:nmn_plus_minus}
@@ -30,17 +14,78 @@ Using this approach, when an unseen recipe is encountered, a new module can stil
 The model supports addition and subtraction modules --- which take up to three number arguments --- and a date comparison function.
 Using these additional modules, the model was able to outperform the original \gls{nmn} on an expanded text-only question-answer dataset known as DROP.
 While the model is not trained on \gls{vqa} tasks, it would be safe to assume a similar performance improvement may be expected for those \gls{vqa} tasks that require arithmetic operations (such as comparing the counts of two object types in an image).
+Instead of training using back-propagation, the model generates a reward for each pair of predicted answers and uses that to optimise the network layouts.
+To reduce the likelihood of overfitting on the text semantics, a second pairwise reward is then generated if both answer predictions in a pair are correct, requiring the model to correctly discern each correct answer in the pair.
 
 \todo[inline]{No module overview figure, maybe include a question-answer comparison between the models? (See Figure 1 in the published paper for information.)}
+
+\subsection{Dual-Path Neural Module Network}
+\label{subsec:dual_path_neural_module_network}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=.75\textwidth,keepaspectratio]{dpnmn_network_overview}
+    \captionsource(\acrshort{dpnmn} Network Overview){Overview of the \acrshort{dpnmn} model. Each reasoning step attends to two images instead of one and processes each image in parallel, generating a pairwise reward which is fed back to the layout generation module. \label{fig:dpnmn_network_overview}}{\citeauthor{su_toward_2020}\cite{su_toward_2020}}
+\end{figure}
+
+The \gls{dpnmn} model was presented by \citeauthor{su_toward_2020} \cite{su_toward_2020} as an \gls{n2nmn}-based model capable of pairwise learning.
+The model is capable of solving two \gls{vqa} tasks in parallel, sharing the same question but using a different image and different expected answer.
+The model uses a pre-trained \glsfirst{rpn} to extract visual and spatial features from both images and feeds them into a module layout generated using a similar approach as was used by \citeauthor{hu_learning_2017} in their \gls{n2nmn}.
+
+
+\subsection{MAC network}
+\label{subsec:mac_network}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=.75\textwidth,keepaspectratio]{mac_network_overview}
+    \captionsource(\acrshort{mac} Network Overview){Architecture overview of the \acrshort{mac} network model. Similar to the \gls{snmn} model, the image and question are passed to a sequence of \acrshort{mac} cells which share the intermediate results in a memory structure and a classifier uses that memory to predict the answeer. \label{fig:mac_network_overview}}{\citeauthor{hudson_compositional_2018}\cite{hudson_compositional_2018}}
+\end{figure}
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=.35\textwidth,keepaspectratio]{mac_cell_overview}
+    \captionsource(\acrshort{mac} Cell Overview){Overview of a \acrshort{mac} cell, showing how it processes memory information and control state to perform reasoning and produce a new intermediate result and control state. Similar to the \gls{snmn} model, the image and question are passed to a sequence of \acrshort{mac} cells which share the intermediate results in a memory structure and a classifier uses that memory to predict the answeer. \label{fig:mac_cell_overview}}{\citeauthor{hudson_compositional_2018}\cite{hudson_compositional_2018}}
+\end{figure}
+\todo[inline]{Combine both figures into a single figure.}
+
+The MAC model \cite{hudson_compositional_2018} is another such model that uses general-purpose neural cells.
+It makes use of a single \gls{mac} cell at each timestep to represent each reasoning step used by the model, the structure of which can be seen in Figure~\ref{fig:mac_cell_overview}.
+Each cell reads the control state and updates it according to the question and reasoning step its performing.
+It then applies this controlled reasoning to the current memory state using the image features as additional input and outputs the new intermediate result to the memory state.
 
 \subsection{Learnable Neural Module Network}
 \label{subsec:learnable_neural_module_network}
 
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=.75\textwidth,keepaspectratio]{lnmn_module_overview}
+    \captionsource(\acrshort{lnmn} Module Overview){Architecture of a 4-parameter \acrshort{lnmn} cell which accepts image features, two attention maps, and textual parameter as input \label{fig:lnmn_module_overview}}{\citeauthor{pahuja_learning_2019}\cite{pahuja_learning_2019}}
+\end{figure}
+
 Proposed by \citeauthor{pahuja_learning_2019} \cite{pahuja_learning_2019}, \gls{lnmn} is based on the \gls{snmn} model however, similar to the \gls{mmn} model, uses general-purpose neural modules instead of hard-coded ones.
 The aim of this architecture was to explore the use of general-purpose neural modules as a robust and generalisable alternative to hard-coded modules and as such, does not achieve better outright performance compared to the \gls{snmn}.
-Each neural module (or 'cell') is classified as either an Answer Module (outputs a memory features to be stored in the stack) or an Attention Module (outputs an attention map) and can either take 3 inputs or 4 inputs.
+Each neural module (or 'cell') is classified as either an Answer Module (outputs a memory features to be stored in the stack) or an Attention Module (outputs an attention map) and can either take 3 inputs or 4 inputs as seen in Figure~\ref{fig:lnmn_module_overview}.
 Each cell contains nodes which perform internal processing of cell inputs or prior node outputs and provide
 To perform training on the model weights, the model performs gradient descent on a batch from the training set.
 To perform training on the model cells and architecture, the model performs an alternative gradient descent step on a random sample batch from the validation set.
 This approach to training both model cells and model weights is based on \gls{darts} which is an architecture search algorithm used for training \glspl{cnn} and \glspl{rnn_g}\cite{liu_darts_2019}.
+When evaluated on the CLEVR dataset, the model achieved an accuracy 1\% less than the \gls{snmn} the model was based on, despite using general-purpose modules instead of hand-tailored ones.
 
+\todo[inline]{Paper mentions technique called Integrated Gradients for evaluating the actual performance of the cells and how well they trained. Should this be discussed?}
+
+\subsection{Meta Module Network}
+\label{subsec:meta_module_network}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=.75\textwidth,keepaspectratio]{meta_module_network_overview}
+    \captionsource(\acrshort{mmn} Overview){Architecture overview of the \acrshort{mmn} model, starting with the question-parsing (bottom) until it predicts the final answer (top) \label{fig:mmn_overview}}{\citeauthor{chen_meta_2020}\cite{chen_meta_2020}}
+\end{figure}
+
+\gls{nmn} relies on its neural modules to understand and predict answers to \gls{vqa} questions.
+However, as the complexity of the questions scales up, so would the module set need to be augmented accordingly which would lead to greater complexity.
+This also means the model cannot be applied to new questions which use newly-seen tasks is introduced (such as training primarily for object relationships but then being tasked with counting and object-based arithmetic).
+To address this, \citeauthor{chen_meta_2020} introduced \gls{mmn} \cite{chen_meta_2020} which uses general-purpose network modules instantiated on-the-fly according to the key-value pairs provided by the model.
+Given a function recipe --- denoting what task types and parameters are required for an instance of a module --- a new module is instantiated according to this spec.
+Using this approach, when an unseen recipe is encountered, a new module can still be instanced using pretrained parameters and similar trained recipes.
+\todo[inline]{Expand on the structure and flow of the model, maybe mention Meta Learning which partly inspired the structure of the model \ldots}
