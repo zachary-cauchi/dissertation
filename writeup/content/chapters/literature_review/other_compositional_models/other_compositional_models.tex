@@ -88,3 +88,34 @@ To address this, \citeauthor{chen_meta_2020} introduced \gls{mmn} \cite{chen_met
 Given a function recipe --- denoting what task types and parameters are required for an instance of a module --- a new module is instantiated according to this spec.
 Using this approach, when an unseen recipe is encountered, a new module can still be instanced using pretrained parameters and similar trained recipes.
 \todo[inline]{Expand on the structure and flow of the model, maybe mention Meta Learning which partly inspired the structure of the model \ldots}
+
+
+\subsection{CorefNMN}
+\label{subsec:corefnmn}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=.75\textwidth,keepaspectratio]{corefnmn_network_overview}
+    \captionsource(CorefNMN Overview){Architecture overview of the CorefNMN model, with emphasis on the newly-introducde 'Refer' module and its internal function. \label{fig:corefnmn_overview}}{\citeauthor{kottur_visual_2018}\cite{kottur_visual_2018}}
+\end{figure}
+
+One of the main challenges with visual tasks discussed so far (\gls{vqa}, \gls{vcr}, and \gls{vd}) is visual coreference resolution.
+Given a sentence or sentences which, when referrencing an entity, may refer to an entity more than once with more than one noun, phrase, or pronoun (eg. 'Is the lady handing her phone to her sister, the other lady' where 'lady' and 'her' both refer to one lady despite another lady being present in context).
+To improve the \gls{nmn} model accuracy in detecting and handling this problem, \citeauthor{kottur_visual_2018} introduce CorefNMN, an \gls{n2nmn}-based model augmented with new modules to handle \gls{vd} tasks \cite{kottur_visual_2018}.
+One of the main changes to the model architecture is the introduction of a reference pool; a dictionary containing the output attention value of the 'find' modules of the program using the text parameter input as the key.
+Each value in the reference pool is therefore an entity which is paired with the first word/phrase to identify it.
+Using this dictionary as input, alongside a textual parameter input, a new 'Refer' module attends to the entity referred to inside the dictionary, producing a soft attention over the dictionary to select the most likely attention map.
+Internally, the module measures two things; the likelihood of each key against the target text parameter, and how long its been since the target entity was last mentioned.
+The softmaxed value of each key is then applied to the attention map values to obtain the final module output.
+Aside from the 'Refer' module two other modules are also introduced; a 'Not' module which effectively inverts the input attention map to focus on other regions of the image, and an 'Exclude' module which looks for instances of the specified entity in the text parameter which are not found in the input attention which is also provided.
+\todo[inline]{The model contains more augmentations suited to \gls{vd}. Should these be explored as well?}
+
+\subsection{Neural Module Network for Visual Dialog}
+\label{subsec:neural_module_network_for_visual_dialog}
+
+\todo[inline]{To be filled, making reference to the prior model which the paper also references.}
+
+\subsection{Discussion}
+\label{subsec:other_compositional_models_discussion}
+
+\todo[inline]{Discuss in further detail how these other models expand upon the \gls{nmn}, major/minor architecture differences, and the tasks or challenges they target.}
