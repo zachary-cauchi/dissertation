@@ -97,3 +97,23 @@ Each question file (outside of the test fold) specifies the correct answers for 
 Each image is accompanied with a metadata json file containing the dimensions of the image, the class names of the objects present (eg. person, car, dog, etc), and the bounding boxes and polygons identifying each object in the image.
 All bounding boxes and polygons were generated using the Detectron object detection system\cite{Detectron2018}.
 
+\subsection{VisDial}
+\label{subsec:visdial_dataset}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth,keepaspectratio]{visdial_dataset_overview}
+    \captionsource(Example VisDial entry){Example \gls{vd} task from the VisDial dataset. The image is supplied with a caption, a model predicts answers to the questions for that image, and the model must maintain context for each following question using the dialogue history. \label{fig:visdial_question_answer}}{\url{https://visualdialog.org}}
+\end{figure}
+
+The VisDial dataset --- published by \citeauthor{das_visual_2019} \cite{das_visual_2019} --- formalises a new visual task known as \glsfirst{vd}.
+Where \gls{vqa} and \gls{vcr} both focus on an image with a single question and answer, \gls{vd} extends this by posing multiple questions per image to be answered sequentially, building a natural-flowing dialogue in the process.
+The dataset is composed of roughly 140,000 total \gls{vd} entries where each entry contains one image sourced from the COCO dataset\cite{lin_microsoft_2015}, one caption describing the image, and ten rounds of questions and answers.
+The questions in the image were created without access to the image, only the caption.
+Aside from this, subsequent questions also build upon the new context derived from answers to previous questions such as asking for more details about the previous answer.
+This causes the questions to flow like a natural dialogue between two persons, where the model is the only subject to know what's present in the picture.
+Another benefit to this approach is that it reduces the \gls{vpb} typically found in other visual datasets, where questions would focus only on visible subjects and therefore have easily-predictable answers.
+Evaluation on these \gls{vd} tasks is performed using a custom evaluation protocol published alongside the dataset; given the image, the image caption, the dialog history up until the question to be answered, the question to be answered, and the top candidate answers (where N = 100), the model must produce a sorted list of the candidate answers for the given question.
+Its performance is then evaluated by comparing the rank of the human response in the sorted list, checking if the response is in the top-k responses (\it{recall@k}), and the reciprocal rank of the human response among all other answers.
+Finally, the authors also publish a set of 3 encoders that show how to encode a \gls{vd} task in a machine model.
+These encoders either embed the data in vector space and generate a joint embedding, use a sequence of \glspl{rnn} with attention-over-history to the question-relevant history, or simply store the data in memory and perform lookup when generating a final context vector.

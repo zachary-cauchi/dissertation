@@ -25,15 +25,14 @@ To reduce the likelihood of overfitting on the text semantics, a second pairwise
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=.75\textwidth,keepaspectratio]{dpnmn_network_overview}
-    \captionsource(\acrshort{dpnmn} Network Overview){Overview of the \acrshort{dpnmn} model. Each reasoning step attends to two images instead of one and processes each image in parallel, generating a pairwise reward which is fed back to the layout generation module. \label{fig:dpnmn_network_overview}}{\citeauthor{su_toward_2020}\cite{su_toward_2020}}
+    \captionsource(\acrshort{dpnmn} Network Overview){Overview of the \acrshort{dpnmn} model. Each reasoning step attends to two images instead of one and processes each image in parallel, generating a pair of answers instead of a single answer. \label{fig:dpnmn_network_overview}}{\citeauthor{su_toward_2020}\cite{su_toward_2020}}
 \end{figure}
 
 The \gls{dpnmn} model was presented by \citeauthor{su_toward_2020} \cite{su_toward_2020} as an \gls{n2nmn}-based model capable of pairwise learning.
 The model is capable of solving two \gls{vqa} tasks in parallel, sharing the same question but using a different image and different expected answer.
 The model uses a pre-trained \glsfirst{rpn} to extract visual and spatial features from both images and feeds them into a module layout generated using a similar approach as was used by \citeauthor{hu_learning_2017} in their \gls{n2nmn}.
 
-
-\subsection{MAC network}
+\subsection{MAC Network}
 \label{subsec:mac_network}
 
 \begin{figure}[htbp]
