@@ -90,18 +90,18 @@ Using this approach, when an unseen recipe is encountered, a new module can stil
 \todo[inline]{Expand on the structure and flow of the model, maybe mention Meta Learning which partly inspired the structure of the model \ldots}
 
 
-\subsection{CorefNMN}
-\label{subsec:corefnmn}
+\subsection{Coreference Neural Module Network}
+\label{subsec:coreference_neural_module_network}
 
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=.75\textwidth,keepaspectratio]{corefnmn_network_overview}
-    \captionsource(CorefNMN Overview){Architecture overview of the CorefNMN model, with emphasis on the newly-introducde 'Refer' module and its internal function. \label{fig:corefnmn_overview}}{\citeauthor{kottur_visual_2018}\cite{kottur_visual_2018}}
+    \captionsource(\acrshort{corefnmn} Overview){Architecture overview of the \acrshort{corefnmn} model, with emphasis on the newly-introducde 'Refer' module and its internal function. \label{fig:corefnmn_overview}}{\citeauthor{kottur_visual_2018}\cite{kottur_visual_2018}}
 \end{figure}
 
 One of the main challenges with visual tasks discussed so far (\gls{vqa}, \gls{vcr}, and \gls{vd}) is visual coreference resolution.
 Given a sentence or sentences which, when referrencing an entity, may refer to an entity more than once with more than one noun, phrase, or pronoun (eg. 'Is the lady handing her phone to her sister, the other lady' where 'lady' and 'her' both refer to one lady despite another lady being present in context).
-To improve the \gls{nmn} model accuracy in detecting and handling this problem, \citeauthor{kottur_visual_2018} introduce CorefNMN, an \gls{n2nmn}-based model augmented with new modules to handle \gls{vd} tasks \cite{kottur_visual_2018}.
+To improve the \gls{nmn} model accuracy in detecting and handling this problem, \citeauthor{kottur_visual_2018} introduce \glsfirst{corefnmn}, an \gls{n2nmn}-based model augmented with new modules to handle \gls{vd} tasks \cite{kottur_visual_2018}.
 One of the main changes to the model architecture is the introduction of a reference pool; a dictionary containing the output attention value of the 'find' modules of the program using the text parameter input as the key.
 Each value in the reference pool is therefore an entity which is paired with the first word/phrase to identify it.
 Using this dictionary as input, alongside a textual parameter input, a new 'Refer' module attends to the entity referred to inside the dictionary, producing a soft attention over the dictionary to select the most likely attention map.
@@ -113,9 +113,16 @@ Aside from the 'Refer' module two other modules are also introduced; a 'Not' mod
 \subsection{Neural Module Network for Visual Dialog}
 \label{subsec:neural_module_network_for_visual_dialog}
 
-\todo[inline]{To be filled, making reference to the prior model which the paper also references.}
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=.75\textwidth,keepaspectratio]{nmnvd_network_impersonal_pronoun}
+    \captionsource(\acrshort{nmnvd} and impersonal pronouns){An overview of how the \acrshort{nmnvd} handles impersonal pronouns by avoiding the Refer module at program generation and using Find modules instead. \label{fig:nmnvd_network_impersonal_pronoun}}{\citeauthor{cho_visual_2021}\cite{cho_visual_2021}}
+\end{figure}
 
-\subsection{Discussion}
-\label{subsec:other_compositional_models_discussion}
-
-\todo[inline]{Discuss in further detail how these other models expand upon the \gls{nmn}, major/minor architecture differences, and the tasks or challenges they target.}
+Building upon the \gls{corefnmn} model, \citeauthor{cho_visual_2021} introduced \glsfirst{nmnvd}\cite{cho_visual_2021} which improves upon the neural module inventory and program generation of its \gls{corefnmn} predecessor.
+The model builds upon the \gls{corefnmn} model by improving how the model generates programs based on impersonal pronouns.
+Since impersonal pronouns refer to objects not previously encountered in dialog and would thus lead to incorrect association between the pronoun and a completely unrelated object.
+To address this, the model checks for impersonal pronouns at the question stage and does not use the Refer module while still using Refer modules for personal pronouns.
+Aside from this, a new output module --- known as the Compare module --- is also introduced to handle comparison tasks between two objects.
+This is done by comparing the visual region containing both objects, the image features, and the textual feature parameter, to compute a final result.
+Finally, the model also improves upon the Find module by using three attention iterations to produce more accurate attention regions.
