@@ -1,0 +1,76 @@
+\graphicspath{{content/chapters/literature_review/discussion/figures}}
+
+\section{Discussion}
+\label{sec:literature_review_discussion}
+
+This section will give a retrospective of all that was explored in the reviewed literature, starting from the computer vision tasks tackled, the problems that arose, and how they approached them with possible solutions.
+
+\subsection{Computer Vision Tasks}
+\label{subsec:discussion_computer_vision_tasks}
+
+\begin{table}[]
+\begin{tabular}{@{}llcccccc@{}}
+\toprule
+                                                            &              & \textbf{SHAPES}      & \textbf{VQA (2.0)}         & \textbf{CLEVR}       & \textbf{GQA}         & \textbf{VCR}         & \textbf{VisDial}     \\ \cmidrule(l){2-8}
+\multicolumn{2}{r}{\textbf{Task Type}}                      & VQA                  & VQA                  & VQA                  & VQA                  & VCR                   & VD                   \\ \cmidrule(l){2-8}
+\multirow{4}{*}{\rotatebox[origin=c]{90}{\textbf{Details}}} & \# Images    & 244 & 204K & 100K & 113K & 110K & 140K \\
+                                                            & \# Questions & 15K & 1.1M & 853K & 22M & 290K & 1.4M \\
+                                                            & \# Answers   & 244 & 11M & 853K & 22M & 290K & 1.4M \\
+                                                            & Image Type   & Synthetic & Realistic & Synthetic & Realistic & Realistic & Realistic \\
+\bottomrule
+\end{tabular}
+\captionsource(Dataset statistics){Breakdown of the which visual tasks each dataset targets including the statistics of that dataset.\label{tab:dataset_stats}}{Written for this dissertation}
+\end{table}
+
+\begin{table}[]
+\captionsource(Models against visual datasets){Which models were trained and tested against which datasets.\label{tab:models_against_datasets}}{Written for this dissertation}
+\begin{threeparttable}
+    \begin{tabular}{@{}rcccccc@{}}
+        \toprule
+                    & SHAPES & VQA          & CLEVR & GQA & VCR & VisDial \\ \midrule
+        NMN      & Yes    & Yes          & No    & No  & No  & No      \\
+        N2NMN    & Yes    & Yes          & Yes   & No  & No  & No      \\
+        SNMN     & No     & Yes          & Yes   & No  & No\tnote{1} & No      \\
+        NMNs\pm\tnote{2}    & No     & No           & No    & No  & No  & No      \\
+        DPNMN    & No     & No           & Yes   & No  & No  & No      \\
+        MAC      & No     & Yes\tnote{3} & Yes   & Yes & No  & No      \\
+        LNMN     & No     & No           & Yes   & No  & No  & No      \\
+        MMN      & No     & No           & Yes   & Yes & No  & No      \\
+        R2C      & No     & No           & No    & No  & Yes & No      \\
+        CorefNMN & No     & No           & No    & No  & No  & Yes     \\
+        NMNVD    & No     & No           & No    & No  & No  & Yes     \\ \bottomrule
+    \end{tabular}
+    \begin{tablenotes}
+        \item[1] This will be implemented and tested in this dissertation.
+        \item[2] Was only developed and tested on a bespoke dataset\cite{chen_teaching_2022}.
+        \item[3] Tested and evaluated on v1.0 of the dataset\cite{hudson_compositional_2018}.
+    \end{tablenotes}
+\end{threeparttable}
+\end{table}
+
+\gls{vqa} is the first task discussed and the simplest in structure and challenge; one image, one question, and one required answer which can be open-ended or multi-label.
+Of the reviewed datasets, it has the largest coverage \cite{andreas_deep_2016,agrawal_vqa_2016,johnson_clevr_2016,hudson_gqa_2019} with the CLEVR dataset having the greatest testing coverage among \gls{nmn}-based models\cite{fishandi_neural_2023}.
+This would make sense as the dataset, while using synthetic images, priorities highly-compositional questions which require multiple reasoning steps to predict an answer, similar to \gls{gqa}.
+
+\gls{vcr} is the next discussed task type to be formalised\cite{zellers_recognition_2019}.
+This task extends \gls{vqa} by using realistic images taken from still video frames, omitting knowledge mostly found in the moments leading up to the taken image.
+Through this method, models will need to focus on inferring knowledge either from commonsense knowledge or from finer details in the image.
+Unlike \gls{vqa}, the \gls{vcr} dataset\cite{zellers_recognition_2019} is one of the only few datasets present for this task type due to its recent introduction, with the \gls{r2c} model discussed being one of the models trained and tested on the dataset.
+\todo[inline]{GD-VCR exists which is a more geo-diverse-focused variant of the dataset meant to target commonsense knowledge about different cultures. Should this be introduced?}
+
+\gls{vd} is the last task type of these three to be introduced and formalised\cite{das_visual_2019}.
+It follows a more human dialogue-like flow where each image is paired with a caption and question-answers pairs provided as data to the model.
+The questions and answers build context around the image which offer a stricter benchmark on visual comprehension for compositional models such as \gls{nmn}.
+Similar to \gls{vcr}, the VisDial dataset is one of the only datasets which present this task type \cite{das_visual_2019}.
+\todo[inline]{CLEVR-Dialog was recently published which uses CLEVR images. Should this be introduced?}
+
+Despite being task types with different data layouts and amounts of input data, they all share the same goal of providing answers to questions which are grounded in images.
+The main difference between the tasks is in how each of their datasets tackle the various pitfalls and challenges of answering these questions.
+CLEVR, SHAPES, and GQA, all primarily focus on the compositionality of their questions with a focus on how compositional models perform reasoning steps to get to the correct answer\cite{andreas_neural_2016,johnson_clevr_2016,hudson_gqa_2019}.
+\gls{vqa}, \gls{vcr}, \gls{gqa}, and VisDial all use natural or realistic images instead of synthetic computer-generated images, arguing that since these better mimic real-life scenarios, they would allow a model to adopt more robust reasoning\cite{agrawal_vqa_2016,hudson_gqa_2019,zellers_recognition_2019,das_visual_2019}.
+One experiment by \cite{sejnova_compositional_2018} --- where an \gls{n2nmn}-based model was trained on CLEVR and then tested on both the CLEVR test set and a custom dataset of CLEVR-like realistic images --- found the model had no consistency in both accuracy between both test sets and between multiple questions around the same image \cite{sejnova_compositional_2018}.
+They also concluded that further experiments and analysis on the pretraining of models on virtual datasets would need to be carried out before determining if virtual datasets would be viable for real-world applications or not, and just how much of an impact real-world variables such as lighting and noise affect model predictions \cite{sejnova_compositional_2018}.
+
+\todo[inline]{Discuss in further detail how these other models expand upon the \gls{nmn}, major/minor architecture differences, and the tasks or challenges they target.}
+\todo[inline]{Describe the concepts involved in the models (neural architecture search, visual grounding, visual coreference resolution, module inventory, etc. ) and explain how each model approaches them.}
+\todo[inline]{Tables showing the module inventory of each model, etc.}

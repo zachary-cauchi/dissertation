@@ -38,6 +38,7 @@
 \RequirePackage{tabularray}
 \RequirePackage{threeparttable}
 \RequirePackage{booktabs}
+\RequirePackage{multirow}
 %% For aligning numbers in a table with the period symbol.
 \RequirePackage{siunitx}
 \sisetup{detect-all}
