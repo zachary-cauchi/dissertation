@@ -14,8 +14,6 @@ In all cases, they will demonstrate unique advancements over those models discus
 The model supports addition and subtraction modules --- which take up to three number arguments --- and a date comparison function.
 Using these additional modules, the model was able to outperform the original \gls{nmn} on an expanded text-only question-answer dataset known as DROP.
 While the model is not trained on \gls{vqa} tasks, it would be safe to assume a similar performance improvement may be expected for those \gls{vqa} tasks that require arithmetic operations (such as comparing the counts of two object types in an image).
-Instead of training using back-propagation, the model generates a reward for each pair of predicted answers and uses that to optimise the network layouts.
-To reduce the likelihood of overfitting on the text semantics, a second pairwise reward is then generated if both answer predictions in a pair are correct, requiring the model to correctly discern each correct answer in the pair.
 
 \todo[inline]{No module overview figure, maybe include a question-answer comparison between the models? (See Figure 1 in the published paper for information.)}
 
@@ -31,6 +29,8 @@ To reduce the likelihood of overfitting on the text semantics, a second pairwise
 The \gls{dpnmn} model was presented by \citeauthor{su_toward_2020} \cite{su_toward_2020} as an \gls{n2nmn}-based model capable of pairwise learning.
 The model is capable of solving two \gls{vqa} tasks in parallel, sharing the same question but using a different image and different expected answer.
 The model uses a pre-trained \glsfirst{rpn} to extract visual and spatial features from both images and feeds them into a module layout generated using a similar approach as was used by \citeauthor{hu_learning_2017} in their \gls{n2nmn}.
+Instead of training using back-propagation, the model generates a reward for each pair of predicted answers and uses that to optimise the network layouts.
+To reduce the likelihood of overfitting on the text semantics, a second pairwise reward is then generated if both answer predictions in a pair are correct, requiring the model to correctly discern each correct answer in the pair.
 
 \subsection{MAC Network}
 \label{subsec:mac_network}
