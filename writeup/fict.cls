@@ -37,6 +37,7 @@
 % Table configuration.
 \RequirePackage{tabularray}
 \RequirePackage{threeparttable}
+\RequirePackage{tabularx}
 \RequirePackage{booktabs}
 \RequirePackage{multirow}
 %% For aligning numbers in a table with the period symbol.
