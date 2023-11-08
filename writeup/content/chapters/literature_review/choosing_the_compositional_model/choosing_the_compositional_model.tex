@@ -3,7 +3,7 @@
 \section{Choosing the Compositional Model}
 \label{sec:choosing_the_compositional_model}
 
-We will be exploring 3 compositional models which have been considered for this dissertation.
+We will be exploring three compositional models which have been considered for this dissertation.
 Each subsequent model builds upon the works of the former, adopting a more modular and understandable approach for solving \gls{vqa} tasks while also achieving better performance.
 
 \subsection{Neural Module Network}
@@ -15,10 +15,10 @@ When given an image-question pair, it will predict an answer to the question usi
 \begin{itemize}\label{list:nmn_procedure}
     \item The image and question preprocessed, extracting their visual and textual features respectively.
     \item The image features, the question text, and the question features, are fed to the model as inputs.
-    \item A new layout of \gls{nn} modules is created --- as seen in Figure~\ref{fig:nmn_overview} --- which is based upon the.
+    \item A new layout of \gls{nn} modules is created --- as seen in Figure~\ref{fig:nmn_overview} --- by the question parser.
     \item The image features are inputted to each module, computing the output for each module.
     \item The text features are fed to an \acrshort{lstm}. Based on the input features, the outputs of only a specific set of the \gls{nn} modules will also be fed into the \acrshort{lstm}.
-    \item The \gls{lstm} and layout outputs will averaged together to produce a final classification prediction as the answer to the input question.
+    \item The \gls{lstm} and layout outputs are averaged together to produce a final classification prediction as the answer to the input question.
 \end{itemize}
 
 \begin{figure}[htbp]
@@ -29,10 +29,10 @@ When given an image-question pair, it will predict an answer to the question usi
 
 Each module in the \gls{nmn} is described in the format \texttt{type[instance](arg1, ...)}, where \texttt{type} denotes the type of operation performed by the module (eg. \texttt{attend} will search for an object in the image) and \texttt{instance} identifies the module amongst other modules of the same type (eg. \texttt{attend[pillow]} identifies an \texttt{attend} module that looks for \texttt{pillow} objects in the image).
 Arguments such as instance or type weights, or other argument types, are shared by the modules.
-The paper introduced 5 module types for its \gls{nmn} model which can be found in Table~\ref{tab:nmn_module_list}.
+The paper introduced five module types for its \gls{nmn} model which can be found in Table~\ref{tab:nmn_module_list}.
 
 \begin{table}
-    \captionsource(\acrshort{nmn} module list){\acrshort{nmn} module types and example uses.\label{tab:nmn_module_list}}
+    \captionsource(\acrshort{nmn} module list){\acrshort{nmn} module types and example uses.\label{tab:nmn_module_list}}{\citeauthor{andreas_neural_2016}\cite{andreas_neural_2016}}
     \centering
     \begin{tblr}{|c|c|c|c|}
         \hline
@@ -58,7 +58,7 @@ To solve this, each question is converted into a layout, which identifies the mo
 To obtain these layouts, each question is first parsed using the Stanford Parser \cite{klein_accurate_2003}, a tool which uses a pre-trained language model to output standardised representations of the questions using the Universal Representations v1 format \cite{nivre_universal_2016}.
 These representations are then simplified and converted into tokens which represent the module types and instances supported by the \gls{nmn} (for example: the question \texttt{"What is the colour of the cat left of the truck?"} could be converted into \texttt{"classify[colour](attend[cat](re-attend[left](attend(truck))))}").
 
-While the above provides the model with a solid approach to predicting the answer, it will still be susceptible to errors due to overlooked grammatical cues in the question (such as \texttt{"What is swimming?"} versus \texttt{"What are swimming?"}; both questions denote the answer is something that's swimming, but the second question indicates a plural answer which cannot be represented or conveyed by the layouts protocol established above).
+While the above provides the model with a solid approach to predicting the answer, it is still be susceptible to errors due to overlooked grammatical cues in the question (for example: \texttt{"What is swimming?"} versus \texttt{"What are swimming?"}; both questions denote the answer is something that's swimming, but the second question indicates a plural answer which cannot be represented or conveyed by the layouts protocol established above).
 To solve this, the \gls{nmn} uses a \acrlong{lstm} question encoder to detect such cues, and combines its output with the output of the modules.
 This effectively gives the final output of the model, the predicted answer to the image-question pair.
 
@@ -104,7 +104,7 @@ Similar to \acrshort{nmn}, \acrshort{n2nmn} uses neural modules which take one o
 Aside from the given input maps, a module-specific textual vector --- obtained from the question being solved --- is also made available at runtime.
 This textual vector is created by obtaining an attention map from word embeddings of each word in the question.
 With this, a layout expression is created from which the \acrshort{n2nmn} is able to dynamically construct the modules needed using these textual vectors — as shown in Figure~\ref{fig:n2nmn_overview} — without relying on multiple separate, hard-coded module instances as is the case in the \acrshort{nmn} model.
-An example breakdown of a question being answered --- with the modules used and their inputs/outputs shown --- can be seen in Figure~\ref{fig:n2nmn_layout_breakdown}.
+Figure~\ref{fig:n2nmn_layout_breakdown} illustrates how a question is parsed into a solvable layout.
 
 \begin{figure}[htbp]
     \centering
@@ -124,7 +124,7 @@ An \acrshort{lstm} decoder then generates an attention map for the given encoder
 With this, a distribution of all possible layouts for the question can be predicted.
 To narrow this down to the final layout, the model uses a beam search to select the best layout available from the distribution. From this, the final network is assembled.
 
-During training, the layout policy and module parameters are jointly trained, using Adam for hyperparameter optimisation\cite{kingma_adam_2017}, and a loss function over the output answer scores to optimise these parameters.
+During training, the layout policy and module parameters are jointly trained, using Adam for parameter optimisation\cite{kingma_adam_2017}, and a loss function over the output answer scores to optimise these parameters.
 Due to the layout policy being a discrete training problem, the loss function is not fully differentiable and does not allow for training with full back-propagation.
 To circumvent this, those parts which are fully differentiable are trained with back-propagation, while those parts that aren't are trained using a policy gradient method optimised for reinforcement learning.
 
@@ -192,7 +192,7 @@ The final output of the model is determined by averaging the weighted answer \gl
 \subsection{Models comparison}
 \label{subsec:models_comparison}
 
-To discuss and compare the models discussed in \ref{sec:choosing_the_compositional_model}\nameref{sec:choosing_the_compositional_model} we will be focusing on their performance across all three datasets, discussing and elaborating on the performance metrics presented in Table~\ref{tab:model_performance_vqa}.
+To discuss and compare the models discussed in Section~\ref{sec:choosing_the_compositional_model}, we will be focusing on their performance across the \textit{SHAPES}, \textit{\gls{vqa}}, and \textit{CLEVR} datasets, discussing and elaborating on the performance metrics presented in Table~\ref{tab:model_performance_vqa}.
 We will then follow up by highlighting the limitations of each model, and conclude by looking into how easy it is to understand the steps taken by each model to produce the results.
 
 \begin{table}
@@ -209,35 +209,36 @@ We will then follow up by highlighting the limitations of each model, and conclu
     \caption[{\acrshort{vqa} model performance across the \acrshort{vqa} datasets.}]{Comparison of models across the 3 \acrshort{vqa} datasets discussed. Results are measured in percentage accuracy (\%) and obtained from the highest-scoring run with all performance optimisations (such as expert layout) enabled. \label{tab:model_performance_vqa}}
 \end{table}
 
-Both \gls{nmn} and \gls{n2nmn} performed well on the SHAPES dataset, scoring 90.6\% and 100\% respectively.
+Both \gls{nmn} and \gls{n2nmn} performed well on the \textit{SHAPES} dataset, scoring 90.6\% and 100\% respectively.
 While the images themselves are not complex at all - being only low-resolution images of 3-coloured 2d shapes - it served as a benchmark for testing the dynamics of a models layout-construction.
 The questions are also yes/no questions meaning most of the performance may be carried by the models final stage which could be performing guesswork on the text of the question.
 \gls{snmn} was not tested on this dataset so its performance isn't known, but could be assumed to be on-par with \gls{n2nmn} given the similarity in module implementation.
 
-While the \gls{n2nmn} and \gls{snmn} both achieve scores of 83.7\% and 96.5\% on the CLEVR dataset respectively, the \gls{nmn} model was not tested on the dataset at the time of its publishing.
-Despite this, it was modified to use the expert layout of the \gls{n2nmn} model so it would be able to train and test on the dataset, with which it was able to score 72.1\%\cite{hu_learning_2017}.
-Since the dataset is arguably a more suitable dataset for testing layout-construction than SHAPES on account of it featuring the same complexity of questions, having more complex 3d scenes, it is assumed that \gls{nmn}
+While the \gls{n2nmn} and \gls{snmn} both achieve scores of 83.7\% and 96.5\% on the \textit{CLEVR} dataset respectively, the \gls{nmn} model was not tested on the dataset at the time of its publishing.
+Despite this, it was modified to use the expert layout of the \gls{n2nmn} model so it would be able to train and test on the \textit{CLEVR} dataset, with which it was able to score 72.1\%\cite{hu_learning_2017}.
+% The \textit{CLEVR} dataset is arguably a more suitable dataset for testing layout-construction than \textit{SHAPES} on account of it featuring the same complexity of questions, having more complex 3d scenes, and featuring many more question-answer sets.
 
-On the \gls{vqa}v1 dataset, \gls{nmn}, \gls{n2nmn}, and \gls{snmn} achieved test scores of 55.1\%, 64.9\%, and 66\%, respectively. Aside from those results, \gls{n2nmn} and \gls{snmn} were also tested on \gls{vqa}v2 and scored 63.3\% and 64.0\% respectively. Even when tested on natural images, the \gls{snmn} model remains effective, narrowly surpassing the \gls{n2nmn}.
+On the \textit{\gls{vqa}v1} dataset, \gls{nmn}, \gls{n2nmn}, and \gls{snmn} achieved test scores of 55.1\%, 64.9\%, and 66\%, respectively. Aside from those results, \gls{n2nmn} and \gls{snmn} were also tested on \gls{vqa}v2 and scored 63.3\% and 64.0\% respectively. Even when tested on natural images, the \gls{snmn} model remains effective, narrowly surpassing the \gls{n2nmn}.
 
 Despite the performance of the \gls{nmn}, there are limitations concerning its ability to answer yes/no questions; as was suggested by \citeauthor{andreas_deep_2016}\cite{andreas_deep_2016}, the model seems to suffer from overfitting when training with yes/no questions.
 Aside from this, the model uses hard-coded textual parameters which lead to measurably worse performance in the CLEVR dataset.
 This problem does not occur in \gls{n2nmn} since the modules use soft-attention module parameters instead of hard-coded textual parameters.
-Additionally, the \gls{n2nmn} seems to learn additional optimisations regarding how it attends to the image (such as in Figure~\ref{fig:n2nmn_layout_breakdown} where the second \texttt{find} module understands a subsequent re-attending of its output will look to the right of the image so the \texttt{find} attends to the left of the image).
+Additionally, the \gls{n2nmn} seems to learn additional optimisations regarding how it attends to the image (for example: in Figure~\ref{fig:n2nmn_layout_breakdown}, the layout policy seems to 'coordinate' two \texttt{find} modules so that one looks to the 'right side of the red metallic thing' while the other looks to the left to try and find the 'red metallic thing').
+
 The main drawback to the \gls{n2nmn} is its inability to use back propagation during training, instead relying on end-to-end training using reinforcement learning.
 This limitation is addressed in the \gls{snmn} model, which is able to use back propagation during training thanks to its fully-differentiable layout controller and stack memory structure.
-The \gls{snmn} model also seems to share the same optimisations seen in \gls{n2nmn} of composing a future time-step parameter into the current attention to optimise future time-steps.
-Additionally, the \gls{snmn} model produces more human-interpretable results than the other models, and is supported by an experiment that was done comparing the \gls{snmn} model to a more closely-integrated model known as MAC\cite{hudson_compositional_2018} using human evaluators.
+The \gls{snmn} model also shares the same optimisations seen in \gls{n2nmn} of composing a future time-step parameter into the current attention to optimise future time-steps.
+Additionally, the \gls{snmn} model produces more human-interpretable results than the other models, and is supported by an experiment which compares the \gls{snmn} model to a more closely-integrated model known as MAC\cite{hudson_compositional_2018} using human evaluators.
 The model itself shared a very similar approach of using sequential time-steps with textual and visual parameters at each step, but does not use modular networks like the discussed models.
 While the \gls{snmn} model was found to be more understandable and logically-predictable by human evaluators, its performance in the \gls{vqa} dataset was worse (by about 2\%) compared to the MAC model which was the state-of-the-art at the time\cite{hu_explainable_2019}.
 
 When examining each of these models for ease of inclusion, all models are open-source, with their code-bases being released by the original authors.
 The original \gls{nmn} model however, is discouraged for use by the original author who favours the newer \gls{n2nmn} model for being easier to set up and better performing\footnote{See \url{https://github.com/jacobandreas/nmn2/blob/master/README.md}}.
 Building upon this, the \gls{n2nmn} and \gls{snmn} both share strong similarities in implementation, general architecture, and aims, with the main differences being that the \gls{snmn} uses a different memory structure and modified layout controller.
-Aside from those, it also uses more recent versions of their dependencies which will help with development given the expected \acrshort{gpu} driver requirements for the specified dependency versions are no longer publicly available.
-That said, the libraries used by the model are prior to a major version release, which may improve the performance of the model significantly but would necessitate a complete rewrite of the codebase.
+Aside from those, it also uses more recent versions of their dependencies which will help with the development given the expected \acrshort{gpu} driver requirements for the specified dependency versions are no longer publicly available.
+% That said, the libraries used by the model are prior to a major version release, which may improve the performance of the model significantly but would necessitate a complete rewrite of the codebase.
 Both these models use this legacy version so they ultimately would both require the same rewrite if done.
-As a result of the reasons above, the benefits outlined in the discussion of results, 
+As a result of the reasons above, the benefits outlined in the discussion of results,
 and the ease of predictability of the model for human users who do not know the implementations of the model, the \gls{snmn} model will be chosen for this dissertation.
 
 \clearpage
@@ -271,3 +272,5 @@ Finally, \textbf{reasoning} is performed by the model inside its reasoning modul
 This is composed of a bidirectional \gls{lstm} which uses the contextualised representation of the question, object attentions, and responses, as input.
 The output is then concatenated with the question and answer representations at each timestep for better gradient control by the loss function.
 The final concatenated sequence is max-pooled, where an \gls{mlp} predicts a \gls{logit} representing confidence in the question-response pair.
+
+\todo[inline]{Given this model is not compositional, I'm not sure whether to remove it or relocate it.}
