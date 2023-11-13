@@ -229,7 +229,7 @@ The main drawback to the \gls{n2nmn} is its inability to use back propagation du
 This limitation is addressed in the \gls{snmn} model, which is able to use back propagation during training thanks to its fully-differentiable layout controller and stack memory structure.
 The \gls{snmn} model also shares the same optimisations seen in \gls{n2nmn} of composing a future time-step parameter into the current attention to optimise future time-steps.
 Additionally, the \gls{snmn} model produces more human-interpretable results than the other models, and is supported by an experiment which compares the \gls{snmn} model to a more closely-integrated model known as MAC\cite{hudson_compositional_2018} using human evaluators.
-The model itself shared a very similar approach of using sequential time-steps with textual and visual parameters at each step, but does not use modular networks like the discussed models.
+The model itself shared a very similar approach of using sequential time-steps with textual and visual parameters at each step, but does not use modular networks like the discussed models (see Chapter~\ref{subsec:mac_network} for further details on its implementation).
 While the \gls{snmn} model was found to be more understandable and logically-predictable by human evaluators, its performance in the \gls{vqa} dataset was worse (by about 2\%) compared to the MAC model which was the state-of-the-art at the time\cite{hu_explainable_2019}.
 
 When examining each of these models for ease of inclusion, all models are open-source, with their code-bases being released by the original authors.
