@@ -69,20 +69,19 @@ They also concluded that further experiments and analysis on the pretraining of 
     N2NMN & Seq2Seq RNN (See Chapter ~\ref{subsec:n2nmn}). & D & ﬁnd, relocate, and, or, ﬁlter, count, exist, describe, less, more, equal, compare & S  \\
     SNMN & Seq2Seq RNN (See Chapter ~\ref{subsec:stack_neural_module_network}). & ND & ﬁnd, transform, and, or, ﬁlter, scene, answer, compare, noOp & S  \\
     NMNs & Similar to N2NMN with type-constrained grammar\cite{gupta_answering_2020}. & D & find, filter, relocate, find-num, find-date, count, compare-num-lt, time-diff, find-max-num, span, compare-date, add, sub & S  \\
-    DPNMN & Similar to N2NMN with an RPN for spatial information. & ND & find, relocate, and, or, describe, compare & S  \\
+    DPNMN & Similar to N2NMN with an RPN for spatial information. & D & find, relocate, and, or, describe, compare & S  \\
     MAC & BiLSTM and fixed-length cell array where each cell can 'skip' itself and relay input to the next cell. & D & MAC cells & G  \\
     LNMN & Similar to SNMN & ND & General modules (Expand further). & G  \\
-    MMN & Rule-based parser feeding into a coarse-to-fine program generator. & ND & Meta modules & G  \\
+    MMN & Rule-based parser feeding into a coarse-to-fine program generator. & D & Meta modules & G  \\
     CorefNMN & Similar to N2NMN but augmented with a memory network for attention-over-text. & D & find, relocate, and, or, filter, count, exist, describe, less, more, equal, compare, not, refer, exclude & S  \\
-    NMNVD & Similar to CorefNMN. & ND & find, relocate, and, refer, describe, compare & S  \\ \bottomrule
+    NMNVD & Similar to CorefNMN. & D & find, relocate, and, refer, describe, compare & S  \\ \bottomrule
 \end{tabularx}
 \captionsource(Models module inventory)
-    {A full breakdown of the model inventory and layout construction architecture of each model discussed. Selection denotes whether the layout generator of a model is fully differentiable (D) --- and thus trainable with back-propagation --- or not (ND) and instead requires an alternate learning strategy such as reinforcement learning. The Type specifies whether the modules listed are Specified (S) in that they have a fixed behaviour and only their weights and biases are learned, or whether they are Generic (G) and are able to learn and apply different behaviours without prior implementation or knowledge.\label{tab:models_module_inventory}}
+    {A full breakdown of the model inventory and layout construction architecture of each model discussed. Selection denotes whether the module selection of a model is a soft selection (ND) --- and thus trainable with back-propagation --- or fully discrete (D) and instead requires an alternate learning strategy such as reinforcement learning. The Type specifies whether the modules listed are Specified (S) in that they have a fixed behaviour and only their weights and biases are learned, or whether they are Generic (G) and are able to learn and apply different behaviours without prior implementation or knowledge.\label{tab:models_module_inventory}}
     {Adapted from \citeauthor{fishandi_neural_2023}\cite{fishandi_neural_2023} with additional model information from models covered in this literature review}
 \end{table}
 
-All the models explored use a module inventory to construct their networks.
+All the models explored use a layout constructor and module inventory to construct their networks.
 
 \todo[inline]{Discuss in further detail how these other models expand upon the \gls{nmn}, major/minor architecture differences, and the tasks or challenges they target.}
 \todo[inline]{Describe the concepts involved in the models (neural architecture search, visual grounding, visual coreference resolution, module inventory, etc. ) and explain how each model approaches them.}
-\todo[inline]{Tables showing the module inventory of each model, etc.}
