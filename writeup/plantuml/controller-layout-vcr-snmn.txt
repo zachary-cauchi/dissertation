@@ -1,0 +1,19 @@
+@startuml
+start
+repeat
+  :Get token embeddings;
+  :Encode using LSTM;
+  :Concatenate fw and bw outputs;
+  :Concatenate to final sequence;
+  :Create attention mask for sentence in sequence;
+  :Append to final attention mask;
+  : ;
+repeat while (for q, a, and [r])
+repeat
+  :Combine txt parameter and sentences embeddings;
+  :Predict soft module layouts using MLP;
+  :Predict txt parameters and attentions for modules;
+repeat while (time step t) is (0 ≤ t ≤ T - 1)
+->end;
+stop
+@enduml
