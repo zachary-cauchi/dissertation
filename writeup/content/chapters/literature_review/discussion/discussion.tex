@@ -60,17 +60,42 @@ They also concluded that further experiments and analysis on the pretraining of 
 \subsection{Modules of the NMN Models}
 \label{subsec:modules_of_the_nmn_models}
 
+Now that the vision/language tasks have been discussed, the approaches that each model takes to solving the tasks in a compositional manner will be explored.
+
+Marked as the first major step for solving a task, the model must first determine the layout of neural modules, parameters to be passed between these modules, and which module instances to activate.
+This challenge is known as \glsfirst{nas}, and is the task of model finding a suitable model architecture across a search space of possible architectures (as seen in Figure~\ref{fig:neural_architecture_search_overview})\cite{elsken_neural_2019}.
+The architecture chosen is the one most likely to provide the highest prediction/performance for the given model input when executed.
+This plays a core part in \gls{nmn} models and is explored in Table~\ref{tab:models_module_inventory} since having high-performant modules would not make for good predictions without the proper layout and input parameters.
+Based on the models reviewed, most appear to employ discrete (D) architecture selection either based on rule-based parsing \cite{andreas_neural_2016,chen_meta_2020} or with a \gls{s2s} \gls{rnn} to generate the layout \cite{hu_learning_2017,chen_teaching_2022,su_toward_2020,kottur_visual_2018,cho_visual_2021}.
+On the other end, some models employ a non-discrete (ND) soft layout selection, all of which use a \gls{bilstm} cell to generate module weights and text attention using the given input text embeddings \cite{hu_explainable_2019,hudson_compositional_2018,pahuja_learning_2019}.
+
+Following the layout selection are the actual modules.
+Each model has an inventory defined by several neural module types which are dedicated to specific tasks such as finding objects or comparing, etc.
+Most of the models discussed have specific, hand-designed module types (S) that are designed to learn best at specific tasks \cite{andreas_deep_2016,hu_learning_2017,hu_explainable_2019,chen_teaching_2022,su_toward_2020,kottur_visual_2018,cho_visual_2021}.
+Most models with specific types share a very similar inventory with modules such as finding objects, relocate attention, combine attentions, etc.
+Some models implement additional module types for even more specific use-cases such as arithmetic tasks \cite{chen_teaching_2022} or for performing visual coreference resolution \cite[text]{kottur_visual_2018,cho_visual_2021} (see chapters ~\ref{subsec:coreference_neural_module_network} and ~\ref{subsec:neural_module_network_for_visual_dialog}).
+There are some models however, which employ an inventory of generic module types (G) that the model must learn itself what models it should create and use for solving the tasks for which it's being trained \cite{hudson_compositional_2018,pahuja_learning_2019,chen_meta_2020}.
+While the implementations vary across models, they generally posess some form of memory, inputs for at least one attention or more, a general-purpose unit which combines its memory and attention inputs to produce an output, and (optionally) an answering unit for producing the final outputs that the model will convert to an answer prediction.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth,keepaspectratio]{content/chapters/literature_review/discussion/figures/neural_architecture_search_overview.png}
+    \captionsource(\acrshort{nas} overview){An abstract overview of the \acrshort{nas} task showing how a search strategy chooses the architecture for a search space and how to preemptively filter architectures that obviously wouldn't be suitable using \acrshort{pes}.\label{fig:neural_architecture_search_overview}}{\citeauthor{elsken_neural_2019}\cite{elsken_neural_2019}}
+\end{figure}
+
+\todo[inline]{Discuss in further detail how these other models expand upon the \gls{nmn}, major/minor architecture differences, and the tasks or challenges they target.}
+
 \begin{table}[]
 \begin{tabularx}{\linewidth}{cXcXc}
     \toprule
     \multicolumn{5}{c}{VQA/VD Models} \\ \midrule
-    Model & Layout construction & Sel. & Modules & Type  \\
+    Model & \gls{nas} approach & Modules & Type  \\
     NMN & Rule-based parsing (see Chapter ~\ref{subsec:neural_module_network}). & D & ﬁnd, transform, combine, describe, measure & S  \\
     N2NMN & Seq2Seq RNN (See Chapter ~\ref{subsec:n2nmn}). & D & ﬁnd, relocate, and, or, ﬁlter, count, exist, describe, less, more, equal, compare & S  \\
-    SNMN & Seq2Seq RNN (See Chapter ~\ref{subsec:stack_neural_module_network}). & ND & ﬁnd, transform, and, or, ﬁlter, scene, answer, compare, noOp & S  \\
-    NMNs & Similar to N2NMN with type-constrained grammar\cite{gupta_answering_2020}. & D & find, filter, relocate, find-num, find-date, count, compare-num-lt, time-diff, find-max-num, span, compare-date, add, sub & S  \\
+    SNMN & \gls{bilstm}-generated module weights with txt attention (See Chapter ~\ref{subsec:stack_neural_module_network}). & ND & ﬁnd, transform, and, or, ﬁlter, scene, answer, compare, noOp & S  \\
+    NMNs\pm & Similar to N2NMN with type-constrained grammar\cite{gupta_answering_2020}. & D & find, filter, relocate, find-num, find-date, count, compare-num-lt, time-diff, find-max-num, span, compare-date, add, sub & S  \\
     DPNMN & Similar to N2NMN with an RPN for spatial information. & D & find, relocate, and, or, describe, compare & S  \\
-    MAC & BiLSTM and fixed-length cell array where each cell can 'skip' itself and relay input to the next cell. & D & MAC cells & G  \\
+    MAC & \gls{bilstm} and fixed-length cell array where each cell can 'skip' itself and relay input to the next cell. & ND & MAC cells & G  \\
     LNMN & Similar to SNMN & ND & General modules (Expand further). & G  \\
     MMN & Rule-based parser feeding into a coarse-to-fine program generator. & D & Meta modules & G  \\
     CorefNMN & Similar to N2NMN but augmented with a memory network for attention-over-text. & D & find, relocate, and, or, filter, count, exist, describe, less, more, equal, compare, not, refer, exclude & S  \\
@@ -80,8 +105,3 @@ They also concluded that further experiments and analysis on the pretraining of 
     {A full breakdown of the model inventory and layout construction architecture of each model discussed. Selection denotes whether the module selection of a model is a soft selection (ND) --- and thus trainable with back-propagation --- or fully discrete (D) and instead requires an alternate learning strategy such as reinforcement learning. The Type specifies whether the modules listed are Specified (S) in that they have a fixed behaviour and only their weights and biases are learned, or whether they are Generic (G) and are able to learn and apply different behaviours without prior implementation or knowledge.\label{tab:models_module_inventory}}
     {Adapted from \citeauthor{fishandi_neural_2023}\cite{fishandi_neural_2023} with additional model information from models covered in this literature review}
 \end{table}
-
-All the models explored use a layout constructor and module inventory to construct their networks.
-
-\todo[inline]{Discuss in further detail how these other models expand upon the \gls{nmn}, major/minor architecture differences, and the tasks or challenges they target.}
-\todo[inline]{Describe the concepts involved in the models (neural architecture search, visual grounding, visual coreference resolution, module inventory, etc. ) and explain how each model approaches them.}

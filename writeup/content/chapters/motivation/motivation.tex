@@ -17,7 +17,7 @@ While any compositional model could have been chosen for this work, the below re
     \item The architecture of the model is such that each step it takes to solving a \gls{vqa} task is performed in a sequential manner which can be viewed at each individual step and should therefore be easier to interpret when compared to other non-compositional models.
           This same behaviour can also be ported to \gls{vcr} tasks which should allow for better exploration of model performance on the task.
     \item The modular nature of its architecture means future work can expand on its ability to solve \gls{vcr} tasks without necessitating a complete redesign to the model architecture.
-    \item The chosen model can be trained without reinforcement learning or supervision of any kind and produce comparable performance.
+    \item The chosen model is fully differentiable, meaning it can be trained without reinforcement learning or supervision of any kind (such as expert layouts) and produce comparable performance to models trained with layout supervision.
 \end{itemize}
 
 The chosen model will first be trained and then evaluated on its original intended datasets to reproduce the results reported in its publication.
