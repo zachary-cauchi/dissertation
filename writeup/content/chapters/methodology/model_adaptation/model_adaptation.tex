@@ -36,13 +36,17 @@ On top of this, the model had to be modified to understand the length of the ans
 Doing this prevented the model from assuming the answer to be always of fixed arbitrary length, which would make it assume the answer almost always ended with multiple 'null' tokens and thus deteriorate its performance.
 
 \begin{figure}[htbp]
-    \label{fig:lstm_implementation}
     \centering
-    \includegraphics[width=.55\textwidth,keepaspectratio]{content/chapters/methodology/model_adaptation/figures/concat lstms vs q and a lstms.jpg}
-    \captionsource(How Q and A are fed into the model){The difference in structure between the original (above) intended method --- where both question and answer are concatenated together --- and the final (below) method --- where the question and answer are passed into separate \glspl{lstm}.}{Original diagram prepared for this dissertation}
+    \includegraphics[width=.55\textwidth,keepaspectratio]{content/chapters/methodology/model_adaptation/figures/controller-layout-base-snmn.png}
+    \captionsource(Base \gls{snmn} \gls{nas} implementation){Flow diagram of how the \gls{snmn} converts the input question to a layout.\label{fig:base_snmn_input_unit}}{Original diagram prepared for this dissertation}
 \end{figure}
 
-%  Add a diagram explaining the changes made (such as a before and after).
-% It needs to clearly illustrate the difference in structure between the original and the new implementation.
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=.55\textwidth,keepaspectratio]{content/chapters/methodology/model_adaptation/figures/controller-layout-vcr-snmn.png}
+    \captionsource(Modified \gls{snmn} \gls{nas} implementation){Flow diagram of how the \gls{vcr}-adapted \gls{snmn} converts the input question, answer, and rationale to a layout. Note that the rationale is only used when answering \gls{vcr} questions in QAR mode.\label{fig:vcr_snmn_input_unit}}{Original diagram prepared for this dissertation}
+\end{figure}
+
+\todo[inline]{The adaptation is out-of-date, and needs to be updated accordingly to reflect the modifications made.}
 
 % Explain the training process (loading of data, initialisation of model, splitting of question and answer into pairs, setting of 0 or 1 if answer is correct, etc.)
