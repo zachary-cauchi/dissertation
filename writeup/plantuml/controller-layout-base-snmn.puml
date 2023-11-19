@@ -1,7 +1,7 @@
 @startuml
 start
 :Get token embeddings;
-:Encode using LSTM;
+:Encode using BiLSTM;
 :Concatenate fw and bw outputs;
 :Create attention mask for encoded input;
 repeat

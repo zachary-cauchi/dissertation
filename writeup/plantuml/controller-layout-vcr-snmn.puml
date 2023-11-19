@@ -2,7 +2,7 @@
 start
 repeat
   :Get token embeddings;
-  :Encode using LSTM;
+  :Encode using BiLSTM;
   :Concatenate fw and bw outputs;
   :Concatenate to final sequence;
   :Create attention mask for sentence in sequence;
