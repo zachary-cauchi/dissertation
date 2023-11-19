@@ -1,1 +1,1 @@
-java -jar plantuml-1.2023.12.jar -charset UTF-8 *.txt
+java -jar plantuml-1.2023.12.jar -charset UTF-8 *.puml
