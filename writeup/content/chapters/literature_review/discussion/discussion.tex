@@ -73,9 +73,18 @@ Following the layout selection are the actual modules.
 Each model has an inventory defined by several neural module types which are dedicated to specific tasks such as finding objects or comparing, etc.
 Most of the models discussed have specific, hand-designed module types (S) that are designed to learn best at specific tasks \cite{andreas_deep_2016,hu_learning_2017,hu_explainable_2019,chen_teaching_2022,su_toward_2020,kottur_visual_2018,cho_visual_2021}.
 Most models with specific types share a very similar inventory with modules such as finding objects, relocate attention, combine attentions, etc.
-Some models implement additional module types for even more specific use-cases such as arithmetic tasks \cite{chen_teaching_2022} or for performing visual coreference resolution \cite[text]{kottur_visual_2018,cho_visual_2021} (see chapters ~\ref{subsec:coreference_neural_module_network} and ~\ref{subsec:neural_module_network_for_visual_dialog}).
-There are some models however, which employ an inventory of generic module types (G) that the model must learn itself what models it should create and use for solving the tasks for which it's being trained \cite{hudson_compositional_2018,pahuja_learning_2019,chen_meta_2020}.
-While the implementations vary across models, they generally posess some form of memory, inputs for at least one attention or more, a general-purpose unit which combines its memory and attention inputs to produce an output, and (optionally) an answering unit for producing the final outputs that the model will convert to an answer prediction.
+Some models implement additional module types for even more specific use-cases such as arithmetic tasks \cite{chen_teaching_2022} or for performing visual coreference resolution \cite{kottur_visual_2018,cho_visual_2021} (see chapters ~\ref{subsec:coreference_neural_module_network} and ~\ref{subsec:neural_module_network_for_visual_dialog}).
+There are some models however, which employ an inventory of generic module types referred to as cells (G) that the model must learn itself what modules it should instance and use for solving the tasks for which it's being trained \cite{hudson_compositional_2018,pahuja_learning_2019,chen_meta_2020}.
+While the implementations vary across models, they generally posess inputs for at least one or more visual/textual attentions, a general-purpose unit which applies some function/s on the inputs to produce an output, and (optionally) an answering unit for producing the final output that the model will convert to an answer prediction.
+
+Aside from the modules, some models also support a memory structure for storing intermediate mdoule outputs.
+In the case of both the \gls{snmn} and \gls{lnmn}, these are in the form of a shared differentiable memory stack.
+In both models, the modules/cells are both able to push/pull attention maps to the stack using a soft-selected stack pointer based on the module/cell weights.
+The \gls{mac} model also implements memory, but in a different implementation and for a different purpose.
+The model is trained with a fixed-length sequence of \gls{mac} cells.
+However, each cell has a second output --- besides the attention outputs --- which contains a hidden state created by the previous cell.
+The cell can compute a new hidden state for sharing with the next cell but it can also interpolate between this new state and the previous state, effectively deciding whether or not to skip its own reasoning step.
+This enables the model to soft-reduce the number of reasoning steps it can use in a differentiable manner.
 
 \begin{figure}[htbp]
     \centering
@@ -83,23 +92,40 @@ While the implementations vary across models, they generally posess some form of
     \captionsource(\acrshort{nas} overview){An abstract overview of the \acrshort{nas} task showing how a search strategy chooses the architecture for a search space and how to preemptively filter architectures that obviously wouldn't be suitable using \acrshort{pes}.\label{fig:neural_architecture_search_overview}}{\citeauthor{elsken_neural_2019}\cite{elsken_neural_2019}}
 \end{figure}
 
-\todo[inline]{Discuss in further detail how these other models expand upon the \gls{nmn}, major/minor architecture differences, and the tasks or challenges they target.}
+\subsection{Learning strategies}
+\label{subsec:learning_strategies}
+
+Creating a layout and module arrangement is half the problem, the other half is training the model to recognise what works best.
+To train the modules and layout generator of a module, a training strategy would need to be employed, either as a single strategy training the model in an end-to-end manner, or multiple strategies working in tandem but training the layout generator and modules separately.
+
+One major factor deciding how the discussed models are trained is their layout differentiability.
+If a model constructs its layout using a non-discrete or soft selection (such as the \gls{snmn} model using module weights and text attention), it is considered fully differentiable since the layout selection generated will be unique to to the given input and no other input/s.
+If the model uses a discrete selection (such as the \gls{n2nmn} model which produces discrete layouts), it is not fully differentiable since different inputs can produce the same non-unique layouts.
+
+As seen in table~\ref{tab:models_module_inventory}, most models are in fact not fully differentiable, using either rule-based parsers\cite{andreas_neural_2016,chen_meta_2020} or \gls{s2s} \gls{rnn}-based layout generators\cite{hu_learning_2017,chen_teaching_2022,su_toward_2020,kottur_visual_2018,cho_visual_2021}.
+These models largely use reinforcement learning --- with a layout policy being used to optimise the layout generator --- and using backpropagation on those areas of the model (such as the neural modules) that are differentiable.
+On the other hand, the fully-differentiable models all feature a \gls{bilstm} for layout generation and produce variable-length layouts\cite{hudson_compositional_2018}.
+These use backpropagation across both the neural modules and layout generator.
+
+Additionally, some models explore different learning beyond just reinforcement or backpropagation.
+For instance, \gls{lnmn} uses \gls{darts}\cite{liu_darts_2019} which is a differentiable learning strategy based on backpropagation.
+\gls{mmn} --- in contrast to \gls{darts} --- proposed a learning strategy based on the Teacher-Student framework\cite{zimmer_teacher_2014} where a reward/guideline metric is generated by a 'Symbolic Teacher' that the meta modules learn to imitate as 'Students'\cite{chen_meta_2020}.
 
 \begin{table}[]
 \begin{tabularx}{\linewidth}{cXcXc}
     \toprule
     \multicolumn{5}{c}{VQA/VD Models} \\ \midrule
-    Model & \gls{nas} approach & Modules & Type  \\
+    Model & \gls{nas} approach & Sel. & Modules & Type  \\
     NMN & Rule-based parsing (see Chapter ~\ref{subsec:neural_module_network}). & D & ﬁnd, transform, combine, describe, measure & S  \\
-    N2NMN & Seq2Seq RNN (See Chapter ~\ref{subsec:n2nmn}). & D & ﬁnd, relocate, and, or, ﬁlter, count, exist, describe, less, more, equal, compare & S  \\
+    N2NMN & \gls{s2s} \gls{rnn} (See Chapter ~\ref{subsec:n2nmn}). & D & ﬁnd, relocate, and, or, ﬁlter, count, exist, describe, less, more, equal, compare & S  \\
     SNMN & \gls{bilstm}-generated module weights with txt attention (See Chapter ~\ref{subsec:stack_neural_module_network}). & ND & ﬁnd, transform, and, or, ﬁlter, scene, answer, compare, noOp & S  \\
-    NMNs\pm & Similar to N2NMN with type-constrained grammar\cite{gupta_answering_2020}. & D & find, filter, relocate, find-num, find-date, count, compare-num-lt, time-diff, find-max-num, span, compare-date, add, sub & S  \\
-    DPNMN & Similar to N2NMN with an RPN for spatial information. & D & find, relocate, and, or, describe, compare & S  \\
-    MAC & \gls{bilstm} and fixed-length cell array where each cell can 'skip' itself and relay input to the next cell. & ND & MAC cells & G  \\
-    LNMN & Similar to SNMN & ND & General modules (Expand further). & G  \\
+    NMNs\pm & Similar to \gls{n2nmn} with type-constrained grammar\cite{gupta_answering_2020}. & D & find, filter, relocate, find-num, find-date, count, compare-num-lt, time-diff, find-max-num, span, compare-date, add, sub & S  \\
+    DPNMN & Similar to \gls{n2nmn} with an \gls{rpn} for spatial information. & D & find, relocate, and, or, describe, compare & S  \\
+    MAC & \gls{bilstm} and fixed-length cell array where each cell can 'skip' itself and relay input to the next cell. & ND & \gls{mac} cells & G  \\
+    LNMN & Similar to \gls{snmn} & ND & General modules (Expand further). & G  \\
     MMN & Rule-based parser feeding into a coarse-to-fine program generator. & D & Meta modules & G  \\
-    CorefNMN & Similar to N2NMN but augmented with a memory network for attention-over-text. & D & find, relocate, and, or, filter, count, exist, describe, less, more, equal, compare, not, refer, exclude & S  \\
-    NMNVD & Similar to CorefNMN. & D & find, relocate, and, refer, describe, compare & S  \\ \bottomrule
+    CorefNMN & Similar to \gls{n2nmn} but augmented with a memory network for attention-over-text. & D & find, relocate, and, or, filter, count, exist, describe, less, more, equal, compare, not, refer, exclude & S  \\
+    NMNVD & Similar to \gls{corefnmn}. & D & find, relocate, and, refer, describe, compare & S  \\ \bottomrule
 \end{tabularx}
 \captionsource(Models module inventory)
     {A full breakdown of the model inventory and layout construction architecture of each model discussed. Selection denotes whether the module selection of a model is a soft selection (ND) --- and thus trainable with back-propagation --- or fully discrete (D) and instead requires an alternate learning strategy such as reinforcement learning. The Type specifies whether the modules listed are Specified (S) in that they have a fixed behaviour and only their weights and biases are learned, or whether they are Generic (G) and are able to learn and apply different behaviours without prior implementation or knowledge.\label{tab:models_module_inventory}}
