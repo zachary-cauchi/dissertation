@@ -18,13 +18,20 @@ To keep track of the model training history, model checkpoints were taken during
 Training was performed up to the specified step count, after which the model was evaluated using each of the recorded checkpoints.
 To avoid recording the performance of an overfit model, the model performance chosen was taken from the step with the highest accuracy and not the most recent step.
 
-\subsection{Challenges}
-\label{subsec:experiment-challenges}
+\subsection{Ablations}
+\label{subsec:experiment-ablations}
 
-Several errors were encountered during training.
-The most common error encountered was unstable learning which resulted in NaN loss errors or slow learning.
-NaN losses were frequent when training the model using word2vec embeddings and didn't occur at all when using glove or bert.
-Slow learning rates were observed during glove and word2vec training, especially with Q\rightarrow{}AR training.
-Another factor in getting good predictions was batch size, which was strained by the task size and amount of data involved.
-To work around the limited batch size available, training on QA\rightarrow{}R and Q\rightarrow{}AR modes was performed on a multi-gpu setup to allow for increased batch size.
-This setup produced better learning rates and prediction performance compared to single-gpu training, at the cost of increased runtime due to the synchronisation overhead of keeping the two gpu models in mirrored.
+A set of ablation experiments were developed as part of the main experiments to determine the accuracy contribution of various components of the model.
+Namely, those experiments deciding embedding types and \gls{bilstm} configuration.
+
+The ablation tested is the use of context-aware token embeddings over context-free token embeddings, and whether a higher embedding dimensionality contributes to improved performance or not.
+For this, BERT was chosen as the sentence-level context-aware embedding, retaining the same embeddings published by \citeauthor{zellers_recognition_2019} alongside the \gls{vcr} dataset and their \gls{r2c} model\cite{zellers_recognition_2019}.
+To test context-free embeddings, GLOVE is used since it is the same embedding scheme used by \gls{snmn} and \gls{n2nmn} in their training and evaluation.
+As an additional measure in testing context-free embeddings, Word2Vec embeddings are used which are generated using a Continuous Bag-Of-Words model\cite{mikolov_we_2013}.
+Two sets of Word2Vec embeddings are generated, one with 300-dimensional vectors to match the GLOVE dimensionality and one with 768-dimensional vectors to match the BERT vectors.
+This will both determine how big an effect both vector dimensionality and sentence-level context have on accuracy.
+
+Another ablation is the testing of how the model input unit encodes the input sentences.
+Seeing as the original model was designed with only a single token sequence in mind, one \gls{bilstm} encodes the sequence, but since we have more than one sequence as input, multiple \glspl{bilstm} are needed to encode each sequence.
+As an ablation, another experiment is conducted where the model uses a single \gls{bilstm} to encode all three sequences.
+This evaluates whether a single \gls{bilstm} would bottleneck the layout generation or improve it.
