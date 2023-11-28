@@ -1,33 +1,5 @@
-\chapter{Experiments}
-\label{chp:experiments}
-
-Several experiments were conducted on the model to evaluate its performance on \gls{vcr}.
-The experiments were designed to test the models accuracy across the 3 main task types discussed in \ref{subsec:vcr_dataset} using different word embedding approaches and input encoder configurations.
-Combinations of task type, \gls{lstm} configuration in the model input unit and input token embedding types (contextual and noncontextual) were chosen as experiments to target what factors improve performance and what task types see the most improvement.
-
-An additional experiment was also conducted on QA\rightarrow{}R to determine how big an influence answers had on the predicted rationale.
-The model was first trained to predict the correct answers in Q\rightarrow{}A mode, exporting the predicted answers to a prediction file.
-Then a new model was trained in QA\rightarrow{}R mode, using the predicted correct answers instead of the true correct answers.
-
-\section{Setup}
-\label{sec:experiment-setup}
-
-The model was trained on a single machine node with up to two \acrshort{gpu} nodes to use, depending on the configuration used for each experiment.
-Each model was trained using a configuration file that selected the hyper-parameters used and task type to be tested.
-To keep track of the model training history, model checkpoints were taken during training after every predefined number of steps.
-Training was performed up to the specified step count, after which the model was evaluated using the recorded checkpoints.
-To avoid recording the performance of an overfit model, the model performance chosen was taken from the step with the highest accuracy and not the most recent step.
-
-\section{Challenges}
-\label{sec:experiment-challenges}
-
-Several errors were encountered during training.
-The most common error encountered was unstable learning which resulted in NaN loss errors or slow learning.
-NaN losses were frequent when training the model using word2vec embeddings and didn't occur at all when using glove or bert.
-Slow learning rates were observed during glove and word2vec training, especially with Q\rightarrow{}AR training.
-Another factor in getting good predictions was batch size, which was strained by the task size and amount of data involved.
-To work around the limited batch size available, training on QA\rightarrow{}R and Q\rightarrow{}AR modes was performed on a multi-gpu setup to allow for increased batch size.
-This setup produced better learning rates and prediction performance compared to single-gpu training.
+\chapter{Results}
+\label{chp:results}
 
 \section{Evaluation results}
 \label{sec:evaluation-results}
