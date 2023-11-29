@@ -1,28 +1,40 @@
 \chapter{Results}
 \label{chp:results}
 
-In this chapter, the results of the experiments described in Section~\ref{sec:experiments} will be presented.
-A discussion of the results and the challenges encountered will also be presented.
+Now that the methodology has been covered, the results of the experiments described in Section~\ref{sec:experiments} will be presented.
+A discussion of the results and the challenges encountered will also be given.
 
 \section{Evaluation results}
 \label{sec:evaluation-results}
 
+The accuracy results for the experiments can be found in Table~\ref{tab:experiment-results}.
+
 \begin{table}[]
-\begin{tabularx}{\linewidth}{rccccccc}
-    \toprule
-    \multicolumn{8}{c}{Experiment results} \\ \midrule
-     & Q\rightarrow{}A & Q\rightarrow{}A & QA\rightarrow{}R & QA\rightarrow{}R & QAp\rightarrow{}R & Q\rightarrow{}AR & Q\rightarrow{}AR \\
-    Wrd Embed. & Shr. & Sep. & Shr. & Sep. & Shr. & Shr & Sep. \\
-    Rand Guess & 25\% & 25\% & 25\% & 25\% & 25\% & 6.25\% & 6.25\% \\
-    Glove-300 & 52\% & 51\% & 25\% & 47\% & 26\% & 6.4\% & 6.4\% \\
-    BERT-768 & 63\% & 63\% & 60\% & 60\% & 60\% & 24.7\% & 24\% \\
-    w2v-300 & 33\% & 34\% & 25\% & 32\% & - & - & - \\
-    w2v-768 & 32\% & 34\% & 25\% & 32\% & - & - & - \\
-\end{tabularx}
-\captionsource(Evaluation results)
-    {Evaluation results from running the model across combinations of different token embeddings, VCR task types, and layout generator configurations. \textit{Shr.} refers to models with a shared \gls{bilstm} while \textit{Sep.} refers to one \gls{bilstm} per input sentence. \label{tab:my-table}}
-    {Original performance results obtained for this dissertation.}
+    \begin{threeparttable}
+        \begin{tabularx}{\linewidth}{rccccccc}
+            \toprule
+            \multicolumn{8}{c}{Experiment results (vcr-eval)} \\ \midrule
+             & Q\rightarrow{}A & Q\rightarrow{}A & QA\rightarrow{}R & QA\rightarrow{}R & QAp\rightarrow{}R & Q\rightarrow{}AR & Q\rightarrow{}AR \\
+            Wrd Embed. & Shr. & Sep. & Shr. & Sep. & Shr. & Shr & Sep. \\
+            Rand Guess & 25\% & 25\% & 25\% & 25\% & 25\% & 6.25\% & 6.25\% \\
+            Glove-300 & 52\% & 51\% & 25\% & 47\% & 26\% & 6.4\%\tnote{3} & 6.4\%\tnote{3} \\
+            BERT-768 & 63\% & 63\% & 60\%\tnote{3} & 60\%\tnote{3} & 60\%\tnote{3} & 24.7\%\tnote{3} & 24\%\tnote{3} \\
+            w2v-300 & 33\%\tnote{1} & 34\% & 25\% & 32\%\tnote{2}\tnote{3} & -\tnote{1}\tnote{3} & -\tnote{1}\tnote{3} & -\tnote{1}\tnote{3} \\
+            w2v-768 & 32\%\tnote{1} & 34\% & 25\% & 32\% & -\tnote{1}\tnote{3} & -\tnote{1}\tnote{3} & -\tnote{1}\tnote{3} \\
+            \bottomrule
+        \end{tabularx}
+
+        \begin{tablenotes}
+            \item[1] Problems with loss function resulting in partial training or lack of training.
+            \item[2] Training program crashed at least once and had to be resumed from prior checkpoints.
+            \item[3] Trained on multi-\gls{gpu} configuration.
+        \end{tablenotes}
+    \end{threeparttable}
+    \captionsource(Evaluation results)
+        {Evaluation results from running the model across combinations of different token embeddings, VCR task types, and layout generator configurations. \textit{Shr.} refers to models with a shared \gls{bilstm} while \textit{Sep.} refers to one \gls{bilstm} per input sentence. \label{tab:experiment-results}}
+        {Original performance results obtained for this dissertation.}
 \end{table}
+
 \todo[inline]{Include table notes from logbook in discussion.}
 
 \todo[inline]{Include ablations section, discussing the ablations made in more detail (testing non-contextual embeddings such as GLOVE, smaller batches from own limitations, using a single LSTM versus multiple LSTMs, etc.)}
