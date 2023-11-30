@@ -140,7 +140,7 @@ class DataReader:
         # load one feature map to peek its size
         sample_feature_path = sample_record['feature_path'].decode('utf-8')
         self.feature_parent_dir = os.path.dirname(os.path.dirname(sample_feature_path))
-        
+
         self.print_fn('Loading sample image features to peek size.')
         self.feature_file_type = sample_feature_path.split('.')[-1]
         if self.feature_file_type == 'npy':
@@ -214,7 +214,7 @@ class DataReader:
         if self.load_correct_answer:
             final_dataset = final_dataset.map(lambda x: (x, x[self.correct_label_batch_name]), num_parallel_calls=tf.data.experimental.AUTOTUNE)
         final_dataset = final_dataset.prefetch(tf.data.experimental.AUTOTUNE)
-        
+
         return final_dataset
 
     def load_bert_embeddings(self, imdb):
@@ -255,7 +255,7 @@ class DataReader:
                 return_data['bert_rationale_embedding'] = self.pad_or_trim_2d_list(bert_rationale_embedding, max_length=self.T_r_encoder, padding=0.)
 
             return return_data
-        
+
         return bert_dataset.map(add_bert_to_imdb)
 
     def load_image_features(self, imdb):
@@ -396,7 +396,7 @@ class DataReader:
 
     def pad_or_trim_1d_list(self, tensor_list, max_length, padding=''):
         return [ self.pad_or_trim(tensor, max_length, padding=padding) for tensor in tensor_list ]
-    
+
     def pad_or_trim_2d(self, tensor, max_length, padding=''):
         current_length = tf.shape(tensor)[0]
 
@@ -428,266 +428,6 @@ class DataReader:
             if self.load_rationale:
                 element['bert_rationale_embedding'] = tf.ensure_shape(tf.transpose(element['bert_rationale_embedding'], [1, 0, 2]), (self.T_r_encoder, element['bert_rationale_embedding'].shape[0], self.bert_dim))
         return element
-
-    # def batches(self):
-    #     num_samples = len(self.imdb)
-    #     for sample_id in np.random.permutation(num_samples):
-    #         collection = self.load_one(sample_id)
-
-    #         for i in range(self.num_combinations):
-    #             record = {}
-    #             record['image_feat_batch'] = collection['image_feat_batch'][i]
-    #             record['question_seq_batch'] = collection['question_seq_batch'][:, i]
-    #             record['question_length_batch'] = collection['question_length_batch'][i]
-    #             record['answer_index'] = collection['answer_index'][i]
-    #             record['all_answers_seq_batch'] = collection['all_answers_seq_batch'][:, i]
-    #             record['all_answers_length_batch'] = collection['all_answers_length_batch'][i]
-    #             record['image_path_list'] = collection['image_path_list'][i]
-    #             record['qid_list'] = collection['qid_list'][i]
-    #             if self.load_correct_answer:
-    #                 record['answer_label_batch'] = collection['answer_label_batch'][i]
-    #             if self.load_rationale:
-    #                 record['all_rationales_seq_batch'] = collection['all_rationales_seq_batch'][:, i]
-    #                 record['all_rationales_length_batch'] = collection['all_rationales_length_batch'][i]
-    #                 if self.load_correct_answer:
-    #                     record['rationale_label_batch'] = collection['rationale_label_batch'][i]
-    #             if self.load_bert:
-    #                 record['bert_question_embeddings_batch'] = collection['bert_question_embeddings_batch'][:, i]
-    #                 record['bert_answer_embeddings_batch'] = collection['bert_answer_embeddings_batch'][:, i]
-    #                 if self.load_rationale:
-    #                     record['bert_rationale_embeddings_batch'] = collection['bert_rationale_embeddings_batch'][:, i]
-    #             yield record
-
-    # def load_one(self, sample_id):
-
-    #     # Allocate the arrays and collections.
-
-    #     question_seq_batch = np.zeros(
-    #         (self.T_q_encoder, self.num_combinations), np.int32)
-    #     all_answers_seq_batch = np.zeros((self.T_a_encoder, self.num_combinations), np.int32)
-    #     all_answers_length_batch = np.zeros((self.num_combinations), np.int32)
-    #     if self.load_rationale:
-    #         all_rationales_seq_batch = np.zeros((self.T_r_encoder, self.num_combinations), np.int32)
-    #         all_rationales_length_batch = np.zeros((self.num_combinations), np.int32)
-    #     if self.load_bert:
-    #         bert_question_embeddings_batch = np.zeros((self.T_q_encoder, self.num_combinations, self.bert_dim), np.float16)
-    #         bert_answer_embeddings_batch = np.zeros((self.T_a_encoder, self.num_combinations, self.bert_dim), np.float16)
-    #         if self.load_rationale:
-    #             bert_rationale_embeddings_batch = np.zeros((self.T_r_encoder, self.num_combinations, self.bert_dim), np.float16)
-
-    #     question_length_batch = np.zeros(self.num_combinations, np.int32)
-    #     image_feat_batch = np.zeros(
-    #         (self.num_combinations, self.feat_H, self.feat_W, self.feat_D),
-    #         np.float32)
-
-    #     image_path_list = [None]*self.num_combinations
-    #     qid_list = [None]*self.num_combinations
-    #     qstr_list = [None]*self.num_combinations
-    #     sample_index = [None]*self.num_combinations
-    #     answer_index = [None]*self.num_combinations
-    #     all_answers_list = [None]*self.num_combinations
-    #     all_answers_token_list = [None] * self.num_combinations
-    #     if self.load_rationale:
-    #         all_rationales_list = [None] * self.num_combinations
-    #         all_rationales_token_list = [None] * self.num_combinations
-
-    #     if self.load_correct_answer:
-    #         answer_label_batch = np.zeros([self.num_combinations], np.float32)
-    #         answer_onehot_batch = np.zeros([self.num_combinations], np.int32)
-    #         if self.load_soft_score:
-    #             num_choices = len(self.answer_dict.word_list)
-    #             soft_score_batch = np.zeros(
-    #                 (self.num_combinations, num_choices), np.float32)
-        
-    #     if self.load_correct_rationale:
-    #         rationale_label_batch = np.zeros([self.num_combinations], np.float32)
-    #         rationale_onehot_batch = np.zeros([self.num_combinations], np.int32)
-    #         if self.load_soft_score:
-    #             num_choices = len(self.answer_dict.word_list)
-    #             soft_score_batch = np.zeros(
-    #                 (self.num_combinations, num_choices), np.float32)
-        
-    #     if self.load_correct_answer and self.load_correct_rationale:
-    #         answer_and_rationale_label_batch = np.zeros([self.num_combinations], np.float32)
-
-    #     if self.load_gt_layout:
-    #         gt_layout_question_batch = self.layout_dict.word2idx('_NoOp') * np.ones(
-    #             (self.T_decoder, self.num_combinations), np.int32)
-
-    #     # Precalculate the divisor and mod for later use. Sorry for the code mess.
-    #     i_ans_divisor = self.num_combinations // self.num_answers
-    #     i_rat_mod = self.num_combinations // self.num_rationales
-        
-    #     # Populate the arrays with each possible q-a pair.
-    #     # Iterate over each sample,
-    #     iminfo = self.imdb[sample_id]
-    #     question_inds = [
-    #         self.vocab_dict.word2idx(w) for w in iminfo['question_tokens']]
-
-    #     all_answers = iminfo['all_answers']
-    #     all_answers_tokens = [[self.vocab_dict.word2idx(w) for w in answer] for answer in all_answers]
-    #     if self.load_rationale:
-    #         all_rationales = iminfo['all_rationales']
-    #         all_rationales_tokens = [[self.vocab_dict.word2idx(w) for w in rationale] for rationale in all_rationales]
-    #     image_feat = np.load(iminfo['feature_path'])
-    #     seq_length = min(len(question_inds), self.T_q_encoder)
-        
-    #     sample_range_in_batch = range(self.num_combinations)
-    #     # Assign the question sequence to each column for each combination.
-    #     question_seq_batch.T[sample_range_in_batch, :seq_length] = question_inds[:seq_length]
-    #     question_length_batch[sample_range_in_batch] = seq_length
-
-    #     if self.load_correct_answer:
-    #         # Get the index of the correct answer choice.
-    #         answer = iminfo['valid_answers'].index(0)
-    #     if self.load_correct_rationale and self.load_rationale:
-    #         # Get the index of the correct rationale choice.
-    #         rationale = iminfo['valid_rationales'].index(0)
-
-    #     if self.load_bert:
-    #         # Look up the corresponding embeddings from the dataset.
-    #         ans_embeddings = self.ans_hf[str(sample_id)]
-    #         rat_embeddings = self.rat_hf[str(sample_id)]
-
-    #         # Extract the context and answer/rationale embeddings.
-    #         bert_ctx_answers, bert_answers = self.bert_handler.get_embeddings_from_group(ans_embeddings)
-    #         bert_ctx_rationales, bert_rationales = self.bert_handler.get_embeddings_from_group(rat_embeddings)
-
-    #         self.bert_handler.validate_embeddings(bert_ctx_answers, bert_ctx_rationales, bert_answers, bert_rationales, iminfo)
-
-    #     for n, i in enumerate(sample_range_in_batch):
-    #         i_ans = n // i_ans_divisor
-    #         i_rat = n % i_rat_mod
-    #         # The i:i+1 slice is necessary to unwrap the enclosing array of the image features.
-    #         image_feat_batch[i:i+1] = image_feat
-    #         image_path_list[i] = iminfo['image_path']
-    #         qid_list[i] = iminfo['question_id']
-    #         qstr_list[i] = iminfo['question_str']
-    #         sample_index[i] = sample_id
-    #         answer_index[i] = i_ans
-    #         all_answers_list[i] = np.array(all_answers[i_ans])
-    #         all_answers_token_list[i] = [all_answers_tokens[i_ans]]
-    #         if self.load_rationale:
-    #             all_rationales_list[i] = all_rationales[i_rat]
-    #             all_rationales_token_list[i] = [all_rationales_tokens[i_rat]]
-
-    #         if self.load_correct_answer:
-    #             answer_label_batch[i] = 1. if answer == i_ans else 0.
-    #             answer_onehot_batch[i] = answer_label_batch[i]
-
-    #             # if self.load_soft_score:
-    #             #     soft_score_inds = iminfo['soft_score_inds']
-    #             #     soft_score_target = iminfo['soft_score_target']
-    #             #     soft_score_batch[i_per_sample, soft_score_inds] = soft_score_target
-            
-    #         if self.load_correct_rationale and self.load_rationale:
-    #             rationale_label_batch[i] = 1. if rationale == i_rat else 0.
-    #             rationale_onehot_batch[i] = rationale_label_batch[i]
-
-    #         if self.load_correct_answer and self.load_correct_rationale and self.load_rationale:
-    #             answer_and_rationale_label_batch[i] = 1. if rationale == i_rat and answer == i_ans else 0.
-
-    #             # if self.load_soft_score:
-    #             #     soft_score_inds = iminfo['soft_score_inds']
-    #             #     soft_score_target = iminfo['soft_score_target']
-    #             #     soft_score_batch[i_per_sample, soft_score_inds] = soft_score_target
-
-    #         # For each set of answers per-question, populate the list of supported answers in a sequence for embedding_lookup.
-    #         for token_list in all_answers_token_list[i]:
-    #             seq_length = min(len(token_list), self.T_a_encoder)
-    #             all_answers_seq_batch[:seq_length, i] = token_list[:seq_length]
-    #             all_answers_length_batch[i] = seq_length
-
-    #         if self.load_rationale:
-    #             # For each set of rationales per-question, populate the list of supported rationales in a sequence for embedding_lookup.
-    #             for token_list in all_rationales_token_list[i]:
-    #                 seq_length = min(len(token_list), self.T_r_encoder)
-    #                 all_rationales_seq_batch[:seq_length, i] = token_list[:seq_length]
-    #                 all_rationales_length_batch[i] = seq_length
-
-    #         if self.load_bert:
-    #             q_len = question_length_batch[i]
-    #             a_len = all_answers_length_batch[i]
-    #             if self.vcr_task_type == 'Q_2_A':
-    #                 bert_question_embeddings_batch[:q_len, i] = bert_ctx_answers[i_ans][:q_len]
-    #                 bert_answer_embeddings_batch[:a_len, i] = bert_answers[i_ans][:a_len]
-    #             else:
-    #                 r_len = all_rationales_length_batch[i]
-    #                 assert True == False, 'Still have to finish this bit: Load all answer embeddings combos.'
-    #                 if self.load_correct_answer:
-    #                     # How to handle this part still confuses me cos of how we train rationales (all answer combinations).
-    #                     bert_question_embeddings_batch[:q_len, i] = bert_ctx_rationales[n][:q_len]
-    #                     bert_answer_embeddings_batch[:a_len, i] = bert_ctx_rationales[n][q_len:]
-    #                     bert_rationale_embeddings_batch[:r_len, i] = bert_rationales[n]
-    #                 else:
-    #                     bert_question_embeddings_batch[:q_len, i] = bert_ctx_rationales[n][:q_len]
-    #                     bert_answer_embeddings_batch[:a_len, i] = bert_ctx_rationales[n][q_len:a_len]
-    #                     bert_rationale_embeddings_batch[:r_len, i] = bert_rationales[n]
-
-    #     if self.load_gt_layout:
-    #         # Get and load the gt layout for each question-answer available.
-    #         gt_layout_qa_tokens_list = iminfo['gt_layout_qa_tokens']
-    #         for n, i in enumerate(sample_range_in_batch):
-
-    #             gt_layout_qa_tokens = gt_layout_qa_tokens_list[n]
-
-    #             if self.prune_filter_module:
-    #                 # remove duplicated consequtive modules
-    #                 # (only keeping one _Filter)
-    #                 for n_t in range(len(gt_layout_qa_tokens)-1, 0, -1):
-    #                     if (gt_layout_qa_tokens[n_t-1] in {'_Filter', '_Find'}
-    #                             and gt_layout_qa_tokens[n_t] == '_Filter'):
-    #                         gt_layout_qa_tokens[n_t] = None
-    #                 gt_layout_qa_tokens = [t for t in gt_layout_qa_tokens if t]
-
-    #             question_layout_inds = [
-    #                 self.layout_dict.word2idx(w) for w in gt_layout_qa_tokens]
-    #             gt_layout_question_batch[:len(question_layout_inds), i] = question_layout_inds
-
-    #     batch = dict(question_seq_batch=question_seq_batch,
-    #                  question_length_batch=question_length_batch,
-    #                  image_feat_batch=image_feat_batch,
-    #                  answer_index=answer_index,
-    #                  all_answers_list=all_answers_list,
-    #                  all_answers_seq_batch=all_answers_seq_batch,
-    #                  all_answers_length_batch=all_answers_length_batch,
-    #                  qid_list=qid_list,
-    #                  image_path_list=image_path_list
-    #             )
-
-    #     if self.load_rationale:
-    #         batch.update(
-    #             all_rationales_seq_batch=all_rationales_seq_batch,
-    #             all_rationales_length_batch=all_rationales_length_batch,
-    #         )
-
-    #     if self.load_correct_answer:
-    #         if self.data_params['use_sparse_softmax_labels'] == True:
-    #             batch['answer_label_batch'] = np.where(np.reshape(answer_label_batch, (len(answer_label_batch) // self.num_combinations, self.num_combinations)) == 1.)[1]
-    #         else:
-    #             batch['answer_label_batch'] = answer_label_batch
-    #         if self.load_soft_score:
-    #             batch['soft_score_batch'] = soft_score_batch
-    #     if self.load_correct_rationale and self.load_rationale:
-    #         if self.data_params['use_sparse_softmax_labels'] == True:
-    #             batch['rationale_label_batch'] = np.where(np.reshape(rationale_label_batch, (len(rationale_label_batch) // self.num_combinations, self.num_combinations)) == 1.)[1]
-    #         else:
-    #             batch['rationale_label_batch'] = rationale_label_batch
-    #     if self.load_correct_answer and self.load_correct_rationale and self.load_rationale:
-    #         if self.data_params['use_sparse_softmax_labels'] == True:
-    #             batch['answer_and_rationale_label_batch'] = np.where(np.reshape(answer_and_rationale_label_batch, (len(answer_and_rationale_label_batch) // self.num_combinations, self.num_combinations)) == 1.)[1]
-    #         else:
-    #             batch['answer_and_rationale_label_batch'] = answer_and_rationale_label_batch
-    #     if self.load_gt_layout:
-    #         batch['gt_layout_question_batch'] = gt_layout_question_batch
-
-    #     if self.load_bert:
-    #         batch['bert_question_embeddings_batch'] = bert_question_embeddings_batch
-    #         batch['bert_answer_embeddings_batch'] = bert_answer_embeddings_batch
-    #         if self.load_rationale:
-    #             batch['bert_rationale_embeddings_batch'] = bert_rationale_embeddings_batch
-
-    #     return batch
 
     def __del__(self):
         if hasattr(self, 'bert_handler'):
