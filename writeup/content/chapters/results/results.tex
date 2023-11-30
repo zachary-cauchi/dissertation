@@ -12,6 +12,8 @@ All experiments were carried out by training on the vcr-train set first, then te
 Each experiment model is trained for up to 75k steps with checkpoints taken at 5k step intervals.
 The batch size used is 64 for Q\rightarrow{}A tasks, 16 for QA\rightarrow{}R and Q\rightarrow{}AR using BERT, and 24/32 for QA\rightarrow{}R and Q\rightarrow{}AR using Word2Vec-768 and Word2Vec-300 respectively.
 
+\todo[inline]{Explain why different batch sizes were used (limitations of runtime).}
+
 In every task type, the BERT embeddings model outperformed the other models with GLOVE or Word2Vec embeddings and eaching as high as 63\% in Q\rightarrow{}A tasks.
 GLOVE achieved the second-best performance overall with up to 52\% Q\rightarrow{}A, but showing no learning signs in Q\rightarrow{}AR tasks with an avg. accuracy only 0.15\% higher than random guessing.
 Word2Vec performend the worst across all tasks and failed to complete the full training course on QAp\rightarrow{}R and Q\rightarrow{}AR tasks.
@@ -24,17 +26,17 @@ This would explain why the GLOVE model fails to produce meaningful accuracy beca
 
 \begin{table}[]
     \begin{threeparttable}
-        \begin{tabularx}{\linewidth}{rccccccc}
-            \toprule
-            \multicolumn{8}{c}{Experiment results (vcr-eval)} \\ \midrule
+        \begin{tabularx}{\linewidth}{r||cc|ccc|cc}
+            \hline
+            \multicolumn{8}{c}{Experiment results (vcr-eval)} \\ \hline
              & Q\rightarrow{}A & Q\rightarrow{}A & QA\rightarrow{}R & QA\rightarrow{}R & QAp\rightarrow{}R & Q\rightarrow{}AR & Q\rightarrow{}AR \\
             Wrd Embed. & Shr. & Sep. & Shr. & Sep. & Shr. & Shr & Sep. \\
             Rand Guess & 25\% & 25\% & 25\% & 25\% & 25\% & 6.25\% & 6.25\% \\
             Glove-300 & 52\% & 51\% & 25\% & 47\% & 26\% & 6.4\%\tnote{3} & 6.4\%\tnote{3} \\
             BERT-768 & 63\% & 63\% & 60\%\tnote{3} & 60\%\tnote{3} & 60\%\tnote{3} & 24.7\%\tnote{3} & 24\%\tnote{3} \\
-            w2v-300 & 33\%\tnote{1} & 34\% & 25\% & 32\%\tnote{2}\tnote{3} & -\tnote{1}\tnote{3} & -\tnote{1}\tnote{3} & -\tnote{1}\tnote{3} \\
-            w2v-768 & 32\%\tnote{1} & 34\% & 25\% & 32\% & -\tnote{1}\tnote{3} & -\tnote{1}\tnote{3} & -\tnote{1}\tnote{3} \\
-            \bottomrule
+            w2v-300 & 33\%\tnote{1} & 34\% & 25\% & 32\%\tnote{2}\tnote{3} & - & - & - \\
+            w2v-768 & 32\%\tnote{1} & 34\% & 25\% & 32\% & - & - & - \\
+            \hline
         \end{tabularx}
 
         \begin{tablenotes}
@@ -48,10 +50,12 @@ This would explain why the GLOVE model fails to produce meaningful accuracy beca
         {Original performance results obtained for this dissertation.}
 \end{table}
 
+\todo[inline]{Add discussion on why some experiments are in multi-gpu and some are single-gpu. Include table comparing one of these results.}
+
 \section{Challenges}
 \label{sec:experiment-challenges}
 
-Several errors were encountered during training.
+Several problems were encountered during training.
 The most common error encountered was unstable learning which resulted in NaN loss errors or slow learning.
 NaN losses were frequent when training the model using word2vec embeddings and didn't occur at all when using glove or bert.
 Slow learning rates were observed during glove and word2vec training, especially with Q\rightarrow{}AR training.
