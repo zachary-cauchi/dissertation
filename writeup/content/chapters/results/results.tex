@@ -32,10 +32,10 @@ This would explain why the GLOVE model fails to produce meaningful accuracy beca
              & Q\rightarrow{}A & Q\rightarrow{}A & QA\rightarrow{}R & QA\rightarrow{}R & QAp\rightarrow{}R & Q\rightarrow{}AR & Q\rightarrow{}AR \\
             Wrd Embed. & Shr. & Sep. & Shr. & Sep. & Shr. & Shr & Sep. \\
             Rand Guess & 25\% & 25\% & 25\% & 25\% & 25\% & 6.25\% & 6.25\% \\
-            Glove-300 & 52\% & 51\% & 25\% & 47\% & 26\% & 6.4\%\tnote{3} & 6.4\%\tnote{3} \\
-            BERT-768 & 63\% & 63\% & 60\%\tnote{3} & 60\%\tnote{3} & 60\%\tnote{3} & 24.7\%\tnote{3} & 24\%\tnote{3} \\
-            w2v-300 & 33\%\tnote{1} & 34\% & 25\% & 32\%\tnote{2}\tnote{3} & - & - & - \\
-            w2v-768 & 32\%\tnote{1} & 34\% & 25\% & 32\% & - & - & - \\
+            Glove-300 & 52.1\% & 51.4\% & 25\% & 47.2\% & 25.7\%\tnote{3} & 6.4\%\tnote{3} & 6.4\%\tnote{3} \\
+            BERT-768 & 63.2\% & 63.8\% & 59.5\%\tnote{3} & 60.8\%\tnote{3} & 60\%\tnote{3} & 24.7\%\tnote{3} & 22.2\%\tnote{3} \\
+            w2v-300 & 32.5\%\tnote{1} & 35.1\% & 25\% & 32.8\%\tnote{2}\tnote{3} & - & - & - \\
+            w2v-768 & 32.8\%\tnote{1} & 33.9\% & 25\% & 32.3\% & - & - & - \\
             \hline
         \end{tabularx}
 
@@ -50,7 +50,15 @@ This would explain why the GLOVE model fails to produce meaningful accuracy beca
         {Original performance results obtained for this dissertation.}
 \end{table}
 
+% Multi-GPU big batch (32): 25.9%
+% Multi-GPU small batch (24): 25.4%
+% Single-GPU big batch (48): 25.6%
+% Single-GPU small batch (24): 25.5%
+% Batch size of 48 on QAR tasks causes OOM errors.
+
 \todo[inline]{Add discussion on why some experiments are in multi-gpu and some are single-gpu. Include table comparing one of these results.}
+\todo[inline]{BERT seems to follow a pattern of peaking in the first half of training, then overfitting on the next half.}
+\todo[inline]{ For the qualitative analysis, consider comparing results with the two vcr models, particularly with how MERLOT-RESERVE used a novel training strategy to generalise its model. }
 
 \section{Challenges}
 \label{sec:experiment-challenges}
