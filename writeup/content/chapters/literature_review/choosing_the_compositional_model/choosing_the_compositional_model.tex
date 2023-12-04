@@ -272,5 +272,3 @@ Finally, \textbf{reasoning} is performed by the model inside its reasoning modul
 This is composed of a bidirectional \gls{lstm} which uses the contextualised representation of the question, object attentions, and responses, as input.
 The output is then concatenated with the question and answer representations at each timestep for better gradient control by the loss function.
 The final concatenated sequence is max-pooled, where an \gls{mlp} predicts a \gls{logit} representing confidence in the question-response pair.
-
-\todo[inline]{Given this model is not compositional, I'm not sure whether to remove it or relocate it.}

@@ -23,6 +23,7 @@ This section will give a retrospective of all that was explored in the reviewed 
         LNMN     & No     & No           & Yes   & No  & No  & No      \\
         MMN      & No     & No           & Yes   & Yes & No  & No      \\
         R2C      & No     & No           & No    & No  & Yes & No      \\
+        MERLOT   & No     & No           & No    & No  & Yes & No      \\
         CorefNMN & No     & No           & No    & No  & No  & Yes     \\
         NMNVD    & No     & No           & No    & No  & No  & Yes     \\ \bottomrule
     \end{tabular}
@@ -41,14 +42,12 @@ This would make sense as the dataset, while using synthetic images, prioritises 
 \gls{vcr} is the next discussed task type to be formalised\cite{zellers_recognition_2019}.
 This task extends \gls{vqa} by using realistic images taken from still video frames, omitting knowledge mostly found in the moments leading up to the taken image.
 Through this method, models will need to focus on inferring knowledge either from commonsense knowledge or from finer details in the image.
-Unlike \gls{vqa}, the \gls{vcr} dataset\cite{zellers_recognition_2019} is one of the only few datasets present for this task type due to its recent introduction, with the \gls{r2c} model discussed being one of the models trained and tested on the dataset.
-\todo[inline]{GD-VCR exists which is a more geo-diverse-focused variant of the dataset meant to target commonsense knowledge about different cultures. Should this be introduced?}
+Unlike \gls{vqa}, the \gls{vcr} dataset\cite{zellers_recognition_2019} is one of the only few datasets present for this task type due to its recent introduction, with the \gls{r2c} and MERLOT-RESERVE models discussed being two of the models trained and tested on this dataset.
 
 \gls{vd} is the last task type of these three to be introduced and formalised\cite{das_visual_2019}.
 It follows a more human dialogue-like flow where each image is paired with a caption and question-answers pairs provided as data to the model.
 The questions and answers build context around the image which offer a stricter benchmark on visual comprehension for compositional models such as \gls{nmn}.
 Similar to \gls{vcr}, the VisDial dataset is one of the only datasets which present this task type \cite{das_visual_2019}.
-\todo[inline]{CLEVR-Dialog was recently published which uses CLEVR images. Should this be introduced?}
 
 Despite being task types with different data layouts and amounts of input data, they all share the same goal of providing answers to questions which are grounded in images.
 The main difference between the tasks is in how each of their datasets tackle the various pitfalls and challenges of answering these questions.

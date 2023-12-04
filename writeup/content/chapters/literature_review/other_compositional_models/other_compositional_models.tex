@@ -126,3 +126,19 @@ To address this, the model checks for impersonal pronouns at the question stage 
 Aside from this, a new output module --- known as the Compare module --- is also introduced to handle comparison tasks between two objects.
 This is done by comparing the visual region containing both objects, the image features, and the textual feature parameter, to compute a final result.
 Finally, the model also improves upon the Find module by using three attention iterations to produce more accurate attention regions.
+
+\subsection{Merlot-Reserve}
+\label{subsec:merlot_reserve}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=.75\textwidth,keepaspectratio]{merlot_reserve_model}
+    \captionsource(MERLOT-RESERVE model overview){An overview of the MERLOT-RESERVE model. Of particular note is it's ability to train using audio data unlike any previously-covered model. \label{fig:merlot_reserve_model_overview}}{\citeauthor{zellers_merlot_2022}\cite{zellers_merlot_2022}}
+\end{figure}
+
+To conclude, one final model which can perform \gls{vcr} tasks will be explored.
+The model in question is MERLOT-RESERVE, another \gls{vcr} model by Zellers that can train on images, and either text or audio \cite{zellers_merlot_2022}.
+The model is transformer-based, unlike previously-explored models which are \gls{rnn}-based, and uses a joint encoder to combine both encoded image data and word embeddings into a final prediction.
+It also introduces a novel method for training called Contrastive Span Training, where the model is trained on a dataset of video-audio-subtitle entries to produce a generalised model that can be finetuned onto \gls{vcr} and other tasks\cite{zellers_merlot_2022}.
+To train, each video is paired with a text/audio sequence that has a region masked out and the model must predict the correct audio or text that matches the masked as closely as possible.
+The result is a model that achieved state-of-the-art results at its time\cite{zellers_merlot_2022} and still ranked among the top 15 scoring \gls{vcr} models at the time of writing this dissertation\footnote[1]{\url{https://visualcommonsense.com/leaderboard/}}.
