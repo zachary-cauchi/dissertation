@@ -28,14 +28,14 @@ This would explain why the GLOVE model fails to produce meaningful accuracy beca
     \begin{threeparttable}
         \begin{tabularx}{\linewidth}{r||cc|ccc|cc}
             \hline
-            \multicolumn{8}{c}{Experiment results (vcr-eval)} \\ \hline
-             & Q\rightarrow{}A & Q\rightarrow{}A & QA\rightarrow{}R & QA\rightarrow{}R & QAp\rightarrow{}R & Q\rightarrow{}AR & Q\rightarrow{}AR \\
-            Wrd Embed. & Shr. & Sep. & Shr. & Sep. & Shr. & Shr & Sep. \\
-            Rand Guess & 25\% & 25\% & 25\% & 25\% & 25\% & 6.25\% & 6.25\% \\
-            Glove-300 & 52.1\% & 51.4\% & 60.8\% & 47.2\% & 25.7\%\tnote{3} & 6.4\%\tnote{3} & 6.4\%\tnote{3} \\
-            BERT-768 & 63.2\% & 63.8\% & 59.5\%\tnote{3} & 60.8\%\tnote{3} & 60.7\%\tnote{3} & 24.7\%\tnote{3} & 22.2\%\tnote{3} \\
-            w2v-300 & 32.5\%\tnote{1} & 35.1\% & 25.2\% & 32.8\%\tnote{2}\tnote{3} & - & - & - \\
-            w2v-768 & 32.8\%\tnote{1} & 33.9\% & 25.1\% & 32.3\% & - & - & - \\
+            \multicolumn{8}{c}{Experiment results (vcr-eval)}                                                                                                      \\ \hline
+                       & Q\rightarrow{}A & Q\rightarrow{}A & QA\rightarrow{}R & QA\rightarrow{}R         & QAp\rightarrow{}R & Q\rightarrow{}AR & Q\rightarrow{}AR \\
+            Wrd Embed. & Shr.            & Sep.            & Shr.             & Sep.                     & Shr.              & Shr              & Sep.             \\
+            Rand Guess & 25\%            & 25\%            & 25\%             & 25\%                     & 25\%              & 6.25\%           & 6.25\%           \\
+            Glove-300  & 52.1\%          & 51.4\%          & 60.8\%           & 47.2\%                   & 25.7\%\tnote{3}   & 6.4\%\tnote{3}   & 6.4\%\tnote{3}   \\
+            BERT-768   & 63.2\%          & 63.8\%          & 59.5\%\tnote{3}  & 60.8\%\tnote{3}          & 60.7\%\tnote{3}   & 24.7\%\tnote{3}  & 22.2\%\tnote{3}  \\
+            w2v-300    & 32.5\%\tnote{1} & 35.1\%          & 25.2\%           & 32.8\%\tnote{2}\tnote{3} & -                 & -                & -                \\
+            w2v-768    & 32.8\%\tnote{1} & 33.9\%          & 25.1\%           & 32.3\%                   & -                 & -                & -                \\
             \hline
         \end{tabularx}
 
@@ -46,33 +46,10 @@ This would explain why the GLOVE model fails to produce meaningful accuracy beca
         \end{tablenotes}
     \end{threeparttable}
     \captionsource(Evaluation results)
-        {Evaluation results from running the model across combinations of different token embeddings, VCR task types, and layout generator configurations. \textit{Shr.} refers to models with a shared \gls{bilstm} while \textit{Sep.} refers to one \gls{bilstm} per input sentence. \label{tab:experiment-results}}
-        {Original performance results obtained for this dissertation.}
+    {Evaluation results from running the model across combinations of different token embeddings, VCR task types, and layout generator configurations. \textit{Shr.} refers to models with a shared \gls{bilstm} while \textit{Sep.} refers to one \gls{bilstm} per input sentence. \label{tab:experiment-results}}
+    {Original performance results obtained for this dissertation.}
 \end{table}
 
-% Please add the following required packages to your document preamble:
-% \usepackage{booktabs}
-\begin{table}[]
-    \begin{threeparttable}
-        \begin{tabularx}{\linewidth}{rc|c}
-            \toprule
-            \multicolumn{3}{c}{QA\rightarrow{}R Shr performance} \\
-            \midrule
-            GPU Count   & Batch Size  & Performance  \\
-            2           & 32          & 25.9\%\tnote{1}       \\
-            2           & 24          & 25.4\%       \\
-            1           & 48          & 25.6\%       \\
-            1           & 24          & 25.5\%       \\
-            \bottomrule
-        \end{tabularx}
-        \begin{tablenotes}
-            \item[1] A batch size of 48 was attempted, but resulted in Out-of-Memory errors that prevented training.
-        \end{tablenotes}
-    \end{threeparttable}
-    \captionsource(Multi-GPU vs Single-GPU results)
-        {Experiment results comparing differences in training performance between single-\gls{gpu} and multi-\gls{gpu} setups on QA\rightarrow{}R tasks with shared \gls{bilstm} and GLOVE embeddings. Take note that the batch size in multi-\gls{gpu} experiments is per unit \gls{gpu} and must be multiplied by the number of \glspl{gpu} to obtain the true batch size. \label{tab:single-vs-multi-gpu-experiment-results}}
-        {Original performance results obtained for this dissertation.}
-\end{table}
 
 \todo[inline]{Most QA-R models seem to peak somewhere between 15k-35k iterations.}
 \todo[inline]{Add discussion on why some experiments are in multi-\gls{gpu} and some are single-\gls{gpu}. Include table comparing one of these results.}
@@ -88,4 +65,29 @@ NaN losses were frequent when training the model using word2vec embeddings and d
 Slow learning rates were observed during glove and word2vec training, especially with Q\rightarrow{}AR training.
 Another factor in getting good predictions was batch size, which was strained by the task size and amount of data involved.
 To work around the limited batch size available, training on QA\rightarrow{}R and Q\rightarrow{}AR modes was performed on a multi-\gls{gpu} setup to allow for increased batch size.
-This setup produced better learning rates and prediction performance compared to single-\gls{gpu} training, at the cost of increased runtime due to the synchronisation overhead of keeping the two \gls{gpu} models in mirrored.
+This setup appeared to produce better learning rates and prediction performance compared to single-\gls{gpu} training in some models, at the cost of increased runtime due to the synchronisation overhead of keeping the two \gls{gpu} models in mirrored.
+To examine these findings, an experiment was conducted by comparing the performance of a model trained on multiple \glspl{gpu} with increased total batch size vs single-\gls{gpu} training, the results for which can be found in Table~\ref{tab:single-vs-multi-gpu-experiment-results}.
+While it appears that the model does indeed improve on the results obtained, they do not appear to be stable, with the 2-\gls{gpu}-batch24 result performing 0.1\% worse than the 1-\gls{gpu}-batch24 model.
+\todo[inline]{Could be a fault of the experiment setup or indicate the need for a better training setup.}
+
+\begin{table}[]
+    \begin{threeparttable}
+        \begin{tabularx}{\linewidth}{rc|c}
+            \toprule
+            \multicolumn{3}{c}{QA\rightarrow{}R Shr performance} \\
+            \midrule
+            GPU Count & Batch Size & Performance                 \\
+            2         & 32         & 25.9\%\tnote{1}             \\
+            2         & 24         & 25.4\%                      \\
+            1         & 48         & 25.6\%                      \\
+            1         & 24         & 25.5\%                      \\
+            \bottomrule
+        \end{tabularx}
+        \begin{tablenotes}
+            \item[1] A batch size of 48 was attempted, but resulted in Out-of-Memory errors that prevented training.
+        \end{tablenotes}
+    \end{threeparttable}
+    \captionsource(Multi-GPU vs Single-GPU results)
+    {Experiment results comparing differences in training performance between single-\gls{gpu} and multi-\gls{gpu} setups on QA\rightarrow{}R tasks with shared \gls{bilstm} and GLOVE embeddings. Take note that the batch size in multi-\gls{gpu} experiments is per unit \gls{gpu} and must be multiplied by the number of \glspl{gpu} to obtain the true batch size. \label{tab:single-vs-multi-gpu-experiment-results}}
+    {Original performance results obtained for this dissertation.}
+\end{table}
