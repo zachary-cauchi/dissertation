@@ -50,14 +50,32 @@ This would explain why the GLOVE model fails to produce meaningful accuracy beca
         {Original performance results obtained for this dissertation.}
 \end{table}
 
-% Multi-GPU big batch (32): 25.9%
-% Multi-GPU small batch (24): 25.4%
-% Single-GPU big batch (48): 25.6%
-% Single-GPU small batch (24): 25.5%
-% Batch size of 48 on QAR tasks causes OOM errors.
+% Please add the following required packages to your document preamble:
+% \usepackage{booktabs}
+\begin{table}[]
+    \begin{threeparttable}
+        \begin{tabularx}{\linewidth}{rc|c}
+            \toprule
+            \multicolumn{3}{c}{QA\rightarrow{}R Shr performance} \\
+            \midrule
+            GPU Count   & Batch Size  & Performance  \\
+            2           & 32          & 25.9\%\tnote{1}       \\
+            2           & 24          & 25.4\%       \\
+            1           & 48          & 25.6\%       \\
+            1           & 24          & 25.5\%       \\
+            \bottomrule
+        \end{tabularx}
+        \begin{tablenotes}
+            \item[1] A batch size of 48 was attempted, but resulted in Out-of-Memory errors that prevented training.
+        \end{tablenotes}
+    \end{threeparttable}
+    \captionsource(Multi-GPU vs Single-GPU results)
+        {Experiment results comparing differences in training performance between single-\gls{gpu} and multi-\gls{gpu} setups on QA\rightarrow{}R tasks with shared \gls{bilstm} and GLOVE embeddings. Take note that the batch size in multi-\gls{gpu} experiments is per unit \gls{gpu} and must be multiplied by the number of \glspl{gpu} to obtain the true batch size. \label{tab:single-vs-multi-gpu-experiment-results}}
+        {Original performance results obtained for this dissertation.}
+\end{table}
 
 \todo[inline]{Most QA-R models seem to peak somewhere between 15k-35k iterations.}
-\todo[inline]{Add discussion on why some experiments are in multi-gpu and some are single-gpu. Include table comparing one of these results.}
+\todo[inline]{Add discussion on why some experiments are in multi-\gls{gpu} and some are single-\gls{gpu}. Include table comparing one of these results.}
 \todo[inline]{BERT seems to follow a pattern of peaking in the first half of training, then overfitting on the next half.}
 \todo[inline]{ For the qualitative analysis, consider comparing results with the two vcr models, particularly with how MERLOT-RESERVE used a novel training strategy to generalise its model. }
 
@@ -69,5 +87,5 @@ The most common error encountered was unstable learning which resulted in NaN lo
 NaN losses were frequent when training the model using word2vec embeddings and didn't occur at all when using glove or bert.
 Slow learning rates were observed during glove and word2vec training, especially with Q\rightarrow{}AR training.
 Another factor in getting good predictions was batch size, which was strained by the task size and amount of data involved.
-To work around the limited batch size available, training on QA\rightarrow{}R and Q\rightarrow{}AR modes was performed on a multi-gpu setup to allow for increased batch size.
-This setup produced better learning rates and prediction performance compared to single-gpu training, at the cost of increased runtime due to the synchronisation overhead of keeping the two gpu models in mirrored.
+To work around the limited batch size available, training on QA\rightarrow{}R and Q\rightarrow{}AR modes was performed on a multi-\gls{gpu} setup to allow for increased batch size.
+This setup produced better learning rates and prediction performance compared to single-\gls{gpu} training, at the cost of increased runtime due to the synchronisation overhead of keeping the two \gls{gpu} models in mirrored.
