@@ -41,7 +41,6 @@ The batch size used is 64 for Q\rightarrow{}A tasks, 16 for QA\rightarrow{}R and
 
 \todo[inline]{Most QA-R models seem to peak somewhere between 15k-35k iterations.}
 \todo[inline]{BERT seems to follow a pattern of peaking in the first half of training, then overfitting on the next half.}
-\todo[inline]{ For the qualitative analysis, consider comparing results with the two vcr models, particularly with how MERLOT-RESERVE used a novel training strategy to generalise its model. }
 
 \section{Challenges}
 \label{sec:experiment-challenges}
@@ -94,3 +93,32 @@ This would explain why the GLOVE model fails to produce meaningful accuracy beca
 Interestingly, most models seem likely to overfit, producing peak accuracy at evaluation checkpoints between 15k-3k iterations for Q\rightarrow{}A and QA\rightarrow{}R tasks.
 The Q\rightarrow{}AR task was less likely to show overfitting, with the model peaking at the end of training, suggesting more training iterations are needed.
 It might be suitable to explore different training strategies in the future which would help prevent overfitting, such as the training strategy used by \gls{dpnmn} as discussed in Chapter~\ref{subsec:dual_path_neural_module_network}.
+
+\subsection{Qualitative analysis against other VCR models}
+\label{subsec:qualitative_analysis_against_other_vcr_models}
+
+\begin{table}[]
+    \begin{tabular}{l|ccc}
+        \toprule
+        \multicolumn{4}{c}{Results comparison}                                     \\
+        \midrule
+        Model              & Q\rightarrow{}A & QA\rightarrow{}R & Q\rightarrow{}AR \\
+        \gls{vcr} (val)    & 63.8\%          & 67.2\%           & 43.1\%           \\
+        \gls{vcr} (test)   & 65.1\%          & 67.3\%           & 44.0\%           \\
+        MERLOT-RESERVE (L) & 84.0\%          & 84.9\%           & 72.0\%           \\
+        \midrule
+        \gls{snmn}         & 63.8\%          & 60.8\%           & 24.7\%           \\
+        \bottomrule
+    \end{tabular}
+    \captionsource(Experiment results vs other VCR models)
+    {Experiment results of the \gls{snmn} model compared to the other \gls{snmn} models. The results chosen were the highest-accuracy models from the previously-discussed experiments. \label{tab:snmn_vs_other_vcr_models}}
+    {\gls{r2c} results: \citeauthor{zellers_recognition_2019}\cite{zellers_recognition_2019}, MERLOT-RESERVE results: \citeauthor{zellers_merlot_2022}\cite{zellers_merlot_2022}, \gls{snmn} results: Original performance results obtained for this dissertion.}
+\end{table}
+
+The top results from Table~\ref{tab:experiment-results} can be found compared against the other \gls{vcr} models in Table~\ref{tab:snmn_vs_other_vcr_models}.
+As expected, the model does not outperform the models discussed, being almost 40\% less accurate in Q\rightarrow{}AR tasks when compared to MERLOT-RESERVE.
+Q\rightarrow{}A and QA\rightarrow{}R however produced comparable results to the \gls{r2c} model, only being 6.5\% worse at most.
+Given the large difference in accuracy between BERT and GLOVE, a large factor in the performance similarity might be attributed to BERT.
+It seems as though MERLOT-RESERVE might be making a large improvement thanks to the increased generalisability of both the model owing to its training, and for its subword-based embeddings using \gls{bpe} tables.
+This would align with the growing number of generalised models such as \gls{mmn}, \gls{lnmn}, and now MERLOT-RESERVE.
+Another possible contributing factor is the training approach; whereas this \gls{snmn} model trained solely on the \gls{vcr}-train set, MERLOT-RESERVE pretrained on a much larger dataset combining different data sources (image, text, and audio) in various combinations, and then fine-tuned onto \gls{vcr} for testing.

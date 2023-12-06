@@ -139,6 +139,7 @@ Finally, the model also improves upon the Find module by using three attention i
 To conclude, one final model which can perform \gls{vcr} tasks will be explored.
 The model in question is MERLOT-RESERVE, another \gls{vcr} model by Zellers that can train on images, and either text or audio \cite{zellers_merlot_2022}.
 The model is transformer-based, unlike previously-explored models which are \gls{rnn}-based, and uses a joint encoder to combine both encoded image data and word embeddings into a final prediction.
+The word embeddings are composed using a \gls{bpe} embedding table which creates embedding from a sequence of subword embeddings unlike others such as BERT or GLOVE which generate whole-token embeddings.
 It also introduces a novel method for training called Contrastive Span Training, where the model is trained on a dataset of video-audio-subtitle entries to produce a generalised model that can be finetuned onto \gls{vcr} and other tasks\cite{zellers_merlot_2022}.
 To train, each video is paired with a text/audio sequence that has a region masked out and the model must predict the correct audio or text that matches the masked as closely as possible.
 The result is a model that achieved state-of-the-art results at its time\cite{zellers_merlot_2022} and still ranked among the top 15 scoring \gls{vcr} models at the time of writing this dissertation\footnote[1]{\url{https://visualcommonsense.com/leaderboard/}}.

@@ -34,7 +34,7 @@
 {
     name={RNN},
     description={A Recurrent Neural Network (RNN) is a class of neural network structures that
-    can use its own output as input, in a cyclic manner. This allows it to process input data where order of sequence is important in deriving output, or process data of variable length},
+            can use its own output as input, in a cyclic manner. This allows it to process input data where order of sequence is important in deriving output, or process data of variable length},
     sort=rnn
 }
 \newglossaryentry{logit}
@@ -84,4 +84,9 @@
 {
     name={Bidirectional LSTM},
     description={An \gls{rnn_g} where two \gls{lstm} cells are used to propagate information both forward (through time) and backward (recall past information) for each time step.}
+}
+\newglossaryentry{bpe_g}
+{
+    name={Byte-Pair Encoding},
+    description={ A compression algorithm which merges frequent character/byte sequences into a sequence. }
 }
