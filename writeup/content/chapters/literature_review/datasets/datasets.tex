@@ -60,7 +60,6 @@ In total, \textit{CLEVR} contains 100,000 images and 864,968 questions, with a s
 
 The \textit{\gls{gqa}} dataset was introduced by \citeauthor{hudson_gqa_2019}\cite{hudson_gqa_2019} as a collection of highly compositional questions to better train compositional \gls{vqa} models.
 The dataset contains over 110,000 images --- sourced from various image datasets --- and over 22,000,000 questions.
-\todo[inline]{Elaborate further?}
 
 Alongside each image is a scene-graph which describes the objects in the image, object relations, and image location details.
 Each question in the training set describes a program in the form of semantic steps which --- if executed by a training model --- would lead to a greater probability of predicting the correct answer.
@@ -118,18 +117,17 @@ Evaluation on these \gls{vd} tasks is performed using a custom evaluation protoc
 Its performance is then evaluated by comparing the rank of the human response in the sorted list, checking if the response is in the top-k responses (\textit{recall@k}), and the reciprocal rank of the human response among all other answers.
 Finally, the authors also publish a set of 3 encoders that show how to encode a \gls{vd} task in a machine model.
 These encoders either embed the data in vector space and generate a joint embedding, use a sequence of \glspl{rnn} with attention-over-history to the question-relevant history, or simply store the data in memory and perform lookup when generating a final context vector.
-\todo[inline]{The \gls{vd} models analysed later attempt to solve a problem unique to this task and perhaps \gls{vcr} too known as the 'visual coreference problem'. This involves more than one pronoun or word referring to the same thing. Expand it or build upon this shared feature of both datasets.}
 
 \begin{table}[]
     \begin{tabular}{@{}llcccccc@{}}
-    \toprule
-                                                                &              & \textbf{SHAPES}      & \textbf{VQA (2.0)}         & \textbf{CLEVR}       & \textbf{GQA}         & \textbf{VCR}         & \textbf{VisDial}     \\ \cmidrule(l){2-8}
-    \multicolumn{2}{r}{\textbf{Task Type}}                      & VQA                  & VQA                  & VQA                  & VQA                  & VCR                   & VD                   \\ \cmidrule(l){2-8}
-    \multirow{4}{*}{\rotatebox[origin=c]{90}{\textbf{Details}}} & \# Images    & 244 & 204K & 100K & 113K & 110K & 140K \\
-                                                                & \# Questions & 15K & 1.1M & 853K & 22M & 290K & 1.4M \\
-                                                                & \# Answers   & 244 & 11M & 853K & 22M & 290K & 1.4M \\
-                                                                & Image Type   & Synthetic & Realistic & Synthetic & Realistic & Realistic & Realistic \\
-    \bottomrule
+        \toprule
+                                                                    &              & \textbf{SHAPES} & \textbf{VQA (2.0)} & \textbf{CLEVR} & \textbf{GQA} & \textbf{VCR} & \textbf{VisDial} \\ \cmidrule(l){2-8}
+        \multicolumn{2}{r}{\textbf{Task Type}}                      & VQA          & VQA             & VQA                & VQA            & VCR          & VD                              \\ \cmidrule(l){2-8}
+        \multirow{4}{*}{\rotatebox[origin=c]{90}{\textbf{Details}}} & \# Images    & 244             & 204K               & 100K           & 113K         & 110K         & 140K             \\
+                                                                    & \# Questions & 15K             & 1.1M               & 853K           & 22M          & 290K         & 1.4M             \\
+                                                                    & \# Answers   & 244             & 11M                & 853K           & 22M          & 290K         & 1.4M             \\
+                                                                    & Image Type   & Synthetic       & Realistic          & Synthetic      & Realistic    & Realistic    & Realistic        \\
+        \bottomrule
     \end{tabular}
     \captionsource(Dataset statistics){Breakdown of which visual tasks each dataset targets including the statistics of each dataset.\label{tab:dataset_stats}}{Written for this dissertation}
 \end{table}

@@ -16,14 +16,14 @@ The batch size used is 64 for Q\rightarrow{}A tasks, 16 for QA\rightarrow{}R and
     \begin{threeparttable}
         \begin{tabularx}{\linewidth}{r||cc|ccc|cc}
             \hline
-            \multicolumn{8}{c}{Experiment results (vcr-eval)}                                                                                                      \\ \hline
-                       & Q\rightarrow{}A & Q\rightarrow{}A & QA\rightarrow{}R & QA\rightarrow{}R         & QAp\rightarrow{}R & Q\rightarrow{}AR & Q\rightarrow{}AR \\
-            Wrd Embed. & Shr.            & Sep.            & Shr.             & Sep.                     & Shr.              & Shr              & Sep.             \\
-            Rand Guess & 25\%            & 25\%            & 25\%             & 25\%                     & 25\%              & 6.25\%           & 6.25\%           \\
-            Glove-300  & 52.1\%          & 51.4\%          & 60.8\%           & 47.2\%                   & 25.7\%\tnote{3}   & 6.4\%\tnote{3}   & 6.4\%\tnote{3}   \\
-            BERT-768   & 63.2\%          & 63.8\%          & 59.5\%\tnote{3}  & 60.8\%\tnote{3}          & 60.7\%\tnote{3}   & 24.7\%\tnote{3}  & 22.2\%\tnote{3}  \\
-            w2v-300    & 32.5\%\tnote{1} & 35.1\%          & 25.2\%           & 32.8\%\tnote{2}\tnote{3} & -                 & -                & -                \\
-            w2v-768    & 32.8\%\tnote{1} & 33.9\%          & 25.1\%           & 32.3\%                   & -                 & -                & -                \\
+            \multicolumn{8}{c}{Experiment results (vcr-eval)}                                                                                                                             \\ \hline
+                       & Q\rightarrow{}A & Q\rightarrow{}A & QA\rightarrow{}R & QA\rightarrow{}R         & QAp\rightarrow{}R        & Q\rightarrow{}AR         & Q\rightarrow{}AR         \\
+            Wrd Embed. & Shr.            & Sep.            & Shr.             & Sep.                     & Shr.                     & Shr                      & Sep.                     \\
+            Rand Guess & 25\%            & 25\%            & 25\%             & 25\%                     & 25\%                     & 6.25\%                   & 6.25\%                   \\
+            Glove-300  & 52.1\%          & 51.4\%          & \textbf{60.8\%}  & 47.2\%                   & 25.7\%\tnote{3}          & 6.4\%\tnote{3}           & 6.4\%\tnote{3}           \\
+            BERT-768   & \textbf{63.2\%} & \textbf{63.8\%} & 59.5\%\tnote{3}  & \textbf{60.8\%}\tnote{3} & \textbf{60.7\%}\tnote{3} & \textbf{24.7\%}\tnote{3} & \textbf{22.2\%}\tnote{3} \\
+            w2v-300    & 32.5\%\tnote{1} & 35.1\%          & 25.2\%           & 32.8\%\tnote{2}\tnote{3} & -                        & -                        & -                        \\
+            w2v-768    & 32.8\%\tnote{1} & 33.9\%          & 25.1\%           & 32.3\%                   & -                        & -                        & -                        \\
             \hline
         \end{tabularx}
 
@@ -39,7 +39,6 @@ The batch size used is 64 for Q\rightarrow{}A tasks, 16 for QA\rightarrow{}R and
 \end{table}
 
 
-\todo[inline]{Most QA-R models seem to peak somewhere between 15k-35k iterations.}
 \todo[inline]{BERT seems to follow a pattern of peaking in the first half of training, then overfitting on the next half.}
 
 \section{Challenges}
@@ -54,7 +53,6 @@ To work around the limited batch size available, training on QA\rightarrow{}R an
 This setup appeared to produce better learning rates and prediction performance compared to single-\gls{gpu} training in some models, at the cost of increased runtime due to the synchronisation overhead of keeping the two \gls{gpu} models in mirrored.
 To examine these findings, an experiment was conducted by comparing the performance of a model trained on multiple \glspl{gpu} with increased total batch size vs single-\gls{gpu} training, the results for which can be found in Table~\ref{tab:single-vs-multi-gpu-experiment-results}.
 While it appears that the model does indeed improve on the results obtained, they do not appear to be stable, with the 2-\gls{gpu}-batch24 result performing 0.1\% worse than the 1-\gls{gpu}-batch24 model.
-\todo[inline]{Could be a fault of the experiment setup or indicate the need for a better training setup.}
 
 \begin{table}[]
     \begin{threeparttable}
@@ -90,9 +88,10 @@ When performing the QAp\rightarrow{}R tasks, BERT achieved 60\% while GLOVE fail
 It appears the embeddings BERT produces allow for the model to compensate for possibly-incorrect answers, although this may need to be explored further.
 This would explain why the GLOVE model fails to produce meaningful accuracy because it does not rely on sentence-level context between sentences.
 
-Interestingly, most models seem likely to overfit, producing peak accuracy at evaluation checkpoints between 15k-3k iterations for Q\rightarrow{}A and QA\rightarrow{}R tasks.
-The Q\rightarrow{}AR task was less likely to show overfitting, with the model peaking at the end of training, suggesting more training iterations are needed.
+Interestingly, most models seem likely to overfit, producing peak accuracy at evaluation checkpoints between 15k-30k iterations for Q\rightarrow{}A and QA\rightarrow{}R tasks.
+The Q\rightarrow{}AR task was less likely overfit, with the model peaking at the end of training, suggesting more training iterations are needed.
 It might be suitable to explore different training strategies in the future which would help prevent overfitting, such as the training strategy used by \gls{dpnmn} as discussed in Chapter~\ref{subsec:dual_path_neural_module_network}.
+
 
 \subsection{Qualitative analysis against other VCR models}
 \label{subsec:qualitative_analysis_against_other_vcr_models}
@@ -105,7 +104,7 @@ It might be suitable to explore different training strategies in the future whic
         Model              & Q\rightarrow{}A & QA\rightarrow{}R & Q\rightarrow{}AR \\
         \gls{vcr} (val)    & 63.8\%          & 67.2\%           & 43.1\%           \\
         \gls{vcr} (test)   & 65.1\%          & 67.3\%           & 44.0\%           \\
-        MERLOT-RESERVE (L) & 84.0\%          & 84.9\%           & 72.0\%           \\
+        MERLOT-RESERVE (L) & \textbf{84.0\%} & \textbf{84.9\%}  & \textbf{72.0\%}  \\
         \midrule
         \gls{snmn}         & 63.8\%          & 60.8\%           & 24.7\%           \\
         \bottomrule
@@ -122,3 +121,7 @@ Given the large difference in accuracy between BERT and GLOVE, a large factor in
 It seems as though MERLOT-RESERVE might be making a large improvement thanks to the increased generalisability of both the model owing to its training, and for its subword-based embeddings using \gls{bpe} tables.
 This would align with the growing number of generalised models such as \gls{mmn}, \gls{lnmn}, and now MERLOT-RESERVE.
 Another possible contributing factor is the training approach; whereas this \gls{snmn} model trained solely on the \gls{vcr}-train set, MERLOT-RESERVE pretrained on a much larger dataset combining different data sources (image, text, and audio) in various combinations, and then fine-tuned onto \gls{vcr} for testing.
+
+Besides the embeddings themselves, there may also be the problem of subject inferrence.
+Currently, the model preprocesses the dataset before training on it such that unique instances of an object are replaced by the generic object name and so sentences can often become saturated with subjects (eg: a sentence like 'Why did [1] and [2] steal [3]'s bike' would become 'Why did person and person steal person's bike').
+If there were a way for the model to better distinguish each object reference (such as the visual coreference resolution approach used by \gls{nmnvd}\cite{cho_visual_2021}), the model might perform better in the QA\rightarrow{}R and Q\rightarrow{}AR tasks.
