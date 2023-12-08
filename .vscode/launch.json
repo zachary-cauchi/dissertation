@@ -214,6 +214,24 @@
         },
 
         {
+            "name": "VCR: Test QA-R BERT scratch",
+            "type": "python",
+            "request": "launch",
+            "program": "./exp_vcr/distribute_train_net_vqa.py",
+            "cwd": "${workspaceFolder}/snmn_models",
+            "python": "${command:python.interpreterPath}",
+            "console": "integratedTerminal",
+            "args": [
+                "--cfg",
+                "exp_vcr/cfgs/vcr_qa_r_bert_scratch.yaml",
+                "TEST.ITER",
+                "20000",
+                "TEST.CHECKPOINT",
+                "model.ckpt-20000"
+            ]
+        },
+
+        {
             "name": "VCR: Test QA gt layout",
             "type": "python",
             "request": "launch",
