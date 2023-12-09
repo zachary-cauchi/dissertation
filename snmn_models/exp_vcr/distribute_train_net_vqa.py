@@ -275,9 +275,13 @@ def model_fn(features, labels, mode: tf.estimator.ModeKeys, params):
             'question_tokens': tf.expand_dims(features['question_tokens'][::num_combinations], axis=0),
             'answer': tf.expand_dims(answer, axis=0),
             'answer_tokens': tf.expand_dims(answer_tokens, axis=0),
-            'rationale': tf.expand_dims(rationale, axis=0),
-            'rationale_tokens': tf.expand_dims(rationale_tokens, axis=0)
         }
+
+        if data_reader.load_rationale:
+            predictions.update({
+                'rationale': tf.expand_dims(rationale, axis=0),
+                'rationale_tokens': tf.expand_dims(rationale_tokens, axis=0),
+            })
 
         return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
 
@@ -406,9 +410,13 @@ if cfg.RUN.TEST:
         'question': [],
         'answer': [],
         'all_answers': [],
-        'rationale': [],
-        'all_rationales': [],
     }
+
+    if data_reader.load_rationale:
+        preds.update({
+            'rationale': [],
+            'all_rationales': [],
+        })
 
     vocab_dict = VocabDict(cfg.VOCAB_QUESTION_FILE, first_token_only=True)
 
@@ -425,9 +433,6 @@ if cfg.RUN.TEST:
             preds['rationale'].extend([ int(r) for r in pred['rationale'] ])
             all_rationales_reshaped = np.reshape(pred['rationale_tokens'], [pred['rationale'].shape[0], data_reader.num_combinations, data_reader.T_r_encoder])
             preds['all_rationales'].extend([ list([ ' '.join([ vocab_dict.idx2word(token) for token in tokens if token != 0 ]) for tokens in rationales ]) for rationales in all_rationales_reshaped ])
-
-    del all_answers_reshaped
-    del all_rationales_reshaped
 
     with open(logits_eval_file, 'w') as f:
         a0 = []
@@ -450,7 +455,7 @@ if cfg.RUN.TEST:
     with open(results_eval_file, 'w') as f:
         json_data = []
         for i in range(len(preds['logits'])):
-            json_data.append({
+            json_elem = {
                 'image_id': preds['image_id'][i],
                 'question_id': preds['question_id'][i],
                 'annot_id': preds['annot_id'][i],
@@ -458,10 +463,16 @@ if cfg.RUN.TEST:
                 'answer': preds['answer'][i],
                 'all_answers': preds['all_answers'][i],
                 'answer_str': preds['all_answers'][i][preds['answer'][i]],
-                'rationale': preds['rationale'][i] if len(preds['rationale']) > 0 else '',
-                'all_rationales': preds['all_rationales'][i] if len(preds['rationale']) > 0 else '',
-                'rationale_str': preds['all_rationales'][i][preds['rationale'][i]],
-            })
+            }
+
+            if data_reader.load_rationale:
+                json_elem.update({
+                    'rationale': preds['rationale'][i] if len(preds['rationale']) > 0 else '',
+                    'all_rationales': preds['all_rationales'][i] if len(preds['rationale']) > 0 else '',
+                    'rationale_str': preds['all_rationales'][i][preds['rationale'][i]],
+                })
+
+            json_data.append(json_elem)
 
         json_data = sorted(json_data, key = lambda x: x['question_id'])
 
