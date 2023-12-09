@@ -232,10 +232,10 @@
         },
 
         {
-            "name": "Match correct values",
+            "name": "VCR: Generate prediction metrics",
             "type": "python",
             "request": "launch",
-            "program": "./exp_vcr/match_correct_predictions.py",
+            "program": "./exp_vcr/generate_prediction_metrics.py",
             "cwd": "${workspaceFolder}/snmn_models",
             "python": "${command:python.interpreterPath}",
             "console": "integratedTerminal",
