@@ -240,6 +240,10 @@
             "python": "${command:python.interpreterPath}",
             "console": "integratedTerminal",
             "args": [
+                "--merge-answers-file",
+                "exp_vcr/eval_outputs/vcr_q_a_bert_scratch/vcr_model.ckpt-20000_results.json",
+                "--merge-direction",
+                "predictions",
                 "val_true_answers.json",
                 "exp_vcr/eval_outputs/vcr_qa_r_bert_scratch/vcr_model.ckpt-20000_results.json"
             ]
