@@ -232,6 +232,20 @@
         },
 
         {
+            "name": "Match correct values",
+            "type": "python",
+            "request": "launch",
+            "program": "./exp_vcr/match_correct_predictions.py",
+            "cwd": "${workspaceFolder}/snmn_models",
+            "python": "${command:python.interpreterPath}",
+            "console": "integratedTerminal",
+            "args": [
+                "val_true_answers.json",
+                "exp_vcr/eval_outputs/vcr_qa_r_bert_scratch/vcr_model.ckpt-20000_results.json"
+            ]
+        },
+
+        {
             "name": "VCR: Test QA gt layout",
             "type": "python",
             "request": "launch",

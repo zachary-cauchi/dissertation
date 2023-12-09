@@ -455,12 +455,12 @@ if cfg.RUN.TEST:
                 'question_id': preds['question_id'][i],
                 'annot_id': preds['annot_id'][i],
                 'question': preds['question'][i],
-                'answer_index': preds['answer'][i],
+                'answer': preds['answer'][i],
                 'all_answers': preds['all_answers'][i],
-                'answer': preds['all_answers'][i][preds['answer'][i]],
-                'rationale_index': preds['rationale'][i] if len(preds['rationale']) > 0 else '',
+                'answer_str': preds['all_answers'][i][preds['answer'][i]],
+                'rationale': preds['rationale'][i] if len(preds['rationale']) > 0 else '',
                 'all_rationales': preds['all_rationales'][i] if len(preds['rationale']) > 0 else '',
-                'rationale': preds['all_rationales'][i][preds['rationale'][i]],
+                'rationale_str': preds['all_rationales'][i][preds['rationale'][i]],
             })
 
         json_data = sorted(json_data, key = lambda x: x['question_id'])

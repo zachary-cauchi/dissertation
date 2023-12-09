@@ -66,16 +66,17 @@ with tf.compat.v1.Session() as sess, open(split_vqa + '_true_answers.json', 'w')
                             'question_id': int(qar_record['question_id'][i]),
                             'question': qar_record['question_str'][i].decode(),
                         }
-                        qar['answer'] = [ token.decode() for token in qar_record['all_answers'][i] if len(token) > 0 ]
-                        qar['answer'] = ' '.join(qar['answer'])
+                        qar['answer'] = qar_record['valid_answer_index'][i]
+                        qar['answer_str'] = ' '.join([ token.decode() for token in qar_record['all_answers'][i] if len(token) > 0 ])
                         ri = i + qar_record['valid_rationale_index'][i]
-                        qar['rationale'] = [ token.decode() for token in qar_record['all_rationales'][ri] if len(token) > 0 ]
-                        qar['rationale'] = ' '.join(qar['rationale'])
+                        qar['rationale'] = qar_record['valid_rationale_index'][i]
+                        qar['rationale_str'] = ' '.join([ token.decode() for token in qar_record['all_rationales'][ri] if len(token) > 0 ])
                         qar_sentences.append(qar)
 
                     qars.extend(qar_sentences)
         except tf.errors.OutOfRangeError:
             print(f'Epoch {epoch} finished: End of dataset')
+            qars = sorted(qars, key = lambda x: x['question_id'])
             json.dump(qars, f, indent = 2)
             f.flush()
         end_time = time.time()
