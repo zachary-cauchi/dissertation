@@ -1,4 +1,5 @@
 @startuml
+scale 3
 start
 repeat
   :Get token embeddings;
