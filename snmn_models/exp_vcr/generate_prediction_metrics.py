@@ -91,7 +91,7 @@ print(f'Correct answers: {metrics["correct_answer"]}, correct rationales: {metri
 print(f'Correct predictions: {total_correct_predictions} in {"QA" if not load_rationale else "QAR"} mode ({(total_correct_predictions / total_predictions) * 100:.2f}%).')
 
 if 'correct_answer_incorrect_rationale' in metrics:
-    print(f'Correct answers but incorrect predictions: {metrics["correct_answer_incorrect_rationale"]} ({(metrics["correct_answer_incorrect_rationale"] / total_predictions) * 100:.2f}%)')
+    print(f'Correct answers but incorrect rationales: {metrics["correct_answer_incorrect_rationale"]} ({(metrics["correct_answer_incorrect_rationale"] / total_predictions) * 100:.2f}%)')
 if 'incorrect_answer_correct_rationale' in metrics:
-    print(f'Incorrect answers but correct predictions: {metrics["incorrect_answer_correct_rationale"]} ({(metrics["incorrect_answer_correct_rationale"] / total_predictions) * 100:.2f}%)')
+    print(f'Incorrect answers but correct rationales: {metrics["incorrect_answer_correct_rationale"]} ({(metrics["incorrect_answer_correct_rationale"] / total_predictions) * 100:.2f}%)')
 
