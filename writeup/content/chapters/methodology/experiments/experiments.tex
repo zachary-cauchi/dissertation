@@ -2,8 +2,8 @@
 \label{sec:experiments}
 
 Several experiments were conducted on the model to evaluate its performance on \gls{vcr}.
-The experiments were designed to test the models accuracy across the 3 main task types discussed in Section~\ref{subsec:vcr_dataset} using different word embedding approaches and input encoder configurations.
-Combinations of task type, \gls{bilstm} configuration in the model input unit and input token embedding types (contextual and noncontextual) were chosen as experiments to target what factors improve performance and what task types see the most improvement.
+The experiments were designed to test the models accuracy over the three main task types (Q\rightarrow{}A, QA\rightarrow{}R, Q\rightarrow{}AR) discussed in Section~\ref{subsec:vcr_dataset} using different word embedding approaches and input encoder configurations.
+Combinations of task type, \gls{bilstm} configuration in the model input unit and input token embedding types (contextual and noncontextual) were chosen as experiments to target what factors improve performance and what task types see the biggest improvement in prediction accuracy.
 
 An additional experiment was also conducted on QA\rightarrow{}R to determine how big an influence the input answers had on the predicted rationale, and whether using previously-predicted answers as input would result in a significant drop in accuracy.
 To test this, the model was first trained to predict the correct answers in Q\rightarrow{}A mode, exporting the predicted answers to a prediction file.
