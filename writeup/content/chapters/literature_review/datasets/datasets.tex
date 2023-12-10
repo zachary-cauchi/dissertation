@@ -116,19 +116,3 @@ These encoders either embed the data in vector space and generate a joint embedd
     \includegraphics[width=\textwidth,keepaspectratio]{visdial_dataset_overview}
     \captionsource(Example VisDial entry){Example \gls{vd} task from the \textit{VisDial} dataset. The image is supplied with a caption, a model predicts answers to the questions for that image, and the model must maintain context for each following question using the dialogue history. \label{fig:visdial_question_answer}}{\url{https://visualdialog.org}}
 \end{figure}
-
-\begin{table}[]
-    \begin{tabular}{@{}llcccccc@{}}
-        \toprule
-                                                                    &              & \textbf{SHAPES} & \textbf{VQA (2.0)} & \textbf{CLEVR} & \textbf{GQA} & \textbf{VCR} & \textbf{VisDial} \\ \cmidrule(l){2-8}
-        \multicolumn{2}{r}{\textbf{Task Type}}                      & VQA          & VQA             & VQA                & VQA            & VCR          & VD                              \\ \cmidrule(l){2-8}
-        \multirow{4}{*}{\rotatebox[origin=c]{90}{\textbf{Details}}} & \# Images    & 244             & 204K               & 100K           & 113K         & 110K         & 140K             \\
-                                                                    & \# Questions & 15K             & 1.1M               & 853K           & 22M          & 290K         & 1.4M             \\
-                                                                    & \# Answers   & 244             & 11M                & 853K           & 22M          & 290K         & 1.4M             \\
-                                                                    & Image Type   & Synthetic       & Realistic          & Synthetic      & Realistic    & Realistic    & Realistic        \\
-        \bottomrule
-    \end{tabular}
-    \captionsource(Dataset statistics){Breakdown of which visual tasks each dataset targets including the statistics of each dataset.\label{tab:dataset_stats}}{Written for this dissertation}
-\end{table}
-
-\todo[inline]{Relocate table to discussion section of literature review.}
