@@ -1,9 +1,9 @@
 \graphicspath{{content/chapters/literature_review/choosing_the_compositional_model/figures}}
 
-\section{Choosing the Compositional Model}
+\section{Compositional Model Review}
 \label{sec:choosing_the_compositional_model}
 
-We will be exploring three compositional models which have been considered for this dissertation.
+In this section, we will be exploring three compositional models which have been considered for this dissertation.
 Each subsequent model builds upon the works of the former, adopting a more modular and understandable approach for solving \gls{vqa} tasks while also achieving better performance.
 
 \subsection{Neural Module Network}
@@ -73,11 +73,11 @@ This effectively gives the final output of the model, the predicted answer to th
     \State $q_l$ = "" \Comment{Final network layout.}
     \ForAll{$w \in q_{func}$} \Comment{First "colour", then "tie"}
         \If{IsRoot($w$)}
-            \State PushAnswerNode($q_l$, $w$) \Comment{Either 'measure' or 'classify' node}
+            \State PushAnswerNode($q_l$, $w$) \Comment{Either `measure' or `classify' node}
         \ElsIf{IsLeaf($w$)}
-            \State PushAttendNode($q_l$, $w$) \Comment{Always an 'Attend' node}
+            \State PushAttendNode($q_l$, $w$) \Comment{Always an `Attend' node}
         \Else
-            \State PushReAttentionNode($q_l$, $w$) \Comment{Either 'reattend' or 'combine' node}
+            \State PushReAttentionNode($q_l$, $w$) \Comment{Either `reattend' or `combine' node}
         \EndIf
     \EndFor
     \State \Comment{$q_l$ is now "classify[colour](attend[tie])"}
@@ -158,14 +158,14 @@ The layout controller unrolls itself across all time-steps, repeating the above 
         \hline
         \textbf{Module Name} & \textbf{Inputs \rightarrow Output} & \textbf{Example} \\
         \hline
-        \texttt{Find}       & (None) \rightarrow Att    & \texttt{Find['chair']()} \\
-        \texttt{Transform}  & Att \rightarrow Att       & \texttt{Transform['left']()} \\
+        \texttt{Find}       & (None) \rightarrow Att    & \texttt{Find[`chair']()} \\
+        \texttt{Transform}  & Att \rightarrow Att       & \texttt{Transform[`left']()} \\
         \texttt{And}        & Att, Att \rightarrow Att  & Used internally \\
         \texttt{Or}         & Att, Att \rightarrow Att  & Used internally \\
-        \texttt{Filter}     & Att \rightarrow Att       & \texttt{Filter['blue']()} \\
+        \texttt{Filter}     & Att \rightarrow Att       & \texttt{Filter[`blue']()} \\
         \texttt{Scene}      & (None) \rightarrow Att    & Used internally \\
-        \texttt{Answer}     & Att \rightarrow Ans       & \texttt{Answer['exist']()} \\
-        \texttt{Compare}    & Att, Att \rightarrow Att  & \texttt{Compare['more']()} \\
+        \texttt{Answer}     & Att \rightarrow Ans       & \texttt{Answer[`exist']()} \\
+        \texttt{Compare}    & Att, Att \rightarrow Att  & \texttt{Compare[`more']()} \\
         \texttt{NoOp}       & (None) \rightarrow (None) & Used internally \\
         \hline
     \end{tblr}
@@ -223,7 +223,7 @@ On the \textit{\gls{vqa}v1} dataset, \gls{nmn}, \gls{n2nmn}, and \gls{snmn} achi
 Despite the performance of the \gls{nmn}, there are limitations concerning its ability to answer yes/no questions; as was suggested by \citeauthor{andreas_deep_2016}\cite{andreas_deep_2016}, the model seems to suffer from overfitting when training with yes/no questions.
 Aside from this, the model uses hard-coded textual parameters which lead to measurably worse performance in the CLEVR dataset.
 This problem does not occur in \gls{n2nmn} since the modules use soft-attention module parameters instead of hard-coded textual parameters.
-Additionally, the \gls{n2nmn} seems to learn additional optimisations regarding how it attends to the image (for example: in Figure~\ref{fig:n2nmn_layout_breakdown}, the layout policy seems to 'coordinate' two \texttt{find} modules so that one looks to the 'right side of the red metallic thing' while the other looks to the left to try and find the 'red metallic thing').
+Additionally, the \gls{n2nmn} seems to learn additional optimisations regarding how it attends to the image (for example: in Figure~\ref{fig:n2nmn_layout_breakdown}, the layout policy seems to `coordinate' two \texttt{find} modules so that one looks to the 'right side of the red metallic thing' while the other looks to the left to try and find the 'red metallic thing').
 
 The main drawback to the \gls{n2nmn} is its inability to use back propagation during training, instead relying on end-to-end training using reinforcement learning.
 This limitation is addressed in the \gls{snmn} model, which is able to use back propagation during training thanks to its fully-differentiable layout controller and stack memory structure.

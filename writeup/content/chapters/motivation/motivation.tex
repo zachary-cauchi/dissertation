@@ -1,27 +1,32 @@
 \chapter{Introduction}
 \label{chp:introduction}
 
-The \acrlong{vqa} \gls{ml} problem --- which is a computer vision-language task whereby a system, given a question about an image, can produce an answer prediction \cite{agrawal_vqa_2016} --- has been leading up to a new problem: \acrfull{vcr}.
+The \acrlong{vqa} problem --- which is a computer vision-language task whereby a system, given a question in the presence of an image, can predict an answer to the question \cite{agrawal_vqa_2016} --- has been leading up to a new problem: \acrfull{vcr}.
 The \acrshort{vcr} problem extends the \acrshort{vqa} problem through the complexity of the questions being asked, which require more knowledge and insight to answer than is otherwise immediately apparent in a given image \cite{zellers_recognition_2019}.
-Datasets are available for both \gls{ml} tasks, and there are numerous \gls{ml} models which have been trained for both tasks.
-% Reread and improve readability.
+Datasets are available for both tasks, and there are numerous \gls{ml} models which have been trained for both tasks.
 
-A class of \gls{ml} models targetting \gls{vqa} tasks known as 'compositional models'\cite{andreas_neural_2016} have proven to perform well on \gls{vqa} datasets\cite{fishandi_neural_2023}.
+A class of \gls{ml} models targetting \gls{vqa} tasks known as `compositional models'\cite{andreas_neural_2016} have proven to perform well on \gls{vqa} datasets\cite{fishandi_neural_2023}.
 Such performance is attributed to the nature of their design whereby multiple smaller \gls{ml} modules are used to divide and conquer the steps for solving a \gls{vqa} task.
 To further explore the use of compositional models in such tasks, we will be looking towards taking an existing model and adapting it to solve tasks that require \gls{vcr}.
 
-While any compositional model could have been chosen for this work, the below reasons were established which favoured the chosen model:
+While any compositional model could have been chosen for this work, the below characteristics were established to one model:
 
 \begin{itemize}\label{list:reasons_for_nmn}
     \item The source code for the model and its distribution are available by the original authors along with steps for reproducing their results.
-    \item The architecture of the model is such that each step it takes to solving a \gls{vqa} task is performed in a sequential manner which can be viewed at each individual step and should therefore be easier to interpret when compared to other non-compositional models.
+    \item The architecture of the model is such that each step taken to solve a \gls{vqa} task is performed in a sequential manner which can be viewed at each individual step and should therefore be easier to interpret when compared to other non-compositional models.
           This same behaviour can also be ported to \gls{vcr} tasks which should allow for better exploration of model performance on the task.
-    \item The modular nature of its architecture means future work can expand on its ability to solve \gls{vcr} tasks without necessitating a complete redesign to the model architecture.
+    \item The modular nature of the model architecture means future work can expand on its ability to solve \gls{vcr} tasks without necessitating a complete redesign to the model architecture.
     \item The chosen model is fully differentiable, meaning it can be trained without reinforcement learning or supervision of any kind (such as expert layouts) and produce comparable performance to models trained with layout supervision.
 \end{itemize}
 
-The chosen model will first be trained and then evaluated on its original intended datasets to reproduce the results reported in its publication.
-This will establish that the model is indeed operating as intended.
-It will then be modified to train and be evaluated on the \gls{vcr} dataset where its performance will be measured.
-Its performance will be compared to established \gls{vcr} models to compare the model's performance.
-After following with an analysis of its performance, future work can be outlined.
+\todo[inline]{I do not yet have the script to view the model prediction outputs ready yet. It started as a task earlier in the year but was not fully familiar with the architecture so had set it aside.}
+
+With the above in mind, the below objectives were established:
+
+\begin{itemize}\label{list:list_of_objectives}
+    \item Obtain a working copy of the of the model.
+    \item Confirm the model operates as intended by training it on \gls{vqa} and produce accuracy results matching those published by the model authors (within a reasonable margin).
+    \item Modify the model to be able to train and evaluate on the \gls{vcr} dataset.
+    \item Perform experiments on the model to test whether certain modifications will produce better results or not.
+    \item Following an analysis of its performance, outline future work that may expand upon the findings.
+\end{itemize}

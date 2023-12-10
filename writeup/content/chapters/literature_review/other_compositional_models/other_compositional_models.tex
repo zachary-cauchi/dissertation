@@ -63,7 +63,7 @@ It then applies this controlled reasoning to the current memory state using the 
 
 Proposed by \citeauthor{pahuja_learning_2019} \cite{pahuja_learning_2019}, \gls{lnmn} is based on the \gls{snmn} model however, similar to the \gls{mmn} model, uses general-purpose neural modules instead of hard-coded ones.
 The aim of this architecture was to explore the use of general-purpose neural modules as a robust and generalisable alternative to hard-coded modules and as such, does not achieve better outright performance compared to the \gls{snmn}.
-Each neural module (or 'cell') is classified as either an Answer Module (outputs a memory features to be stored in the stack) or an Attention Module (outputs an attention map) and can either take 3 inputs or 4 inputs as seen in Figure~\ref{fig:lnmn_module_overview}.
+Each neural module (or `cell') is classified as either an Answer Module (outputs a memory features to be stored in the stack) or an Attention Module (outputs an attention map) and can either take 3 inputs or 4 inputs as seen in Figure~\ref{fig:lnmn_module_overview}.
 Each cell contains nodes which perform internal processing of cell inputs or prior node outputs and provide
 To perform training on the model weights, the model performs gradient descent on a batch from the training set.
 To perform training on the model cells and architecture, the model performs an alternative gradient descent step on a random sample batch from the validation set.
@@ -96,18 +96,18 @@ Using this approach, when an unseen recipe is encountered, a new module can stil
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=.75\textwidth,keepaspectratio]{corefnmn_network_overview}
-    \captionsource(\acrshort{corefnmn} Overview){Architecture overview of the \acrshort{corefnmn} model, with emphasis on the newly-introducde 'Refer' module and its internal function. \label{fig:corefnmn_overview}}{\citeauthor{kottur_visual_2018}\cite{kottur_visual_2018}}
+    \captionsource(\acrshort{corefnmn} Overview){Architecture overview of the \acrshort{corefnmn} model, with emphasis on the newly-introducde `Refer' module and its internal function. \label{fig:corefnmn_overview}}{\citeauthor{kottur_visual_2018}\cite{kottur_visual_2018}}
 \end{figure}
 
 One of the main challenges with visual tasks discussed so far (\gls{vqa}, \gls{vcr}, and \gls{vd}) is visual coreference resolution.
-Given a sentence or sentences which, when referrencing an entity, may refer to an entity more than once with more than one noun, phrase, or pronoun (eg. 'Is the lady handing her phone to her sister, the other lady' where 'lady' and 'her' both refer to one lady despite another lady being present in context).
+Given a sentence or sentences which, when referrencing an entity, may refer to an entity more than once with more than one noun, phrase, or pronoun (eg. 'Is the lady handing her phone to her sister, the other lady' where `lady' and `her' both refer to one lady despite another lady being present in context).
 To improve the \gls{nmn} model accuracy in detecting and handling this problem, \citeauthor{kottur_visual_2018} introduce \glsfirst{corefnmn}, an \gls{n2nmn}-based model augmented with new modules to handle \gls{vd} tasks \cite{kottur_visual_2018}.
-One of the main changes to the model architecture is the introduction of a reference pool; a dictionary containing the output attention value of the 'find' modules of the program using the text parameter input as the key.
+One of the main changes to the model architecture is the introduction of a reference pool; a dictionary containing the output attention value of the `find' modules of the program using the text parameter input as the key.
 Each value in the reference pool is therefore an entity which is paired with the first word/phrase to identify it.
-Using this dictionary as input, alongside a textual parameter input, a new 'Refer' module attends to the entity referred to inside the dictionary, producing a soft attention over the dictionary to select the most likely attention map.
+Using this dictionary as input, alongside a textual parameter input, a new `Refer' module attends to the entity referred to inside the dictionary, producing a soft attention over the dictionary to select the most likely attention map.
 Internally, the module measures two things; the likelihood of each key against the target text parameter, and how long its been since the target entity was last mentioned.
 The softmaxed value of each key is then applied to the attention map values to obtain the final module output.
-Aside from the 'Refer' module two other modules are also introduced; a 'Not' module which effectively inverts the input attention map to focus on other regions of the image, and an 'Exclude' module which looks for instances of the specified entity in the text parameter which are not found in the input attention which is also provided.
+Aside from the `Refer' module two other modules are also introduced; a `Not' module which effectively inverts the input attention map to focus on other regions of the image, and an `Exclude' module which looks for instances of the specified entity in the text parameter which are not found in the input attention which is also provided.
 \todo[inline]{The model contains more augmentations suited to \gls{vd}. Should these be explored as well?}
 
 \subsection{Neural Module Network for Visual Dialog}

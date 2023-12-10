@@ -25,7 +25,7 @@ For this, a GloVe model \cite{pennington_glove_2014} was trained on the prepared
 \label{subsec:preparing_the_vcr_data}
 
 There are a number of properties about the dataset that need to be handled when preparing the dataset for processing.
-To begin with, each \gls{vcr} task in the dataset is referred to as an 'annotation' which links one unique question and several answers and rationales to an image.
+To begin with, each \gls{vcr} task in the dataset is referred to as an `annotation' which links one unique question and several answers and rationales to an image.
 Each question, answer, rationale, and image, have a unique annotation index based on the fold and split they're found.
 These indices are important as each annotation entry inside the dataset uses these indices to reference which answer/rationale are correct and which image to use.
 There is only one correct answer/rationale per-annotation, which is the one unique to that annotation alone - all other wrong answers/rationales in that annotation are copies from other annotations and referenced as such by their indices.
