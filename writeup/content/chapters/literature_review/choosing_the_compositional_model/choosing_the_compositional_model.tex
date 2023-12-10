@@ -3,19 +3,20 @@
 \section{Compositional Model Review}
 \label{sec:choosing_the_compositional_model}
 
-In this section, we will be exploring three compositional models which have been considered for this dissertation.
+In this section, we will be exploring three compositional models that have been considered for this dissertation.
+
 Each subsequent model builds upon the works of the former, adopting a more modular and understandable approach for solving \gls{vqa} tasks while also achieving better performance.
 
 \subsection{Neural Module Network}
 \label{subsec:neural_module_network}
 
 The \gls{nmn} model\cite{andreas_neural_2016} is an attention-based compositional model which makes use of an array of \gls{nn} modules to solve \gls{vqa} tasks.
-When given an image-question pair, it will predict an answer to the question using the following procedure:
+When given an image-question pair, it predicts an answer to the question using the following procedure:
 
 \begin{itemize}\label{list:nmn_procedure}
-    \item The image and question preprocessed, extracting their visual and textual features respectively.
-    \item The image features, the question text, and the question features, are fed to the model as inputs.
-    \item A new layout of \gls{nn} modules is created --- as seen in Figure~\ref{fig:nmn_overview} --- by the question parser.
+    \item The image and question are preprocessed, extracting their visual and textual features respectively.
+    \item The image features, the question text and the question features are fed to the model as inputs.
+    \item A new layout of \gls{nn} modules is created (see Figure~\ref{fig:nmn_overview} for an example) by the question parser.
     \item The image features are inputted to each module, computing the output for each module.
     \item The text features are fed to an \acrshort{lstm}. Based on the input features, the outputs of only a specific set of the \gls{nn} modules will also be fed into the \acrshort{lstm}.
     \item The \gls{lstm} and layout outputs are averaged together to produce a final classification prediction as the answer to the input question.
@@ -29,7 +30,7 @@ When given an image-question pair, it will predict an answer to the question usi
 
 Each module in the \gls{nmn} is described in the format \texttt{type[instance](arg1, ...)}, where \texttt{type} denotes the type of operation performed by the module (eg. \texttt{attend} will search for an object in the image) and \texttt{instance} identifies the module amongst other modules of the same type (eg. \texttt{attend[pillow]} identifies an \texttt{attend} module that looks for \texttt{pillow} objects in the image).
 Arguments such as instance or type weights, or other argument types, are shared by the modules.
-The paper introduced five module types for its \gls{nmn} model which can be found in Table~\ref{tab:nmn_module_list}.
+The paper introduced five module types for its \gls{nmn} model which are given in Table~\ref{tab:nmn_module_list}.
 
 \begin{table}
     \captionsource(\acrshort{nmn} module list){\acrshort{nmn} module types and example uses.\label{tab:nmn_module_list}}{\citeauthor{andreas_neural_2016}\cite{andreas_neural_2016}}
@@ -189,10 +190,10 @@ From each time-step after initialisation, every module in the model is executed 
 The result of each module is averaged together to produce a new stack representing the final state of that time-step, and the same averaging is performed on the stack pointer to indicate the top-most element at the end of the time-step.
 The final output of the model is determined by averaging the weighted answer \glspl{logit} across all output modules (see Table~\ref{tab:snmn_module_list}) across all time-steps, and summing them to produce a final output \gls{logit}.
 
-\subsection{Models comparison}
+\subsection{Model comparison}
 \label{subsec:models_comparison}
 
-To discuss and compare the models discussed in Section~\ref{sec:choosing_the_compositional_model}, we will be focusing on their performance across the \textit{SHAPES}, \textit{\gls{vqa}}, and \textit{CLEVR} datasets, discussing and elaborating on the performance metrics presented in Table~\ref{tab:model_performance_vqa}.
+To discuss and compare the models discussed in Sections~\ref{subsec:neural_module_network} to~\ref{subsec:stack_neural_module_network}, we will be focusing on their performance across the \textit{SHAPES}, \textit{\gls{vqa}}, and \textit{CLEVR} datasets, discussing and elaborating on the performance metrics presented in Table~\ref{tab:model_performance_vqa}.
 We will then follow up by highlighting the limitations of each model, and conclude by looking into how easy it is to understand the steps taken by each model to produce the results.
 
 \begin{table}
@@ -206,13 +207,15 @@ We will then follow up by highlighting the limitations of each model, and conclu
         \gls{snmn}\cite{hu_explainable_2019} & - & \textbf{96.5} & \textbf{66.0} & 64.0 \\
         \hline
     \end{tblr}
-    \caption[{\acrshort{vqa} model performance across the \acrshort{vqa} datasets.}]{Comparison of models across the 3 \acrshort{vqa} datasets discussed. Results are measured in percentage accuracy (\%) and obtained from the highest-scoring run with all performance optimisations (such as expert layout) enabled. \label{tab:model_performance_vqa}}
+    \captionsource(\acrshort{vqa} model performance across the \acrshort{vqa} datasets.)
+        {Comparison of models across the 3 \acrshort{vqa} datasets discussed. Results are measured in percentage accuracy (\%) and obtained from the highest-scoring run with all performance optimisations (such as expert layout) enabled. \label{tab:model_performance_vqa}}
+        {Aggregated from their respective publications\cite{andreas_neural_2016,hu_learning_2017,hu_explainable_2019}.}
 \end{table}
 
 Both \gls{nmn} and \gls{n2nmn} performed well on the \textit{SHAPES} dataset, scoring 90.6\% and 100\% respectively.
-While the images themselves are not complex at all - being only low-resolution images of 3-coloured 2d shapes - it served as a benchmark for testing the dynamics of a models layout-construction.
+While the images themselves are not complex at all - being only low-resolution images of 3-coloured 2d shapes - it served as a benchmark for testing the dynamics of a model's layout-construction.
 The questions are also yes/no questions meaning most of the performance may be carried by the models final stage which could be performing guesswork on the text of the question.
-\gls{snmn} was not tested on this dataset so its performance isn't known, but could be assumed to be on-par with \gls{n2nmn} given the similarity in module implementation.
+\gls{snmn} was not tested on this dataset so its performance is not known, but could be assumed to be on-par with \gls{n2nmn} given the similarity in module implementation.
 
 While the \gls{n2nmn} and \gls{snmn} both achieve scores of 83.7\% and 96.5\% on the \textit{CLEVR} dataset respectively, the \gls{nmn} model was not tested on the dataset at the time of its publishing.
 Despite this, it was modified to use the expert layout of the \gls{n2nmn} model so it would be able to train and test on the \textit{CLEVR} dataset, with which it was able to score 72.1\%\cite{hu_learning_2017}.
@@ -228,26 +231,25 @@ Additionally, the \gls{n2nmn} seems to learn additional optimisations regarding 
 The main drawback to the \gls{n2nmn} is its inability to use back propagation during training, instead relying on end-to-end training using reinforcement learning.
 This limitation is addressed in the \gls{snmn} model, which is able to use back propagation during training thanks to its fully-differentiable layout controller and stack memory structure.
 The \gls{snmn} model also shares the same optimisations seen in \gls{n2nmn} of composing a future time-step parameter into the current attention to optimise future time-steps.
-Additionally, the \gls{snmn} model produces more human-interpretable results than the other models, and is supported by an experiment which compares the \gls{snmn} model to a more closely-integrated model known as MAC\cite{hudson_compositional_2018} using human evaluators.
+Additionally, the \gls{snmn} model produces more human-interpretable results than the other models, and is supported by an experiment which compares the \gls{snmn} model to a more closely-integrated model known as MAC\cite{hudson_compositional_2018} using human evaluators\cite{hu_explainable_2019}.
 The model itself shared a very similar approach of using sequential time-steps with textual and visual parameters at each step, but does not use modular networks like the discussed models (see Chapter~\ref{subsec:mac_network} for further details on its implementation).
 While the \gls{snmn} model was found to be more understandable and logically-predictable by human evaluators, its performance in the \gls{vqa} dataset was worse (by about 2\%) compared to the MAC model which was the state-of-the-art at the time\cite{hu_explainable_2019}.
 
-When examining each of these models for ease of inclusion, all models are open-source, with their code-bases being released by the original authors.
+When examining each of these models for ease of inclusion in this project, all models are open-source, with their code-bases being released by the original authors.
 The original \gls{nmn} model however, is discouraged for use by the original author who favours the newer \gls{n2nmn} model for being easier to set up and better performing\footnote{See \url{https://github.com/jacobandreas/nmn2/blob/master/README.md}}.
 Building upon this, the \gls{n2nmn} and \gls{snmn} both share strong similarities in implementation, general architecture, and aims, with the main differences being that the \gls{snmn} uses a different memory structure and modified layout controller.
 Aside from those, it also uses more recent versions of their dependencies which will help with the development given the expected \acrshort{gpu} driver requirements for the specified dependency versions are no longer publicly available.
-% That said, the libraries used by the model are prior to a major version release, which may improve the performance of the model significantly but would necessitate a complete rewrite of the codebase.
-Both these models use this legacy version so they ultimately would both require the same rewrite if done.
+Both these models use this legacy version so ultimately both would require the same rewrite if done.
 As a result of the reasons above, the benefits outlined in the discussion of results,
-and the ease of predictability of the model for human users who do not know the implementations of the model, the \gls{snmn} model will be chosen for this dissertation.
+and the ease of predictability of the model for human users who do not know the implementations of the model, the \gls{snmn} model was chosen for this study.
 
 \clearpage
 \subsection{Recognition to Cognition}
 \label{subsec:recognition_to_cognition}
 
-Having discussed and explored the above \gls{vqa} models, we will now explore a \gls{vcr} model to note the differences between the above \gls{vqa} models and this \gls{vcr} one.
-The model chosen is the \gls{r2c} model\cite{zellers_recognition_2019}, introduced alongside the formal \gls{vcr} task declaration and the \gls{vcr} dataset\cite{zellers_recognition_2019}.
-The model works differently to the compositional models seen above, using the following steps: \textbf{ground}, \textbf{contextualise}, then \textbf{reason}.
+Having discussed and explored the above \gls{vqa} models, we will now explore two \gls{vcr} models to explore the differences between the \gls{vqa} models reviewed in Sections~\ref{subsec:neural_module_network} to~\ref{subsec:stack_neural_module_network} and these \gls{vcr} ones.
+The first \gls{vcr} model chosen is the \gls{r2c} model\cite{zellers_recognition_2019}, introduced alongside the formal \gls{vcr} task declaration and the \gls{vcr} dataset\cite{zellers_recognition_2019}.
+The model a different architecture to the compositional models discussed, instead using the following steps to produce its predictions: \textbf{ground}, \textbf{contextualise}, then \textbf{reason}.
 
 \begin{figure}[htbp]
     \centering
@@ -262,8 +264,8 @@ When given a question-response pair, the model begins by \textbf{grounding} the 
 By doing so, it derives the meaning of the question and the intention of each answer and rationale.
 The grounding module begins by learning an image-language representation for the given tokens, which it shares for the question and responses (since they share the same vocabulary and tags).
 Using this representation, the textual features of the question and responses are obtained.
-Object features are then obtained by first using a \gls{cnn} over the image to obtain the initial object-level features and then combining with that object labels embedding in a shared hidden representation.
-Both the object features and the textual features are fed into a bi-directional \gls{lstm} to produce the final outputs of the grounding module.
+The \gls{resnet}-generated object features are then combined with each object label's embedding to produce a shared hidden representation.
+This shared hidden representation, combining both image and textual features, is fed into a \gls{bilstm} to produce the final outputs of the grounding module.
 
 The outputs of the grounding module are then \textbf{contextualised} using the contextualiser module.
 This performs a cross-multiplied softmax between the question, response, and object attentions to obtain the final contextualised representation of the question and the responses.
@@ -272,3 +274,20 @@ Finally, \textbf{reasoning} is performed by the model inside its reasoning modul
 This is composed of a bidirectional \gls{lstm} which uses the contextualised representation of the question, object attentions, and responses, as input.
 The output is then concatenated with the question and answer representations at each timestep for better gradient control by the loss function.
 The final concatenated sequence is max-pooled, where an \gls{mlp} predicts a \gls{logit} representing confidence in the question-response pair.
+
+\subsection{Merlot-Reserve}
+\label{subsec:merlot_reserve}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=.75\textwidth,keepaspectratio]{merlot_reserve_model}
+    \captionsource(MERLOT-RESERVE model overview){An overview of the MERLOT-RESERVE model. Of particular note is it's ability to train using audio data unlike any previously-covered model. \label{fig:merlot_reserve_model_overview}}{\citeauthor{zellers_merlot_2022}\cite{zellers_merlot_2022}}
+\end{figure}
+
+To conclude, one final model which can perform \gls{vcr} tasks will be explored.
+The model in question is MERLOT-RESERVE, another \gls{vcr} model by Zellers that can train on images, and either text or audio \cite{zellers_merlot_2022}.
+The model is transformer-based, unlike previously-explored models which are \gls{rnn}-based, and uses a joint encoder to combine both encoded image data and word embeddings into a final prediction.
+The word embeddings are composed using a \gls{bpe} embedding table which creates embedding from a sequence of subword embeddings unlike others such as BERT or GLOVE which generate whole-token embeddings\cite{heinzerling_bpemb_2018}.
+It also introduces a novel method for training called Contrastive Span Training, where the model is trained on a dataset of video-audio-subtitle entries to produce a generalised model that can be finetuned onto \gls{vcr} and other tasks\cite{zellers_merlot_2022}.
+To train, each video is paired with a text/audio sequence that has a region masked out and the model must predict the correct audio or text that matches the masked as closely as possible.
+The result is a model that achieved state-of-the-art results at its time\cite{zellers_merlot_2022} and still ranks among the top 15 scoring \gls{vcr} models at the time of writing this dissertation\footnote[1]{\url{https://visualcommonsense.com/leaderboard/}}.

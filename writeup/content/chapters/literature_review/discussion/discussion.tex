@@ -3,29 +3,29 @@
 \section{Discussion}
 \label{sec:literature_review_discussion}
 
-This section will give a retrospective of all that was explored in the reviewed literature, starting from the computer vision tasks tackled, the problems that arose, and how they approached them with possible solutions.
+This section gives a retrospective of all that was explored in the reviewed literature, starting from the computer vision-language tasks tackled, the problems that arose, and how they approached them with possible solutions.
 
-\subsection{Computer Vision Tasks}
-\label{subsec:discussion_computer_vision_tasks}
+\subsection{Vision-Language Tasks}
+\label{subsec:discussion_vision_language_tasks}
 
 \begin{table}[]
-\captionsource(Models against visual datasets){Which models were trained and tested against which datasets.\label{tab:models_against_datasets}}{Written for this dissertation}
+\captionsource(Models against visual datasets){Summary of reviewed models which were trained and tested against which datasets.\label{tab:models_against_datasets}}{See model names for references.}
 \begin{threeparttable}
     \begin{tabular}{@{}rcccccc@{}}
         \toprule
                     & SHAPES & VQA          & CLEVR & GQA & VCR & VisDial \\ \midrule
-        NMN      & Yes    & Yes          & No    & No  & No  & No      \\
-        N2NMN    & Yes    & Yes          & Yes   & No  & No  & No      \\
-        SNMN     & No     & Yes          & Yes   & No  & No\tnote{1} & No      \\
-        NMNs\pm\tnote{2}    & No     & No           & No    & No  & No  & No      \\
-        DPNMN    & No     & No           & Yes   & No  & No  & No      \\
-        MAC      & No     & Yes\tnote{3} & Yes   & Yes & No  & No      \\
-        LNMN     & No     & No           & Yes   & No  & No  & No      \\
-        MMN      & No     & No           & Yes   & Yes & No  & No      \\
-        R2C      & No     & No           & No    & No  & Yes & No      \\
-        MERLOT   & No     & No           & No    & No  & Yes & No      \\
-        CorefNMN & No     & No           & No    & No  & No  & Yes     \\
-        NMNVD    & No     & No           & No    & No  & No  & Yes     \\ \bottomrule
+        NMN\cite{andreas_neural_2016}               & Yes    & Yes          & No    & No  & No  & No      \\
+        N2NMN\cite{hu_learning_2017}                & Yes    & Yes          & Yes   & No  & No  & No      \\
+        SNMN\cite{hu_explainable_2019}              & No     & Yes          & Yes   & No  & No\tnote{1} & No      \\
+        NMNs\pm{}\cite{chen_teaching_2022}\tnote{2} & No     & No           & No    & No  & No  & No      \\
+        DPNMN\cite{su_toward_2020}                  & No     & No           & Yes   & No  & No  & No      \\
+        MAC\cite{hudson_compositional_2018}         & No     & Yes\tnote{3} & Yes   & Yes & No  & No      \\
+        LNMN\cite{pahuja_learning_2019}             & No     & No           & Yes   & No  & No  & No      \\
+        MMN\cite{chen_meta_2020}                    & No     & No           & Yes   & Yes & No  & No      \\
+        R2C\cite{zellers_recognition_2019}          & No     & No           & No    & No  & Yes & No      \\
+        MERLOT\cite{zellers_merlot_2022}            & No     & No           & No    & No  & Yes & No      \\
+        CorefNMN\cite{kottur_visual_2018}           & No     & No           & No    & No  & No  & Yes     \\
+        NMNVD\cite{cho_visual_2021}                 & No     & No           & No    & No  & No  & Yes     \\ \bottomrule
     \end{tabular}
     \begin{tablenotes}
         \item[1] This will be implemented and tested in this dissertation.
@@ -35,14 +35,15 @@ This section will give a retrospective of all that was explored in the reviewed 
 \end{threeparttable}
 \end{table}
 
-\gls{vqa} is the first task discussed and the simplest in structure and challenge; one image, one question, and one required answer which can be open-ended or multi-label.
+\gls{vqa} is the first task discussed and the simplest in structure and challenge; one image, one question, and one required answer which can be multi-label (open-ended with one or more tokens) or multi-class (only one accepted answer such as counting, true/false questions, etc).
 Of the reviewed datasets, it has the largest coverage \cite{andreas_deep_2016,agrawal_vqa_2016,johnson_clevr_2016,hudson_gqa_2019} with the CLEVR dataset having the greatest testing coverage among \gls{nmn}-based models\cite{fishandi_neural_2023}.
 This would make sense as the dataset, while using synthetic images, prioritises highly-compositional questions which require multiple reasoning steps to predict an answer, similar to \gls{gqa}.
 
 \gls{vcr} is the next discussed task type to be formalised\cite{zellers_recognition_2019}.
 This task extends \gls{vqa} by using realistic images taken from still video frames, omitting knowledge mostly found in the moments leading up to the taken image.
 Through this method, models will need to focus on inferring knowledge either from commonsense knowledge or from finer details in the image.
-Unlike \gls{vqa}, the \gls{vcr} dataset\cite{zellers_recognition_2019} is one of the only few datasets present for this task type due to its recent introduction, with the \gls{r2c} and MERLOT-RESERVE models discussed being two of the models trained and tested on this dataset.
+Unlike \gls{vqa}, the \gls{vcr} dataset\cite{zellers_recognition_2019} is one of the only few datasets present for this task type due to its recent introduction.
+The \gls{r2c} and MERLOT-RESERVE models that were reviewed in Section~\ref{subsec:recognition_to_cognition} and~\ref{subsec:merlot_reserve} were both trained and tested on this dataset.
 
 \gls{vd} is the last task type of these three to be introduced and formalised\cite{das_visual_2019}.
 It follows a more human dialogue-like flow where each image is paired with a caption and question-answers pairs provided as data to the model.
@@ -62,11 +63,17 @@ They also concluded that further experiments and analysis on the pretraining of 
 Now that the vision/language tasks have been discussed, the approaches that each model takes to solving the tasks in a compositional manner will be explored.
 
 Marked as the first major step for solving a task, the model must first determine the layout of neural modules, parameters to be passed between these modules, and which module instances to activate.
-This challenge is known as \glsfirst{nas}, and is the task of model finding a suitable model architecture across a search space of possible architectures (as seen in Figure~\ref{fig:neural_architecture_search_overview})\cite{elsken_neural_2019}.
+This challenge is known as \glsfirst{nas}, and is the task of finding a suitable model architecture across a search space of possible architectures (as seen in Figure~\ref{fig:neural_architecture_search_overview})\cite{elsken_neural_2019}.
 The architecture chosen is the one most likely to provide the highest prediction/performance for the given model input when executed.
 This plays a core part in \gls{nmn} models and is explored in Table~\ref{tab:models_module_inventory} since having high-performant modules would not make for good predictions without the proper layout and input parameters.
 Based on the models reviewed, most appear to employ discrete (D) architecture selection either based on rule-based parsing \cite{andreas_neural_2016,chen_meta_2020} or with a \gls{s2s} \gls{rnn} to generate the layout \cite{hu_learning_2017,chen_teaching_2022,su_toward_2020,kottur_visual_2018,cho_visual_2021}.
 On the other end, some models employ a non-discrete (ND) soft layout selection, all of which use a \gls{bilstm} cell to generate module weights and text attention using the given input text embeddings \cite{hu_explainable_2019,hudson_compositional_2018,pahuja_learning_2019}.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth,keepaspectratio]{content/chapters/literature_review/discussion/figures/neural_architecture_search_overview.png}
+    \captionsource(\acrshort{nas} overview){An abstract overview of the \acrshort{nas} task showing how a search strategy chooses the architecture for a search space and how to preemptively filter architectures that obviously wouldn't be suitable using \acrshort{pes}.\label{fig:neural_architecture_search_overview}}{\citeauthor{elsken_neural_2019}\cite{elsken_neural_2019}}
+\end{figure}
 
 Following the layout selection are the actual modules.
 Each model has an inventory defined by several neural module types which are dedicated to specific tasks such as finding objects or comparing, etc.
@@ -84,12 +91,6 @@ The model is trained with a fixed-length sequence of \gls{mac} cells.
 However, each cell has a second output --- besides the attention outputs --- which contains a hidden state created by the previous cell.
 The cell can compute a new hidden state for sharing with the next cell but it can also interpolate between this new state and the previous state, effectively deciding whether or not to skip its own reasoning step.
 This enables the model to soft-reduce the number of reasoning steps it can use in a differentiable manner.
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=\textwidth,keepaspectratio]{content/chapters/literature_review/discussion/figures/neural_architecture_search_overview.png}
-    \captionsource(\acrshort{nas} overview){An abstract overview of the \acrshort{nas} task showing how a search strategy chooses the architecture for a search space and how to preemptively filter architectures that obviously wouldn't be suitable using \acrshort{pes}.\label{fig:neural_architecture_search_overview}}{\citeauthor{elsken_neural_2019}\cite{elsken_neural_2019}}
-\end{figure}
 
 \subsection{Learning strategies}
 \label{subsec:learning_strategies}
@@ -118,7 +119,7 @@ For instance, \gls{lnmn} uses \gls{darts}\cite{liu_darts_2019} which is a differ
     NMN & Rule-based parsing (see Chapter ~\ref{subsec:neural_module_network}). & D & ﬁnd, transform, combine, describe, measure & S  \\
     N2NMN & \gls{s2s} \gls{rnn} (See Chapter ~\ref{subsec:n2nmn}). & D & ﬁnd, relocate, and, or, ﬁlter, count, exist, describe, less, more, equal, compare & S  \\
     SNMN & \gls{bilstm}-generated module weights with txt attention (See Chapter ~\ref{subsec:stack_neural_module_network}). & ND & ﬁnd, transform, and, or, ﬁlter, scene, answer, compare, noOp & S  \\
-    NMNs\pm & Similar to \gls{n2nmn} with type-constrained grammar\cite{gupta_answering_2020}. & D & find, filter, relocate, find-num, find-date, count, compare-num-lt, time-diff, find-max-num, span, compare-date, add, sub & S  \\
+    NMNs\pm{} & Similar to \gls{n2nmn} with type-constrained grammar\cite{gupta_answering_2020}. & D & find, filter, relocate, find-num, find-date, count, compare-num-lt, time-diff, find-max-num, span, compare-date, add, sub & S  \\
     DPNMN & Similar to \gls{n2nmn} with an \gls{rpn} for spatial information. & D & find, relocate, and, or, describe, compare & S  \\
     MAC & \gls{bilstm} and fixed-length cell array where each cell can `skip' itself and relay input to the next cell. & ND & \gls{mac} cells & G  \\
     LNMN & Similar to \gls{snmn} & ND & General modules (Expand further). & G  \\
@@ -127,6 +128,6 @@ For instance, \gls{lnmn} uses \gls{darts}\cite{liu_darts_2019} which is a differ
     NMNVD & Similar to \gls{corefnmn}. & D & find, relocate, and, refer, describe, compare & S  \\ \bottomrule
 \end{tabularx}
 \captionsource(Models module inventory)
-    {A full breakdown of the model inventory and layout construction architecture of each model discussed. Selection denotes whether the module selection of a model is a soft selection (ND) --- and thus trainable with back-propagation --- or fully discrete (D) and instead requires an alternate learning strategy such as reinforcement learning. The Type specifies whether the modules listed are Specified (S) in that they have a fixed behaviour and only their weights and biases are learned, or whether they are Generic (G) and are able to learn and apply different behaviours without prior implementation or knowledge.\label{tab:models_module_inventory}}
+    {A full breakdown of the model inventory and layout construction architecture of each model discussed. `Selection' denotes whether the module selection of a model is a soft selection (ND) --- and thus trainable with back-propagation --- or fully discrete (D) and instead requires an alternate learning strategy such as reinforcement learning. The `Type' specifies whether the modules listed are `Specified' (S) in that they have a fixed behaviour and only their weights and biases are learned, or they're `Generic' (G) and are able to learn and apply different behaviours without prior implementation or knowledge.\label{tab:models_module_inventory}}
     {Adapted from \citeauthor{fishandi_neural_2023}\cite{fishandi_neural_2023} with additional model information from models covered in this literature review}
 \end{table}
