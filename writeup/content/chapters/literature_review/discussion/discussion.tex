@@ -98,7 +98,7 @@ Creating a layout and module arrangement is half the problem, the other half is 
 To train the modules and layout generator of a module, a training strategy would need to be employed, either as a single strategy training the model in an end-to-end manner, or multiple strategies working in tandem but training the layout generator and modules separately.
 
 One major factor deciding how the discussed models are trained is their layout differentiability.
-If a model constructs its layout using a non-discrete or soft selection (such as the \gls{snmn} model using module weights and text attention), it is considered fully differentiable since the layout selection generated will be unique to to the given input and no other input/s.
+If a model constructs its layout using a non-discrete or soft selection (such as the \gls{snmn} model using module weights and text attention), it is considered fully differentiable since the layout selection generated will be unique to the given input and no other input/s.
 If the model uses a discrete selection (such as the \gls{n2nmn} model which produces discrete layouts), it is not fully differentiable since different inputs can produce the same non-unique layouts.
 
 As seen in table~\ref{tab:models_module_inventory}, most models are in fact not fully differentiable, using either rule-based parsers\cite{andreas_neural_2016,chen_meta_2020} or \gls{s2s} \gls{rnn}-based layout generators\cite{hu_learning_2017,chen_teaching_2022,su_toward_2020,kottur_visual_2018,cho_visual_2021}.

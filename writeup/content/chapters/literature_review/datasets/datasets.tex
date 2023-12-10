@@ -4,7 +4,7 @@
 \label{sec:datasets}
 
 In this section, four \gls{vqa} datasets will be explored and discussed to identify the reason they exist and how they aim to improve upon the task of testing models for their targetted task.
-As the strengths and scopes of each one are discussed, two final datasets will be discussed --- which go a step beyond the \gls{vqa} datasets --- to explore the differences in task complexity and the vision/language challenges they aim to address.
+As the strengths and scopes of each one are explored, two final datasets will be discussed --- which go a step beyond the \gls{vqa} datasets --- to explore the differences in task complexity and the vision/language challenges they aim to address.
 
 \subsection{The \textit{SHAPES} dataset}
 \label{subsec:shapes_dataset}
@@ -73,7 +73,7 @@ The images in the dataset are largely frames from movies or clips, and are chose
 Because of this, each question in the dataset is about something present within context that cannot be immediately recognised by simple object detection and will thus require additional cognition to answer.
 The questions, answers, and rationales, also make use of bounding boxes to identify each person/object of interest, and uses their box names when referring to them (see Figure~\ref{fig:vcr_question_answer} for an example of how these are used).
 Aside from answering each question, there is also the additional task of providing the rationale behind the given answer.
-In this subtask, the model would have to produce its reasoning for predicting the initial answer by predicting the correct rationale for the correct answer.
+In this subtask, the model would have to both produce a correct answer prediction for the given question, and then pair that answer with the correct rationale to justify the answer.
 There is only one correct answer and one correct rationale per-question.
 There are 3 modes of question-answering available by the dataset as broken down below:
 
