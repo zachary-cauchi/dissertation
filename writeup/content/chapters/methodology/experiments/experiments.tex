@@ -8,6 +8,7 @@ Combinations of task type, \gls{bilstm} configuration in the model input unit an
 An additional experiment was also conducted on QA\rightarrow{}R to determine how big an influence the input answers had on the predicted rationale, and whether using previously-predicted answers as input would result in a significant drop in accuracy.
 To test this, the model was first trained to predict the correct answers in Q\rightarrow{}A mode, exporting the predicted answers to a prediction file.
 Then a new model was trained in QA\rightarrow{}R mode, using the predicted correct answers instead of the true correct answers.
+This first model would be referred to as the Q\rightarrow{}Ap model with the latter being the QAp\rightarrow{}R model.
 
 \subsection{Setup}
 \label{subsec:experiment-setup}
