@@ -87,8 +87,10 @@ total_predictions = len(predictions)
 total_correct_predictions = len(correct_predictions)
 
 print(f'Evaluated {total_predictions} predictions.')
-print(f'Correct answers: {metrics["correct_answer"]}, correct rationales: {metrics["correct_rationale"]}')
+print(f'Correct answers: {metrics["correct_answer"]} ({(metrics["correct_answer"] / total_predictions) * 100:.2f}%)')
+print(f'Correct rationales: {metrics["correct_rationale"]} ({(metrics["correct_rationale"] / total_predictions) * 100:.2f}%)')
 print(f'Correct predictions: {total_correct_predictions} in {"QA" if not load_rationale else "QAR"} mode ({(total_correct_predictions / total_predictions) * 100:.2f}%).')
+print(f'Incorrect predictions: {metrics["wrong_prediction"]} in {"QA" if not load_rationale else "QAR"} mode ({(metrics["wrong_prediction"] / total_predictions) * 100:.2f}%).')
 
 if 'correct_answer_incorrect_rationale' in metrics:
     print(f'Correct answers but incorrect rationales: {metrics["correct_answer_incorrect_rationale"]} ({(metrics["correct_answer_incorrect_rationale"] / total_predictions) * 100:.2f}%)')
