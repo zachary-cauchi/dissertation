@@ -11,19 +11,24 @@
   note      = {{ISSN}: 10636919}
 }
 
-@article{hu_explainable_2019,
-  title        = {Explainable Neural Computation via Stack Neural Module Networks},
-  url          = {http://arxiv.org/abs/1807.08556},
-  abstract     = {In complex inferential tasks like question answering, machine learning models must confront two challenges: the need to implement a compositional reasoning process, and, in many applications, the need for this reasoning process to be interpretable to assist users in both development and prediction. Existing models designed to produce interpretable traces of their decision-making process typically require these traces to be supervised at training time. In this paper, we present a novel neural modular approach that performs compositional reasoning by automatically inducing a desired sub-task decomposition without relying on strong supervision. Our model allows linking different reasoning tasks though shared modules that handle common routines across tasks. Experiments show that the model is more interpretable to human evaluators compared to other state-of-the-art models: users can better understand the model's underlying reasoning procedure and predict when it will succeed or fail based on observing its intermediate outputs.},
-  journaltitle = {{arXiv}:1807.08556 [cs]},
-  author       = {Hu, Ronghang and Andreas, Jacob and Darrell, Trevor and Saenko, Kate},
-  date         = {2019-03-06},
-  eprinttype   = {arxiv},
-  eprint       = {1807.08556},
-  keywords     = {Computer Science - Computer Vision and Pattern Recognition}
+@incollection{hu_explainable_2019,
+  series    = {Lecture Notes in Computer Science},
+  issn      = {0302-9743},
+  abstract  = {In complex inferential tasks like question answering, machine learning models must confront two challenges: the need to implement a compositional reasoning process, and, in many applications, the need for this reasoning process to be interpretable to assist users in both development and prediction. Existing models designed to produce interpretable traces of their decision-making process typically require these traces to be supervised at training time. In this paper, we present a novel neural modular approach that performs compositional reasoning by automatically inducing a desired sub-task decomposition without relying on strong supervision. Our model allows linking different reasoning tasks though shared modules that handle common routines across tasks. Experiments show that the model is more interpretable to human evaluators compared to other state-of-the-art models: users can better understand the model’s underlying reasoning procedure and predict when it will succeed or fail based on observing its intermediate outputs.},
+  pages     = {55--71},
+  publisher = {Springer International Publishing},
+  booktitle = {Computer Vision – ECCV 2018},
+  isbn      = {9783030012335},
+  title     = {Explainable Neural Computation via Stack Neural Module Networks},
+  copyright = {Springer Nature Switzerland AG 2018},
+  language  = {eng},
+  address   = {Cham},
+  author    = {Hu, Ronghang and Andreas, Jacob and Darrell, Trevor and Saenko, Kate},
+  keywords  = {Interpretable reasoning ; Neural module networks ; Visual question answering}
 }
 
-@misc{he_deep_2015,
+@inproceedings{he_deep_2015,
+  issn       = {1063-6919},
   title      = {Deep Residual Learning for Image Recognition},
   url        = {http://arxiv.org/abs/1512.03385},
   abstract   = {Deeper neural networks are more difﬁcult to train. We present a residual learning framework to ease the training of networks that are substantially deeper than those used previously. We explicitly reformulate the layers as learning residual functions with reference to the layer inputs, instead of learning unreferenced functions. We provide comprehensive empirical evidence showing that these residual networks are easier to optimize, and can gain accuracy from considerably increased depth. On the {ImageNet} dataset we evaluate residual nets with a depth of up to 152 layers—8× deeper than {VGG} nets [41] but still having lower complexity. An ensemble of these residual nets achieves 3.57\% error on the {ImageNet} test set. This result won the 1st place on the {ILSVRC} 2015 classiﬁcation task. We also present analysis on {CIFAR}-10 with 100 and 1000 layers.},
@@ -244,17 +249,18 @@
   keywords   = {Computer Science - Computation and Language}
 }
 
-@misc{chen_meta_2020,
-  title      = {Meta Module Network for Compositional Visual Reasoning},
-  url        = {http://arxiv.org/abs/1910.03230},
-  abstract   = {Neural Module Network ({NMN}) exhibits strong interpretability and compositionality thanks to its handcrafted neural modules with explicit multi-hop reasoning capability. However, most {NMNs} suffer from two critical drawbacks: 1) scalability: customized module for specific function renders it impractical when scaling up to a larger set of functions in complex tasks; 2) generalizability: rigid pre-defined module inventory makes it difficult to generalize to unseen functions in new tasks/domains. To design a more powerful {NMN} architecture for practical use, we propose Meta Module Network ({MMN}) centered on a novel meta module, which can take in function recipes and morph into diverse instance modules dynamically. The instance modules are then woven into an execution graph for complex visual reasoning, inheriting the strong explainability and compositionality of {NMN}. With such a flexible instantiation mechanism, the parameters of instance modules are inherited from the central meta module, retaining the same model complexity as the function set grows, which promises better scalability. Meanwhile, as functions are encoded into the embedding space, unseen functions can be readily represented based on its structural similarity with previously observed ones, which ensures better generalizability. Experiments on {GQA} and {CLEVR} datasets validate the superiority of {MMN} over state-of-the-art {NMN} designs. Synthetic experiments on held-out unseen functions from {GQA} dataset also demonstrate the strong generalizability of {MMN}. Our code and model are released in Github https://github.com/wenhuchen/Meta-Module-Network.},
-  number     = {{arXiv}:1910.03230},
-  publisher  = {{arXiv}},
-  author     = {Chen, Wenhu and Gan, Zhe and Li, Linjie and Cheng, Yu and Wang, William and Liu, Jingjing},
-  date       = {2020-11-07},
-  eprinttype = {arxiv},
-  eprint     = {1910.03230 [cs]},
-  keywords   = {Computer Science - Computer Vision and Pattern Recognition, Computer Science - Machine Learning}
+@article{chen_meta_2020,
+  issn      = {2331-8422},
+  abstract  = {Neural Module Network (NMN) exhibits strong interpretability and compositionality thanks to its handcrafted neural modules with explicit multi-hop reasoning capability. However, most NMNs suffer from two critical drawbacks: 1) scalability: customized module for specific function renders it impractical when scaling up to a larger set of functions in complex tasks; 2) generalizability: rigid pre-defined module inventory makes it difficult to generalize to unseen functions in new tasks/domains. To design a more powerful NMN architecture for practical use, we propose Meta Module Network (MMN) centered on a novel meta module, which can take in function recipes and morph into diverse instance modules dynamically. The instance modules are then woven into an execution graph for complex visual reasoning, inheriting the strong explainability and compositionality of NMN. With such a flexible instantiation mechanism, the parameters of instance modules are inherited from the central meta module, retaining the same model complexity as the function set grows, which promises better scalability. Meanwhile, as functions are encoded into the embedding space, unseen functions can be readily represented based on its structural similarity with previously observed ones, which ensures better generalizability. Experiments on GQA and CLEVR datasets validate the superiority of MMN over state-of-the-art NMN designs. Synthetic experiments on held-out unseen functions from GQA dataset also demonstrate the strong generalizability of MMN. Our code and model are released in Github https://github.com/wenhuchen/Meta-Module-Network.},
+  journal   = {arXiv.org},
+  publisher = {Cornell University Library, arXiv.org},
+  year      = {2020},
+  title     = {Meta Module Network for Compositional Visual Reasoning},
+  copyright = {2020. This work is published under http://arxiv.org/licenses/nonexclusive-distrib/1.0/ (the “License”). Notwithstanding the ProQuest Terms and Conditions, you may use this content in accordance with the terms of the License.},
+  language  = {eng},
+  address   = {Ithaca},
+  author    = {Chen, Wenhu and Gan, Zhe and Li, Linjie and Cheng, Yu and Wang, William and Liu, Jingjing},
+  keywords  = {Coders ; Modular design ; Modules ; Order parameters ; Parameterization ; Reasoning ; Teachers}
 }
 
 @article{chen_teaching_2022,
@@ -285,11 +291,11 @@
   keywords   = {Computer Science - Computer Vision and Pattern Recognition, Computer Science - Computation and Language, Computer Science - Machine Learning, Computer Science - Artificial Intelligence}
 }
 
-@inproceedings{pahuja_learning_2019,
+@article{pahuja_learning_2019,
   issn      = {2331-8422},
   abstract  = {Neural Module Networks, originally proposed for the task of visual question answering, are a class of neural network architectures that involve human-specified neural modules, each designed for a specific form of reasoning. In current formulations of such networks only the parameters of the neural modules and/or the order of their execution is learned. In this work, we further expand this approach and also learn the underlying internal structure of modules in terms of the ordering and combination of simple and elementary arithmetic operators. Our results show that one is indeed able to simultaneously learn both internal module structure and module sequencing without extra supervisory signals for module execution sequencing. With this approach, we report performance comparable to models using hand-designed modules.},
+  journal   = {arXiv.org},
   publisher = {Cornell University Library, arXiv.org},
-  booktitle = {arXiv.org},
   year      = {2019},
   title     = {Structure Learning for Neural Module Networks},
   copyright = {2019. This work is published under http://arxiv.org/licenses/nonexclusive-distrib/1.0/ (the “License”). Notwithstanding the ProQuest Terms and Conditions, you may use this content in accordance with the terms of the License.},
@@ -299,18 +305,18 @@
   keywords  = {Formulations ; Modules ; Neural networks ; Visual tasks}
 }
 
-@misc{liu_darts_2019,
-  title      = {{DARTS}: Differentiable Architecture Search},
-  url        = {http://arxiv.org/abs/1806.09055},
-  shorttitle = {{DARTS}},
-  abstract   = {This paper addresses the scalability challenge of architecture search by formulating the task in a differentiable manner. Unlike conventional approaches of applying evolution or reinforcement learning over a discrete and non-differentiable search space, our method is based on the continuous relaxation of the architecture representation, allowing efficient search of the architecture using gradient descent. Extensive experiments on {CIFAR}-10, {ImageNet}, Penn Treebank and {WikiText}-2 show that our algorithm excels in discovering high-performance convolutional architectures for image classification and recurrent architectures for language modeling, while being orders of magnitude faster than state-of-the-art non-differentiable techniques. Our implementation has been made publicly available to facilitate further research on efficient architecture search algorithms.},
-  number     = {{arXiv}:1806.09055},
-  publisher  = {{arXiv}},
-  author     = {Liu, Hanxiao and Simonyan, Karen and Yang, Yiming},
-  date       = {2019-04-23},
-  eprinttype = {arxiv},
-  eprint     = {1806.09055 [cs, stat]},
-  keywords   = {Computer Science - Computation and Language, Computer Science - Computer Vision and Pattern Recognition, Computer Science - Machine Learning, Statistics - Machine Learning}
+@article{liu_darts_2019,
+  issn      = {2331-8422},
+  abstract  = {This paper addresses the scalability challenge of architecture search by formulating the task in a differentiable manner. Unlike conventional approaches of applying evolution or reinforcement learning over a discrete and non-differentiable search space, our method is based on the continuous relaxation of the architecture representation, allowing efficient search of the architecture using gradient descent. Extensive experiments on CIFAR-10, ImageNet, Penn Treebank and WikiText-2 show that our algorithm excels in discovering high-performance convolutional architectures for image classification and recurrent architectures for language modeling, while being orders of magnitude faster than state-of-the-art non-differentiable techniques. Our implementation has been made publicly available to facilitate further research on efficient architecture search algorithms.},
+  journal   = {arXiv.org},
+  publisher = {Cornell University Library, arXiv.org},
+  year      = {2019},
+  title     = {{DARTS}: Differentiable Architecture Search},
+  copyright = {2019. This work is published under http://arxiv.org/licenses/nonexclusive-distrib/1.0/ (the “License”). Notwithstanding the ProQuest Terms and Conditions, you may use this content in accordance with the terms of the License.},
+  language  = {eng},
+  address   = {Ithaca},
+  author    = {Liu, Hanxiao and Simonyan, Karen and Yang, Yiming},
+  keywords  = {Algorithms ; Image classification ; Searching}
 }
 
 @article{su_toward_2020,
@@ -477,10 +483,13 @@
   keywords  = {Neural networks ; Representations ; State vectors}
 }
 
-@inproceedings{zellers_merlot_2022,
+@article{zellers_merlot_2022,
+  issn      = {2331-8422},
   title     = {MERLOT Reserve: Multimodal Neural Script Knowledge through Vision and Language and Sound},
   author    = {Zellers, Rowan and Lu, Jiasen and Lu, Ximing and Yu, Youngjae and Zhao, Yanpeng and Salehi, Mohammadreza and Kusupati, Aditya and Hessel, Jack and Farhadi, Ali and Choi, Yejin},
   booktitle = {CVPR},
+  journal   = {arXiv.org},
+  publisher = {Cornell University Library, arXiv.org},
   year      = {2022}
 }
 
