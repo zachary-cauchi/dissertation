@@ -3,7 +3,7 @@
 \section{Compositional Model Review}
 \label{sec:choosing_the_compositional_model}
 
-In this section, we will be exploring three compositional models that have been considered for this dissertation.
+In this section, we will be exploring three compositional models that have been considered for this study.
 
 Each subsequent model builds upon the works of the former, adopting a more modular and understandable approach for solving \gls{vqa} tasks while also achieving better performance.
 
@@ -37,13 +37,13 @@ The paper introduced five module types for its \gls{nmn} model which are given i
     \centering
     \begin{tblr}{|c|c|c|c|}
         \hline
-        \textbf{Module Name} & \textbf{Module label} & \textbf{Inputs \rightarrow Output} & \textbf{Example} \\
+        \textbf{Module Name} & \textbf{Module label} & \textbf{Inputs \rightarrow Output} & \textbf{Example}          \\
         \hline
-        Attention       & \texttt{attend}       & Img \rightarrow Att       & \texttt{attend[ladder]}   \\
-        Re-Attention    & \texttt{re-attend}    & Att \rightarrow Att       & \texttt{re-attend[right]}   \\
-        Combination     & \texttt{combine}      & Att, Att \rightarrow Att  & \texttt{combine[include]} \\
-        Classification  & \texttt{classify}     & Img, Att \rightarrow Lbl  & \texttt{classify[colour]}   \\
-        Measurement     & \texttt{measure}      & Att \rightarrow Lbl       & \texttt{measure[count]}   \\
+        Attention            & \texttt{attend}       & Img \rightarrow Att                & \texttt{attend[ladder]}   \\
+        Re-Attention         & \texttt{re-attend}    & Att \rightarrow Att                & \texttt{re-attend[right]} \\
+        Combination          & \texttt{combine}      & Att, Att \rightarrow Att           & \texttt{combine[include]} \\
+        Classification       & \texttt{classify}     & Img, Att \rightarrow Lbl           & \texttt{classify[colour]} \\
+        Measurement          & \texttt{measure}      & Att \rightarrow Lbl                & \texttt{measure[count]}   \\
         \hline
     \end{tblr}
 \end{table}
@@ -64,29 +64,29 @@ To solve this, the \gls{nmn} uses a \acrlong{lstm} question encoder to detect su
 This effectively gives the final output of the model, the predicted answer to the image-question pair.
 
 \begin{algorithm}
-\captionsource(Pseudocode of \acrshort{nmn} solving \acrshort{vqa} task){A simplified pseudocode of how \acrshort{nmn} solves a \acrshort{vqa} task, from layout construction, to answer prediction.}{Original work written for this dissertation}\label{alg:nmn_solving_pseudocode}
-\begin{algorithmic}[1]
-    \State $img_o$ = raw image data \Comment{Original image}
-    \State $q_o$ = "What colour is his tie?" \Comment{Original question}
-    \State $img_f$ = GetImgFeatures($img_o$) \Comment{Convert to feature map}
-    \State $q_{rep}$ = GetUDRepresentation($q_o$) \Comment{Get a Universal Dependency representation}
-    \State $q_{func}$ = MapToFunctions($q_{rep}$) \Comment{"What colour is his tie" \rightarrow "colour(tie)"}
-    \State $q_l$ = "" \Comment{Final network layout.}
-    \ForAll{$w \in q_{func}$} \Comment{First "colour", then "tie"}
+    \captionsource(Pseudocode of \acrshort{nmn} solving \acrshort{vqa} task){A simplified pseudocode of how \acrshort{nmn} solves a \acrshort{vqa} task, from layout construction, to answer prediction.}{Original work written for this study}\label{alg:nmn_solving_pseudocode}
+    \begin{algorithmic}[1]
+        \State $img_o$ = raw image data \Comment{Original image}
+        \State $q_o$ = "What colour is his tie?" \Comment{Original question}
+        \State $img_f$ = GetImgFeatures($img_o$) \Comment{Convert to feature map}
+        \State $q_{rep}$ = GetUDRepresentation($q_o$) \Comment{Get a Universal Dependency representation}
+        \State $q_{func}$ = MapToFunctions($q_{rep}$) \Comment{"What colour is his tie" \rightarrow "colour(tie)"}
+        \State $q_l$ = "" \Comment{Final network layout.}
+        \ForAll{$w \in q_{func}$} \Comment{First "colour", then "tie"}
         \If{IsRoot($w$)}
-            \State PushAnswerNode($q_l$, $w$) \Comment{Either `measure' or `classify' node}
+        \State PushAnswerNode($q_l$, $w$) \Comment{Either `measure' or `classify' node}
         \ElsIf{IsLeaf($w$)}
-            \State PushAttendNode($q_l$, $w$) \Comment{Always an `Attend' node}
+        \State PushAttendNode($q_l$, $w$) \Comment{Always an `Attend' node}
         \Else
-            \State PushReAttentionNode($q_l$, $w$) \Comment{Either `reattend' or `combine' node}
+        \State PushReAttentionNode($q_l$, $w$) \Comment{Either `reattend' or `combine' node}
         \EndIf
-    \EndFor
-    \State \Comment{$q_l$ is now "classify[colour](attend[tie])"}
-    \State $a_{qe}$ = QEncoderPredictAnswer($q_o$) \Comment{Predict answer using \gls{lstm}}
-    \State $a_l$ = LayoutPredictAnswer($q_l$) \Comment{Predict answer using layout and modules}
-    \State \Comment{Get geometric mean of both predictions (layout-generated and \gls{lstm}-generated)}
-    \State $a_{final}$ = $\sqrt[{2}]{a_{qe}a_{l}}$ \Comment{Final answer prediction.}
-\end{algorithmic}
+        \EndFor
+        \State \Comment{$q_l$ is now "classify[colour](attend[tie])"}
+        \State $a_{qe}$ = QEncoderPredictAnswer($q_o$) \Comment{Predict answer using \gls{lstm}}
+        \State $a_l$ = LayoutPredictAnswer($q_l$) \Comment{Predict answer using layout and modules}
+        \State \Comment{Get geometric mean of both predictions (layout-generated and \gls{lstm}-generated)}
+        \State $a_{final}$ = $\sqrt[{2}]{a_{qe}a_{l}}$ \Comment{Final answer prediction.}
+    \end{algorithmic}
 \end{algorithm}
 
 \clearpage
@@ -157,17 +157,17 @@ The layout controller unrolls itself across all time-steps, repeating the above 
     \centering
     \begin{tblr}{|c|c|c|}
         \hline
-        \textbf{Module Name} & \textbf{Inputs \rightarrow Output} & \textbf{Example} \\
+        \textbf{Module Name} & \textbf{Inputs \rightarrow Output} & \textbf{Example}             \\
         \hline
-        \texttt{Find}       & (None) \rightarrow Att    & \texttt{Find[`chair']()} \\
-        \texttt{Transform}  & Att \rightarrow Att       & \texttt{Transform[`left']()} \\
-        \texttt{And}        & Att, Att \rightarrow Att  & Used internally \\
-        \texttt{Or}         & Att, Att \rightarrow Att  & Used internally \\
-        \texttt{Filter}     & Att \rightarrow Att       & \texttt{Filter[`blue']()} \\
-        \texttt{Scene}      & (None) \rightarrow Att    & Used internally \\
-        \texttt{Answer}     & Att \rightarrow Ans       & \texttt{Answer[`exist']()} \\
-        \texttt{Compare}    & Att, Att \rightarrow Att  & \texttt{Compare[`more']()} \\
-        \texttt{NoOp}       & (None) \rightarrow (None) & Used internally \\
+        \texttt{Find}        & (None) \rightarrow Att             & \texttt{Find[`chair']()}     \\
+        \texttt{Transform}   & Att \rightarrow Att                & \texttt{Transform[`left']()} \\
+        \texttt{And}         & Att, Att \rightarrow Att           & Used internally              \\
+        \texttt{Or}          & Att, Att \rightarrow Att           & Used internally              \\
+        \texttt{Filter}      & Att \rightarrow Att                & \texttt{Filter[`blue']()}    \\
+        \texttt{Scene}       & (None) \rightarrow Att             & Used internally              \\
+        \texttt{Answer}      & Att \rightarrow Ans                & \texttt{Answer[`exist']()}   \\
+        \texttt{Compare}     & Att, Att \rightarrow Att           & \texttt{Compare[`more']()}   \\
+        \texttt{NoOp}        & (None) \rightarrow (None)          & Used internally              \\
         \hline
     \end{tblr}
     \captionsource(\acrshort{snmn} module list){\acrshort{snmn} module types and example uses. Some modules are only used internally, or are used as part of the implementation of other modules.\label{tab:snmn_module_list}}{\citeauthor{hu_explainable_2019}\cite{hu_explainable_2019}}
@@ -200,16 +200,16 @@ We will then follow up by highlighting the limitations of each model, and conclu
     \centering
     \begin{tblr}{|l|c|c|c|c|}
         \hline
-        \textbf{Model} & \textbf{SHAPES} & \textbf{CLEVR} & \textbf{VQAv1} & \textbf{VQAv2} \\
+        \textbf{Model}                       & \textbf{SHAPES} & \textbf{CLEVR}              & \textbf{VQAv1}  & \textbf{VQAv2} \\
         \hline
-        \gls{nmn}\cite{andreas_deep_2016} & 90.6 & 72.1\cite{hu_learning_2017} & 55.1 & - \\
-        \gls{n2nmn}\cite{hu_learning_2017} & \textbf{100.0} & 83.7 & 64.9 (test-dev) & 63.3 \\
-        \gls{snmn}\cite{hu_explainable_2019} & - & \textbf{96.5} & \textbf{66.0} & 64.0 \\
+        \gls{nmn}\cite{andreas_deep_2016}    & 90.6            & 72.1\cite{hu_learning_2017} & 55.1            & -              \\
+        \gls{n2nmn}\cite{hu_learning_2017}   & \textbf{100.0}  & 83.7                        & 64.9 (test-dev) & 63.3           \\
+        \gls{snmn}\cite{hu_explainable_2019} & -               & \textbf{96.5}               & \textbf{66.0}   & 64.0           \\
         \hline
     \end{tblr}
     \captionsource(\acrshort{vqa} model performance across the \acrshort{vqa} datasets.)
-        {Comparison of models across the 3 \acrshort{vqa} datasets discussed. Results are measured in percentage accuracy (\%) and obtained from the highest-scoring run with all performance optimisations (such as expert layout) enabled. \label{tab:model_performance_vqa}}
-        {Aggregated from their respective publications\cite{andreas_neural_2016,hu_learning_2017,hu_explainable_2019}.}
+    {Comparison of models across the 3 \acrshort{vqa} datasets discussed. Results are measured in percentage accuracy (\%) and obtained from the highest-scoring run with all performance optimisations (such as expert layout) enabled. \label{tab:model_performance_vqa}}
+    {Aggregated from their respective publications\cite{andreas_neural_2016,hu_learning_2017,hu_explainable_2019}.}
 \end{table}
 
 Both \gls{nmn} and \gls{n2nmn} performed well on the \textit{SHAPES} dataset, scoring 90.6\% and 100\% respectively.
@@ -290,4 +290,4 @@ The model is transformer-based, unlike previously-explored models which are \gls
 The word embeddings are composed using a \gls{bpe} embedding table which creates embedding from a sequence of subword embeddings unlike others such as BERT or GLOVE which generate whole-token embeddings\cite{heinzerling_bpemb_2018}.
 It also introduces a novel method for training called Contrastive Span Training, where the model is trained on a dataset of video-audio-subtitle entries to produce a generalised model that can be finetuned onto \gls{vcr} and other tasks\cite{zellers_merlot_2022}.
 To train, each video is paired with a text/audio sequence that has a region masked out and the model must predict the correct audio or text that matches the masked as closely as possible.
-The result is a model that achieved state-of-the-art results at its time\cite{zellers_merlot_2022} and still ranks among the top 15 scoring \gls{vcr} models at the time of writing this dissertation\footnote[1]{\url{https://visualcommonsense.com/leaderboard/}}.
+The result is a model that achieved state-of-the-art results at its time\cite{zellers_merlot_2022} and still ranks among the top 15 scoring \gls{vcr} models at the time of writing this study\footnote[1]{\url{https://visualcommonsense.com/leaderboard/}}.

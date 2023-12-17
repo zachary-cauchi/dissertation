@@ -35,7 +35,7 @@ The batch size used is 64 for Q\rightarrow{}A tasks, 16 for QA\rightarrow{}R and
     \end{threeparttable}
     \captionsource(Evaluation results)
     {Evaluation results from running the model across combinations of different token embeddings, VCR task types, and layout generator configurations. \textit{Shr.} refers to models with a shared \gls{bilstm} while \textit{Sep.} refers to one \gls{bilstm} per input sentence. \label{tab:experiment-results}}
-    {Original performance results obtained for this dissertation.}
+    {Original performance results obtained for this study.}
 \end{table}
 
 \section{Challenges}
@@ -70,7 +70,7 @@ While it appears that the model does indeed improve on the results obtained, the
     \end{threeparttable}
     \captionsource(Multi-GPU vs Single-GPU results)
     {Experiment results comparing differences in training performance between single-\gls{gpu} and multi-\gls{gpu} setups on QA\rightarrow{}R tasks with shared \gls{bilstm} and GLOVE embeddings. The batch size in multi-\gls{gpu} experiments is per unit \gls{gpu} and must be multiplied by the number of \glspl{gpu} to obtain the true batch size. \label{tab:single-vs-multi-gpu-experiment-results}}
-    {Original performance results obtained for this dissertation.}
+    {Original performance results obtained for this study.}
 \end{table}
 
 \subsection{Discussion of results}
@@ -103,7 +103,7 @@ It might be suitable to explore different training strategies in the future whic
     \end{tabular}
     \captionsource(Accuracy breakdown of QAp\rightarrow{}R results)
     {Breakdown of results for the QAp\rightarrow{}R BERT-model experiments from Table~\ref{tab:experiment-results}. Note that the `correct rationales' metric reflects the score obtained in the results while the `correct answers' metric uses vcr-val answer predictions by the original Q\rightarrow{}Ap BERT-model which seeded the data for the QAp\rightarrow{}R model.\label{tab:qap_r_results_breakdown}}
-    {Original performance results obtained for this dissertation.}
+    {Original performance results obtained for this study.}
 \end{table}
 
 When performing the QAp\rightarrow{}R tasks, BERT achieved 60\% while GLOVE failed to achieve a meaningfully higher score than random guessing (26\% compared to 25\%) and Word2Vec failed outright to complete its training.
