@@ -78,7 +78,7 @@
 \renewcommand{\cfttabindent}{0pt}
 
 % Caption configuration.
-\RequirePackage[justification=centering]{caption}
+\RequirePackage[justification=justified]{caption}
 \captionsetup{labelsep=space}
 
 % Algorithm environment.
@@ -177,16 +177,16 @@
 % Arg 3 {} Mandatory The string used as the description for \caption.
 % Arg 4 {} Mandatory The source of the captioned element, following Arg 1.
 \NewDocumentCommand{\captionsource}{
-  O{Source:} % Optional, delimited by [].
-  D(){#3} % Optional, delimited by ().
-  m% Mandatory
-  m% Mandatory
-  }{%
-  \caption[{#2}]{
-    #3
-    \\ %\hspace{1cm}
-    \textbf{#1} #4
-  }
+    O{Source:} % Optional, delimited by [].
+    D(){#3} % Optional, delimited by ().
+    m% Mandatory
+    m% Mandatory
+}{%
+    \caption[{#2}]{
+        #3
+        \\ %\hspace{1cm}
+        \textbf{#1} #4
+    }
 }
 
 % \newcommand*{\captionsource}[3][Source:]{
