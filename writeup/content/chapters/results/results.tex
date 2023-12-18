@@ -13,6 +13,7 @@ Each experiment model is trained for up to 75k steps with checkpoints taken at 5
 The batch size used is 64 for Q\rightarrow{}A tasks, 16 for QA\rightarrow{}R and Q\rightarrow{}AR using BERT, and 24/32 for QA\rightarrow{}R and Q\rightarrow{}AR using Word2Vec-768 and Word2Vec-300 respectively.
 
 \begin{table}[]
+    \centering
     \begin{threeparttable}
         \begin{tabularx}{\linewidth}{r||cc|ccc|cc}
             \hline
@@ -52,6 +53,7 @@ To examine these findings, an experiment was conducted by comparing the performa
 While it appears that the model does indeed improve on the results obtained, they do not appear to be stable, with the 2-\gls{gpu}-batch24 result performing 0.1\% worse than the 1-\gls{gpu}-batch24 model.
 
 \begin{table}[]
+    \centering
     \begin{threeparttable}
         \begin{tabular}{rc|c}
             \toprule
@@ -87,6 +89,7 @@ The Q\rightarrow{}AR task was less likely overfit, with the model peaking at the
 It might be suitable to explore different training strategies in the future which would help prevent overfitting, such as the training strategy used by \gls{dpnmn} as discussed in Chapter~\ref{subsec:dual_path_neural_module_network}.
 
 \begin{table}[]
+    \centering
     \begin{tabular}{l|rr}
         \toprule
         Metric                                  & Count  & Percentage       \\
@@ -134,6 +137,7 @@ Currently, the model preprocesses the dataset before training on it such that un
 If there were a way for the model to better distinguish each object reference (such as the visual coreference resolution approach used by \gls{nmnvd}\cite{cho_visual_2021}), the model might perform better in the QA\rightarrow{}R and Q\rightarrow{}AR tasks.
 
 \begin{table}[]
+    \centering
     \begin{tabular}{l|ccc}
         \toprule
         \multicolumn{4}{c}{Results comparison}                                     \\
