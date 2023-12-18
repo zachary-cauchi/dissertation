@@ -2,6 +2,7 @@
 \addcontentsline{toc}{chapter}{Abstract}
 
 In the field of \gls{ai} vision-language tasks, \gls{vcr} stands out as an interesting case of requiring an \gls{ai} model to not only predict correct answers, but explain why those answers were chosen.
-The \gls{snmn} model also stands out as a model which tries to predict answers with explainable reasoning by using a memory stack to produce the reasoning steps taken.
-This study adapts the \gls{snmn} model to predict answers and rationales to \gls{vcr} tasks, attempting to obtain viable accuracy in the process.
+The \gls{snmn} model, while not designed to target \gls{vcr} tasks, also stands out for different reasons; it is a compositional model which tries to predict answers to \gls{vqa} tasks a memory stack to store the intermediate taken to predict a final answer.
+These intermediate outputs can then be visualised to better understand how the model is trying to arrive at its conclusion.
+This study adapts the \gls{snmn} model to predict answers and rationales to \gls{vcr} tasks --- attempting to obtain viable accuracy in the process --- while still retaining use of its memory stack to provide intermediate outputs.
 The results do not reveal state-of-the-art accuracy and also showed signs of overfitting, but do suggest avenues for future work that may yet improve the model.
