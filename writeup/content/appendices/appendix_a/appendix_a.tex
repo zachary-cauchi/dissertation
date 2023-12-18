@@ -1,11 +1,28 @@
-\chapter{Generating the input files used by the model.}
+\chapter{Generating the input files used by the model}
 \label{chp:appendix_a}
 
-\todo[inline]{Expand further with the updates to the data processing (use of tfrecords, data pipeline, etc.)}
+Before running the model, the dataset is first prepared into a set of binary tfrecords files.
+These files allow for streaming data to the model in a more optimised manner than json-based files.
+To prepare these files, the image features are first generated using a \gls{resnet}152 model, with each feature file saved as a tfrecords file.
+A script then generates the textual data through the following steps:
+\begin{itemize}
+    \item Extracting the individual \gls{vcr} entries and sorting them by set.
+    \item Record the vocabulary found in all entries and output it to a file.
+    \item Compile a corpus file from the entries.
+    \item Save the entries into imdb files according to set.
+\end{itemize}
 
-A script to generate the final word embeddings for the \gls{imdb} files is then used to perform the below steps:
+The GLOVE word embeddings for the \gls{imdb} files are generated using a script to perform the below steps:
 \begin{itemize}
     \item Generate a co-occurrence matrix on the \gls{corpus} and vocabulary files that were previously compiled.
     \item Convert the co-occurrence matrix to a final 300-dimensional embeddings file.
     \item Convert the embeddings into a binary file for loading and parsing by the model at startup.
 \end{itemize}
+
+To generate the BERT embeddings files, the existing \gls{r2c} author-provided \gls{vcr} embeddings are downloaded.
+They are then extracted into a set tfrecords files according to the set they belong to (train, val, and test).
+
+A script generates the Word2Vec embeddings from the previously-generated vocabulary file.
+The script is configurable to determine the model type used for generating the embeddings and the output vector size.
+
+The final dataloader constructs an optimised data pipeline for the model to consume which concurrently loads and prefetches these separate file sources and maps them into the final expected format for the model to train, evaluate, and test itself.
