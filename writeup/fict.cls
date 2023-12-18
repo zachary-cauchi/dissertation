@@ -11,8 +11,7 @@
 % Set the margins of the document.
 \RequirePackage[a4paper, top=2.54cm, bottom=2.54cm, left=3cm, right=2cm]{geometry}
 
-% Set the text to be left-aligned and indent of 1.27cm
-\raggedright{}
+% Leave the text left-justified (default) but set indent of 1.27cm
 \setlength{\parindent}{1.27cm}
 
 % Set 1.5 line spacing.
