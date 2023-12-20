@@ -1,11 +1,17 @@
 \chapter{Conclusion}
 \label{chp:conclusion}
 
-This study has explored how a subset of computer language-vision models known as the \gls{nmn} models could be adapted to not only answer questions about an image, but also provide the reasoning behind its answer.
+This study has explored how a subset of computer language-vision models known as the \gls{nmn} models could be adapted to not only answer questions about an image, but also provide the reasoning behind its answer; whereas the original model could express its reasoning through the image with which it was prompted, this new model can provide reasoning grounded in commonsense knowledge that is not immediately available in the image.
 Several computer language-vision tasks were explored --- namely \gls{vqa}, \gls{vcr}, and VisDial --- and the model-training challenges that they target.
 A selection of \gls{nmn} models were explored to identify what makes these models desirable among other language-vision model types, namely their compositional nature and their explainability.
 This study presented how one such \gls{nmn} known as the \gls{snmn} performs on the \gls{vcr} dataset, including the modifications needed to the make the model support the dataset.
 The results are not state-of-the-art --- but comparable in accuracy to the reference \gls{vcr} model in the Q\rightarrow{}A and QA\rightarrow{}R tasks --- and struggles when longer input text sequences are supplied.
-Future work may wish to explore the emergence of generalised models (such as \gls{lnmn}, \gls{mmn}) for possibly better results.
+The model memory stack was not examined in this study to determine how the model arrives at its answers, which may serve as a good starting point for future work to explore how the model attends to the image and text features at each timestep, especially where rationale is concerned.
+Such an analysis may help to understand how the model would need to be modified to improve upon its accuracy in \gls{vcr} tasks.
+One such opportunity may be to explore the emergence of generalised models (such as \gls{lnmn}, \gls{mmn}) and see if generalised reasoning would allow the model to learn better from commonsense knowledge than specified reasoning.
 Additional work may explore new training strategies, especially to minimise training errors such as those encountered during this study (\citeauthor{zellers_merlot_2022}'s MERLOT-RESERVE demonstrated that training on a generalised dataset and fine-tuning onto \gls{vcr} produces a model with very good accuracy).
-Lastly, the qualitative analysis of the QAp\rightarrow{}R model results suggested that two models may perform better at Q\rightarrow{}AR than one, due to how the accuracy of the QAp\rightarrow{}R model and seed model produced a combined accuracy higher than the Q\rightarrow{}AR model.
+The qualitative analysis of the QAp\rightarrow{}R model results suggested that two models may perform better at Q\rightarrow{}AR than one, due to how the accuracy of the QAp\rightarrow{}R model and seed model produced a combined accuracy higher than the Q\rightarrow{}AR model.
+Further experimentation with QAp\rightarrow{}R tasks may complement the above-mentioned analysis on the models reasoning.
+Lastly, one other experiment worth considering would be in the order of information presented to the model; in all cases, the model was presented with the text inputs in the order a person would naturally expect them, starting with a question, followed by the answer, and (optionally) the rationale to that answer.
+What if the model were presented with the rationale first --- or the answer first --- and the question last, in a Reverse Polish Notation-inspired format?
+As of the time of writing this study, it has yet to be discovered in any paper relating to \gls{vcr} so it's unknown if it would indeed have an impact on the model accuracy or not.
